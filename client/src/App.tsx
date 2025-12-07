@@ -474,6 +474,7 @@ export function App() {
             onMoveStudy={moveStudy}
             onOpenMethodology={() => setShowMethodologyModal(true)}
             onFolderExam={handleFolderExam}
+            onGoToHome={() => setView('landing')}
         />
       )}
 

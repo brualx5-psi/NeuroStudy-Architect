@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
-import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, BookOpen, X, Edit, CornerDownRight, GraduationCap } from './Icons';
+import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, Home } from './Icons';
 
 interface SidebarProps {
   folders: Folder[];
@@ -17,6 +16,7 @@ interface SidebarProps {
   onMoveStudy: (studyId: string, targetFolderId: string) => void;
   onOpenMethodology: () => void;
   onFolderExam: (folderId: string) => void;
+  onGoToHome: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,7 +32,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMoveFolder,
   onMoveStudy,
   onOpenMethodology,
-  onFolderExam
+  onFolderExam,
+  onGoToHome
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({'default': true, 'quick-studies': true});
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
@@ -208,8 +209,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="w-64 bg-gray-50 border-r border-gray-200 h-screen flex flex-col flex-shrink-0">
-      <div className={`p-4 border-b border-gray-200 transition-colors ${dragOverHeader ? 'bg-indigo-50 ring-inset ring-2 ring-indigo-300' : ''}`} onDragOver={(e) => handleDragOver(e)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e)}>
-        <h1 className="text-xl font-bold text-indigo-900 flex items-center gap-2"><BookOpen className="w-6 h-6 text-indigo-600"/> NeuroStudy</h1>
+      <div 
+        className={`p-4 border-b border-gray-200 transition-colors ${dragOverHeader ? 'bg-indigo-50 ring-inset ring-2 ring-indigo-300' : ''}`}
+        onDragOver={(e) => handleDragOver(e)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e)}
+      >
+        <button 
+          onClick={onGoToHome}
+          className="w-full text-left text-xl font-bold text-indigo-900 flex items-center gap-2 hover:text-indigo-600 transition-colors"
+          title="Voltar à tela inicial"
+        >
+           <Home className="w-6 h-6 text-indigo-600"/> NeuroStudy
+        </button>
         {dragOverHeader && <p className="text-xs text-indigo-500 mt-1">Soltar para mover para Raiz</p>}
       </div>
       <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">{renderFolderTree(undefined)}</div>
