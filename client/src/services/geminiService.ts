@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode, InputType } from "../types";
 
@@ -38,10 +37,8 @@ const RESPONSE_SCHEMA: Schema = {
   required: ["subject", "overview", "coreConcepts", "checkpoints"],
 };
 
-// Helper to fetch real metadata from CrossRef to avoid AI hallucinations
 const fetchDoiMetadata = async (doi: string): Promise<{ title: string, abstract: string } | null> => {
   try {
-    // Clean DOI
     const cleanDoi = doi.trim().replace(/^doi:/i, '').replace(/^https?:\/\/doi\.org\//i, '');
     const response = await fetch(`https://api.crossref.org/works/${cleanDoi}`);
     
@@ -51,9 +48,6 @@ const fetchDoiMetadata = async (doi: string): Promise<{ title: string, abstract:
     const item = data.message;
     
     const title = item.title?.[0] || '';
-    // CrossRef abstracts are often XML/JATS, so we might need simple cleanup or just pass it raw
-    // Usually abstracts are not always available freely via CrossRef, but Titles are.
-    // If abstract is missing, getting the title is already a HUGE help for the AI.
     const abstract = item.abstract || "Resumo não disponível via API pública.";
     
     return { title, abstract };
@@ -76,7 +70,6 @@ export const generateStudyGuide = async (
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelName = 'gemini-2.5-flash'; 
 
-  // --- MODE SPECIFIC INSTRUCTIONS ---
   let modeInstructions = "";
   if (mode === StudyMode.TURBO) {
     modeInstructions = `
@@ -116,7 +109,6 @@ export const generateStudyGuide = async (
     `;
   }
 
-  // --- CONTENT TYPE INSTRUCTIONS ---
   let contentInstructions = "";
   if (isBinary && (mimeType.startsWith('video/') || mimeType.startsWith('audio/'))) {
     contentInstructions = "O conteúdo é um VÍDEO/ÁUDIO. Use 'timestamps' (ex: 00:00-05:00) para dividir os checkpoints.";
@@ -147,10 +139,7 @@ Analise o conteúdo e gere o JSON.
 `;
 
   const parts = [];
-
-  // DOI Detection
   const doiRegex = /\b(10\.\d{4,9}\/[-._;()/:A-Z0-9]+)\b/i;
-  // URL Detection (Simple)
   const urlRegex = /^(http|https):\/\/[^ "]+$/;
 
   const isDoi = !isBinary && doiRegex.test(content);
@@ -158,11 +147,9 @@ Analise o conteúdo e gere o JSON.
 
   if (isDoi) {
     const identifier = content.trim();
-    // Fetch real metadata
     const metadata = await fetchDoiMetadata(identifier);
     
     if (metadata && metadata.title) {
-        // We found real data!
         const instruction = `
           O usuário forneceu um DOI de artigo científico: "${identifier}".
           Nós recuperamos os seguintes metadados REAIS deste paper:
@@ -176,7 +163,6 @@ Analise o conteúdo e gere o JSON.
         `;
         parts.push({ text: instruction });
     } else {
-        // Fallback if fetch fails
         const instruction = `
           O usuário forneceu um DOI: "${identifier}".
           Não foi possível recuperar metadados externos.

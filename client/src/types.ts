@@ -1,4 +1,3 @@
-
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
@@ -25,9 +24,9 @@ export interface Checkpoint {
   lookFor: string;
   noteExactly: string;
   drawExactly: string;
-  drawLabel?: 'essential' | 'suggestion' | 'none'; // New: Classify importance of drawing
+  drawLabel?: 'essential' | 'suggestion' | 'none';
   question: string;
-  imageUrl?: string; // New: Store generated diagram URL
+  imageUrl?: string;
 }
 
 export interface StudyGuide {
@@ -37,7 +36,6 @@ export interface StudyGuide {
   checkpoints: Checkpoint[];
 }
 
-// New Types for Slides and Quiz
 export interface Slide {
   title: string;
   bullets: string[];
@@ -47,10 +45,10 @@ export interface Slide {
 export interface QuizQuestion {
   id: string;
   type: 'multiple_choice' | 'open';
-  difficulty: 'easy' | 'medium' | 'hard'; // New difficulty level
+  difficulty: 'easy' | 'medium' | 'hard';
   question: string;
-  options?: string[]; // For multiple choice
-  correctAnswer: string; // Index (0-3) or text
+  options?: string[];
+  correctAnswer: string;
   explanation: string;
 }
 
@@ -60,12 +58,11 @@ export interface Flashcard {
   back: string;
 }
 
-// Study Management Types
 export interface StudySource {
   id: string;
   type: InputType;
   name: string;
-  content: string; // Text or Base64
+  content: string;
   mimeType?: string;
   dateAdded: number;
 }
@@ -75,7 +72,7 @@ export interface StudySession {
   folderId: string;
   title: string;
   sources: StudySource[];
-  mode: StudyMode; // Track selected mode
+  mode: StudyMode;
   guide: StudyGuide | null;
   slides: Slide[] | null;
   quiz: QuizQuestion[] | null;
@@ -88,7 +85,7 @@ export interface Folder {
   id: string;
   name: string;
   color?: string;
-  parentId?: string; // New: For subfolders
+  parentId?: string;
 }
 
 export interface ProcessingState {
