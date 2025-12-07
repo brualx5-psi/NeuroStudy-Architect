@@ -92,6 +92,13 @@ export const generateStudyGuide = async (
     - Foque APENAS no Pareto 80/20 absoluto. Ignore detalhes menores.
     - Sínteses curtas e diretas.
     `;
+  } else if (mode === StudyMode.PARETO) {
+    modeInstructions = `
+    MODO: PARETO 80/20 (Essencial apenas).
+    - Crie POUCOS checkpoints, abrangendo grandes blocos de tempo.
+    - Foque APENAS no Pareto 80/20 absoluto. Ignore detalhes menores.
+    - Sínteses curtas e diretas.
+    `;
   } else {
     modeInstructions = `
     MODO: NORMAL (Equilibrado).
@@ -284,7 +291,7 @@ export const generateQuiz = async (
 
   let questionCount = config?.quantity || 6;
   if (!config) {
-    if (mode === StudyMode.SURVIVAL) questionCount = 3;
+    if (mode === StudyMode.SURVIVAL || mode === StudyMode.PARETO) questionCount = 3;
     if (mode === StudyMode.TURBO) questionCount = 10;
   }
 
@@ -297,7 +304,7 @@ export const generateQuiz = async (
       - **DIFÍCIL**: Perguntas de análise, comparação sofisticada, crítica e integração entre ideias diferentes.
 
       Distribuição sugerida para o modo ${mode}:
-      ${mode === StudyMode.SURVIVAL ? "Maioria Fáceis e Médias. Foco no essencial." : ""}
+      ${mode === StudyMode.SURVIVAL || mode === StudyMode.PARETO ? "Maioria Fáceis e Médias. Foco no essencial." : ""}
       ${mode === StudyMode.NORMAL ? "Equilibrado: 30% Fácil, 40% Médio, 30% Difícil." : ""}
       ${mode === StudyMode.TURBO ? "Desafiador: Inclua mais questões Difíceis de análise crítica." : ""}
     `;
