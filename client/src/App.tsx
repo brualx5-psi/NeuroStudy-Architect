@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards } from './services/geminiService';
@@ -12,9 +11,10 @@ import { MethodologyModal } from './components/MethodologyModal';
 import { BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight } from './components/Icons';
 
 export function App() {
+  // --- STATE ---
   const [view, setView] = useState<'landing' | 'app'>('landing');
-  const [isParetoMode, setIsParetoMode] = useState(false);
 
+  // Folders & Studies (Mock Database)
   const [folders, setFolders] = useState<Folder[]>([
     { id: 'default', name: 'Meus Estudos' },
     { id: 'biologia', name: 'Biologia' },
@@ -22,15 +22,23 @@ export function App() {
   const [studies, setStudies] = useState<StudySession[]>([]);
   const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
 
+  // Active UI State
   const [activeTab, setActiveTab] = useState<'sources' | 'guide' | 'slides' | 'quiz' | 'flashcards'>('sources');
   const [inputText, setInputText] = useState('');
   const [inputType, setInputType] = useState<InputType>(InputType.TEXT);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Mode Selection
   const [selectedMode, setSelectedMode] = useState<StudyMode>(StudyMode.NORMAL);
+
+  // Quick Start State
   const [quickInputMode, setQuickInputMode] = useState<'none' | 'text'>('none');
+
+  // Renaming State
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleInput, setEditTitleInput] = useState('');
+
+  // Methodology Modal State
   const [showMethodologyModal, setShowMethodologyModal] = useState(false);
 
   const [processingState, setProcessingState] = useState<ProcessingState>({
@@ -39,13 +47,20 @@ export function App() {
     step: 'idle'
   });
 
+  // Refs for Pareto Upload
   const paretoInputRef = useRef<HTMLInputElement>(null);
-  const activeStudy = studies.find(s => s.id === activeStudyId) || null;
 
+  // Derived State (CRITICAL FIX: Derive Pareto state from data, not UI state)
+  const activeStudy = studies.find(s => s.id === activeStudyId) || null;
+  const isParetoStudy = activeStudy?.mode === StudyMode.PARETO;
+
+  // Reset editing state when changing study
   useEffect(() => {
       setIsEditingTitle(false);
       setEditTitleInput('');
   }, [activeStudyId]);
+
+  // --- ACTIONS ---
 
   const createFolder = (name: string, parentId?: string) => {
     const newFolder: Folder = { id: Date.now().toString(), name, parentId };
@@ -59,6 +74,7 @@ export function App() {
 
   const deleteFolder = (id: string) => {
     if (id === 'default' || id === 'quick-studies') return;
+    
     const idsToDelete = new Set<string>();
     const collectIds = (fid: string) => {
         idsToDelete.add(fid);
@@ -68,6 +84,7 @@ export function App() {
 
     setFolders(folders.filter(f => !idsToDelete.has(f.id)));
     setStudies(studies.filter(s => !idsToDelete.has(s.folderId)));
+    
     if (activeStudy?.folderId && idsToDelete.has(activeStudy.folderId)) setActiveStudyId(null);
   };
 
@@ -104,7 +121,10 @@ export function App() {
     };
     setStudies(prev => [...prev, newStudy]);
     setActiveStudyId(newStudy.id);
-    setActiveTab('sources');
+    
+    // Auto-switch tab based on mode (Fix for Pareto view)
+    setActiveTab(mode === StudyMode.PARETO ? 'guide' : 'sources');
+    
     setSelectedMode(mode);
     return newStudy;
   };
@@ -131,6 +151,7 @@ export function App() {
 
   const addSourceToStudy = async () => {
     if (!activeStudyId) return;
+
     let content = '';
     let mimeType = '';
     let name = '';
@@ -159,9 +180,12 @@ export function App() {
     };
 
     setStudies(prev => prev.map(s => {
-      if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource] };
+      if (s.id === activeStudyId) {
+        return { ...s, sources: [...s.sources, newSource] };
+      }
       return s;
     }));
+
     setInputText('');
     setSelectedFile(null);
   };
@@ -169,7 +193,9 @@ export function App() {
   const removeSource = (sourceId: string) => {
     if (!activeStudyId) return;
     setStudies(prev => prev.map(s => {
-      if (s.id === activeStudyId) return { ...s, sources: s.sources.filter(src => src.id !== sourceId) };
+      if (s.id === activeStudyId) {
+        return { ...s, sources: s.sources.filter(src => src.id !== sourceId) };
+      }
       return s;
     }));
   };
@@ -177,12 +203,15 @@ export function App() {
   const handleQuickStart = async (content: string | File, type: InputType, mode: StudyMode = StudyMode.NORMAL, autoGenerate: boolean = false) => {
     let folderId = 'quick-studies';
     let quickFolder = folders.find(f => f.id === folderId);
+    
     if (!quickFolder) {
         const newFolder = { id: folderId, name: '⚡ Estudos Rápidos' };
         setFolders(prev => [...prev, newFolder]);
     }
+
     const title = `Pareto 80/20: ${content instanceof File ? content.name : 'Novo Arquivo'}`;
     const newStudy = createStudy(folderId, title, mode);
+
     let sourceContent = '';
     let mimeType = '';
     let name = '';
@@ -209,9 +238,12 @@ export function App() {
     };
 
     setStudies(prev => prev.map(s => {
-      if (s.id === newStudy.id) return { ...s, sources: [newSource] };
+      if (s.id === newStudy.id) {
+        return { ...s, sources: [newSource] };
+      }
       return s;
     }));
+
     setQuickInputMode('none');
     setInputText('');
     setView('app');
@@ -224,11 +256,11 @@ export function App() {
   const handleParetoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-          setIsParetoMode(true);
           let type = InputType.TEXT;
           if (file.type.includes('pdf')) type = InputType.PDF;
           else if (file.type.includes('video') || file.type.includes('audio')) type = InputType.VIDEO;
           else if (file.type.includes('image')) type = InputType.IMAGE;
+          
           handleQuickStart(file, type, StudyMode.PARETO, true); 
       }
   };
@@ -249,6 +281,7 @@ export function App() {
   const handleFolderExam = (folderId: string) => {
       const folder = folders.find(f => f.id === folderId);
       if (!folder) return;
+
       const folderStudies = studies.filter(s => s.folderId === folderId && s.guide !== null);
 
       if (folderStudies.length === 0) {
@@ -258,6 +291,7 @@ export function App() {
 
       const megaSubject = `Provão: ${folder.name}`;
       const megaOverview = `Exame unificado cobrindo ${folderStudies.length} estudos: ${folderStudies.map(s => s.title).join(', ')}.`;
+      
       const allConcepts = folderStudies.flatMap(s => s.guide!.coreConcepts);
       const allCheckpoints = folderStudies.flatMap(s => s.guide!.checkpoints.map(cp => ({ ...cp, noteExactly: cp.noteExactly.substring(0, 200) }))); 
 
@@ -269,6 +303,7 @@ export function App() {
       };
 
       const examStudy = createStudy(folderId, megaSubject, StudyMode.NORMAL);
+      
       setStudies(prev => prev.map(s => s.id === examStudy.id ? { ...s, guide: megaGuide } : s));
       setActiveTab('quiz');
   };
@@ -283,9 +318,15 @@ export function App() {
         const progressTimer = setTimeout(() => {
             setProcessingState(prev => ({ ...prev, step: 'generating' }));
         }, 3500);
+        
         const guide = await generateStudyGuide(source.content, source.mimeType || 'text/plain', mode, isBinary);
+        
         clearTimeout(progressTimer);
-        setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide } : s));
+
+        setStudies(prev => prev.map(s => 
+            s.id === studyId ? { ...s, guide } : s
+        ));
+        
         setProcessingState({ isLoading: false, error: null, step: 'idle' });
         setActiveTab('guide');
     } catch (err: any) {
@@ -351,7 +392,7 @@ export function App() {
                 <BrainCircuit className="w-8 h-8 text-indigo-600" />
                 <h1 className="text-xl font-bold text-gray-900">NeuroStudy Architect</h1>
             </div>
-            <button onClick={() => { setView('app'); setIsParetoMode(false); }} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
+            <button onClick={() => setView('app')} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
         </header>
 
         <main className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
@@ -363,7 +404,7 @@ export function App() {
                 </div>
 
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-                    <button onClick={() => { setView('app'); setIsParetoMode(false); }} className="group relative flex flex-col items-start p-6 bg-white hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-200 rounded-2xl transition-all w-full md:w-80 shadow-sm hover:shadow-xl hover:-translate-y-1">
+                    <button onClick={() => setView('app')} className="group relative flex flex-col items-start p-6 bg-white hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-200 rounded-2xl transition-all w-full md:w-80 shadow-sm hover:shadow-xl hover:-translate-y-1">
                         <div className="bg-indigo-100 p-3 rounded-xl text-indigo-600 mb-4 group-hover:scale-110 transition-transform"><Layers className="w-8 h-8" /></div>
                         <h3 className="text-lg font-bold text-gray-900">Método NeuroStudy</h3>
                         <p className="text-sm text-gray-500 mt-2 text-left">Acesso completo. Pastas, roteiros, flashcards e professor virtual.</p>
@@ -396,7 +437,7 @@ export function App() {
 
   return (
     <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden animate-in fade-in duration-500">
-      {!isParetoMode && (
+      {!isParetoStudy && (
         <Sidebar 
             folders={folders} 
             studies={studies}
@@ -415,7 +456,7 @@ export function App() {
       )}
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        {activeStudy && !isParetoMode && (
+        {activeStudy && !isParetoStudy && (
           <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-8 flex-shrink-0 z-10">
             {isEditingTitle ? (
                 <div className="flex items-center gap-2">
@@ -442,7 +483,7 @@ export function App() {
           </header>
         )}
 
-        {isParetoMode && activeStudy && (
+        {isParetoStudy && activeStudy && (
             <header className="h-16 border-b border-red-100 bg-red-50 flex items-center justify-between px-8 flex-shrink-0 z-10">
                 <div className="flex items-center gap-3">
                     <button onClick={() => setView('landing')} className="p-1 hover:bg-red-100 rounded-full text-red-700" title="Voltar"><ChevronRight className="w-5 h-5 rotate-180"/></button>
@@ -544,7 +585,7 @@ export function App() {
                 </div>
             ) : (
                 <div className="max-w-5xl mx-auto">
-                    {activeTab === 'sources' && !isParetoMode && (
+                    {activeTab === 'sources' && !isParetoStudy && (
                         <div className="space-y-8 animate-fade-in">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="bg-white p-6 rounded-xl paper-shadow border border-gray-100">
@@ -613,38 +654,38 @@ export function App() {
                         </div>
                     )}
 
-                    {(activeTab === 'guide' || isParetoMode) && (
+                    {(activeTab === 'guide' || isParetoStudy) && (
                         activeStudy.guide || processingState.isLoading ? (
-                            processingState.isLoading && isParetoMode ? (
+                            processingState.isLoading && isParetoStudy ? (
                                 <div className="flex flex-col items-center justify-center h-96"><div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mb-4"></div><h3 className="text-xl font-bold text-gray-700">Extraindo a essência (80/20)...</h3><p className="text-gray-500">Isso pode levar alguns segundos.</p></div>
                             ) : activeStudy.guide ? (
                                 <ResultsView 
                                     guide={activeStudy.guide} 
-                                    onReset={() => { setActiveTab('sources'); if(isParetoMode) setIsParetoMode(false); }}
+                                    onReset={() => { setActiveTab('sources'); if(isParetoStudy) setView('landing'); }}
                                     onGenerateQuiz={() => setActiveTab('quiz')}
                                     onUpdateGuide={(newGuide) => updateStudyGuide(activeStudyId, newGuide)}
-                                    isParetoOnly={isParetoMode}
-                                    onUnlockFullStudy={() => setIsParetoMode(false)}
+                                    isParetoOnly={isParetoStudy}
+                                    onUnlockFullStudy={() => updateStudyMode(activeStudy.id, StudyMode.NORMAL)}
                                 />
                             ) : null
                         ) : (
-                            !isParetoMode && (<div className="text-center py-20 text-gray-400"><p>Nenhum roteiro gerado ainda. Adicione fontes e clique em Gerar.</p></div>)
+                            !isParetoStudy && (<div className="text-center py-20 text-gray-400"><p>Nenhum roteiro gerado ainda. Adicione fontes e clique em Gerar.</p></div>)
                         )
                     )}
 
-                    {activeTab === 'slides' && !isParetoMode && (
+                    {activeTab === 'slides' && !isParetoStudy && (
                          <div className="animate-fade-in">
                             {activeStudy.slides ? (<SlidesView slides={activeStudy.slides} />) : (<div className="flex flex-col items-center justify-center py-20 text-center"><Monitor className="w-16 h-16 text-gray-200 mb-4" /><h3 className="text-xl font-bold text-gray-700 mb-2">Slides de Aula</h3><p className="text-gray-500 mb-6 max-w-md">Gere uma apresentação estruturada pronta para usar ou revisar, baseada no seu roteiro.</p><button onClick={handleGenerateSlides} disabled={!activeStudy.guide || processingState.isLoading} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50">{processingState.isLoading ? 'Criando Slides...' : 'Gerar Slides Agora'}</button></div>)}
                          </div>
                     )}
 
-                    {activeTab === 'quiz' && !isParetoMode && (
+                    {activeTab === 'quiz' && !isParetoStudy && (
                          <div className="animate-fade-in">
                             <QuizView questions={activeStudy.quiz || []} onGenerate={handleGenerateQuiz} onClear={handleClearQuiz} />
                          </div>
                     )}
 
-                    {activeTab === 'flashcards' && !isParetoMode && (
+                    {activeTab === 'flashcards' && !isParetoStudy && (
                          <div className="animate-fade-in">
                             <FlashcardsView cards={activeStudy.flashcards || []} onGenerate={handleGenerateFlashcards} />
                          </div>
@@ -654,7 +695,7 @@ export function App() {
         </main>
       </div>
 
-      {!isParetoMode && <ChatWidget studyGuide={activeStudy?.guide || null} />}
+      {!isParetoStudy && <ChatWidget studyGuide={activeStudy?.guide || null} />}
       {showMethodologyModal && <MethodologyModal onClose={() => setShowMethodologyModal(false)} />}
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode, InputType } from "../types";
 
@@ -79,6 +78,13 @@ export const generateStudyGuide = async (
     - Seja extremamente específico em 'noteExactly'.
     - Ideal para quem quer extrair 100% da aula.
     `;
+  } else if (mode === StudyMode.SURVIVAL) {
+    modeInstructions = `
+    MODO: SOBREVIVÊNCIA (Estudo Rápido com Checkpoints).
+    - Crie POUCOS checkpoints (max 3 ou 4), abrangendo grandes partes do conteúdo.
+    - Foque apenas no essencial.
+    - Resumos curtos.
+    `;
   } else if (mode === StudyMode.PARETO) {
     modeInstructions = `
     MODO: PARETO 80/20 (RESUMO CORRIDO).
@@ -86,22 +92,15 @@ export const generateStudyGuide = async (
     SUA ÚNICA MISSÃO: Identificar os 20% do conteúdo que entregam 80% do valor e escrever um RESUMO DENSO E CORRIDO.
     
     ESTRUTURA OBRIGATÓRIA DO JSON:
-    1. 'overview': Aqui você escreverá TODO o conteúdo essencial. 
+    1. 'overview': Aqui você escreverá TODO o conteúdo. 
        - Escreva um texto corrido, bem estruturado, com parágrafos.
        - Explique os conceitos centrais e as relações de causa e efeito.
-       - NÃO use bullets aqui, use prosa explicativa.
+       - Não faça listas com bullets aqui, faça texto narrativo explicativo.
        - Deve ser completo o suficiente para a pessoa entender o assunto sem ler o original.
     
     2. 'coreConcepts': DEIXE ESTE ARRAY VAZIO []. Não separe os conceitos, integre-os no texto do overview.
     
     3. 'checkpoints': DEIXE ESTE ARRAY VAZIO []. Não crie jornada.
-    `;
-  } else if (mode === StudyMode.SURVIVAL) {
-    modeInstructions = `
-    MODO: SOBREVIVÊNCIA (Estudo Rápido com Checkpoints).
-    - Crie POUCOS checkpoints (max 3 ou 4), abrangendo grandes partes do conteúdo.
-    - Foque apenas no essencial.
-    - Resumos curtos nos pontos de anotação.
     `;
   } else {
     modeInstructions = `

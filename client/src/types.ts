@@ -1,4 +1,3 @@
-
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
@@ -12,7 +11,7 @@ export enum StudyMode {
   TURBO = 'TURBO',
   NORMAL = 'NORMAL',
   SURVIVAL = 'SURVIVAL',
-  PARETO = 'PARETO'
+  PARETO = 'PARETO' // Novo modo exclusivo para a Landing Page
 }
 
 export interface CoreConcept {

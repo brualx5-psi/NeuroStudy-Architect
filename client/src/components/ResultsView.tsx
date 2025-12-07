@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { StudyGuide } from '../types';
 import { BrainCircuit, PenTool, Target, Eye, CheckCircle, Download, Printer, FileCode, HelpCircle, Brain, Image as ImageIcon, X, Edit, Layers, ChevronRight } from './Icons';
@@ -222,46 +221,47 @@ ${cp.imageUrl ? `![Diagrama](${cp.imageUrl})` : ''}
             </div>
             </div>
 
-            {!isParetoOnly && (
+            {/* Concepts and Checkpoints are now HIDDEN in Pareto Mode */}
+            {!isParetoOnly && guide.coreConcepts.length > 0 && (
                 <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <Target className="w-6 h-6 text-red-500 print:text-black" />
-                    Conceitos Core (Pareto 80/20)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {guide.coreConcepts.map((item, idx) => (
-                    <div key={idx} className="relative bg-white border border-gray-200 p-4 rounded-lg shadow-sm print:shadow-none print:border-black break-inside-avoid group">
-                        <span className="block text-xs font-bold text-gray-400 mb-1 print:text-gray-600">CONCEITO #{idx + 1}</span>
-                        <div className="flex justify-between items-start">
-                            <h4 className="font-bold text-gray-900 mb-2">{item.concept}</h4>
-                            <div className="relative no-print">
-                                <button onClick={() => setActiveMagicMenu(activeMagicMenu?.idx === idx && activeMagicMenu?.type === 'concept' ? null : {idx, type: 'concept'})} className="p-1 text-gray-300 hover:text-indigo-600 transition-colors" title="INSIGHT CEREBRAL"><Brain className="w-4 h-4" /></button>
-                                {activeMagicMenu?.idx === idx && activeMagicMenu?.type === 'concept' && (
-                                    <div className="absolute right-0 top-6 bg-white shadow-xl border border-gray-100 rounded-lg p-1 w-48 z-20 flex flex-col gap-1 animate-in fade-in slide-in-from-top-2">
-                                        <div className="px-3 py-1 text-[10px] font-bold text-indigo-400 uppercase tracking-wider border-b border-gray-100 mb-1">Insight Cerebral</div>
-                                        <button onClick={() => handleMagicAction(item.definition, 'simplify', idx)} className="text-left px-3 py-2 hover:bg-gray-50 text-sm rounded text-gray-700">👶 Explicar como p/ 5 anos</button>
-                                        <button onClick={() => handleMagicAction(item.definition, 'example', idx)} className="text-left px-3 py-2 hover:bg-gray-50 text-sm rounded text-gray-700">🌍 Dar exemplo real</button>
-                                        <button onClick={() => handleMagicAction(item.definition, 'mnemonic', idx)} className="text-left px-3 py-2 hover:bg-gray-50 text-sm rounded text-gray-700">🧠 Criar mnemônico</button>
-                                    </div>
-                                )}
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <Target className="w-6 h-6 text-red-500 print:text-black" />
+                        Conceitos Core (Pareto 80/20)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {guide.coreConcepts.map((item, idx) => (
+                        <div key={idx} className="relative bg-white border border-gray-200 p-4 rounded-lg shadow-sm print:shadow-none print:border-black break-inside-avoid group">
+                            <span className="block text-xs font-bold text-gray-400 mb-1 print:text-gray-600">CONCEITO #{idx + 1}</span>
+                            <div className="flex justify-between items-start">
+                                <h4 className="font-bold text-gray-900 mb-2">{item.concept}</h4>
+                                <div className="relative no-print">
+                                    <button onClick={() => setActiveMagicMenu(activeMagicMenu?.idx === idx && activeMagicMenu?.type === 'concept' ? null : {idx, type: 'concept'})} className="p-1 text-gray-300 hover:text-indigo-600 transition-colors" title="INSIGHT CEREBRAL"><Brain className="w-4 h-4" /></button>
+                                    {activeMagicMenu?.idx === idx && activeMagicMenu?.type === 'concept' && (
+                                        <div className="absolute right-0 top-6 bg-white shadow-xl border border-gray-100 rounded-lg p-1 w-48 z-20 flex flex-col gap-1 animate-in fade-in slide-in-from-top-2">
+                                            <div className="px-3 py-1 text-[10px] font-bold text-indigo-400 uppercase tracking-wider border-b border-gray-100 mb-1">Insight Cerebral</div>
+                                            <button onClick={() => handleMagicAction(item.definition, 'simplify', idx)} className="text-left px-3 py-2 hover:bg-gray-50 text-sm rounded text-gray-700">👶 Explicar como p/ 5 anos</button>
+                                            <button onClick={() => handleMagicAction(item.definition, 'example', idx)} className="text-left px-3 py-2 hover:bg-gray-50 text-sm rounded text-gray-700">🌍 Dar exemplo real</button>
+                                            <button onClick={() => handleMagicAction(item.definition, 'mnemonic', idx)} className="text-left px-3 py-2 hover:bg-gray-50 text-sm rounded text-gray-700">🧠 Criar mnemônico</button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div className="bg-yellow-50 p-3 rounded text-sm text-gray-800 border-l-4 border-yellow-400 font-mono print:bg-white print:border-black print:italic">
-                        ANOTAR EXATAMENTE ISSO: <br/>
-                        "{item.definition}"
-                        </div>
-                        {magicOutput?.idx === idx && activeMagicMenu?.type === 'concept' && ( 
-                            <div className="mt-2 bg-indigo-50 p-3 rounded text-sm text-indigo-800 border border-indigo-100 animate-fade-in">
-                                <div className="flex justify-between mb-1"><span className="font-bold text-xs uppercase flex items-center gap-1"><Brain className="w-3 h-3"/> Insight Cerebral</span><button onClick={() => setMagicOutput(null)} className="text-xs hover:text-indigo-900"><X className="w-3 h-3"/></button></div>
-                                {renderMarkdownText(magicOutput.text)}
+                            <div className="bg-yellow-50 p-3 rounded text-sm text-gray-800 border-l-4 border-yellow-400 font-mono print:bg-white print:border-black print:italic">
+                            ANOTAR EXATAMENTE ISSO: <br/>
+                            "{item.definition}"
                             </div>
-                        )}
-                        {loadingMagic && activeMagicMenu?.idx === idx && activeMagicMenu?.type === 'concept' && (
-                            <div className="mt-2 text-xs text-indigo-500 animate-pulse flex items-center gap-1"><span className="animate-spin">🧠</span> Gerando insight...</div>
-                        )}
+                            {magicOutput?.idx === idx && activeMagicMenu?.type === 'concept' && ( 
+                                <div className="mt-2 bg-indigo-50 p-3 rounded text-sm text-indigo-800 border border-indigo-100 animate-fade-in">
+                                    <div className="flex justify-between mb-1"><span className="font-bold text-xs uppercase flex items-center gap-1"><Brain className="w-3 h-3"/> Insight Cerebral</span><button onClick={() => setMagicOutput(null)} className="text-xs hover:text-indigo-900"><X className="w-3 h-3"/></button></div>
+                                    {renderMarkdownText(magicOutput.text)}
+                                </div>
+                            )}
+                            {loadingMagic && activeMagicMenu?.idx === idx && activeMagicMenu?.type === 'concept' && (
+                                <div className="mt-2 text-xs text-indigo-500 animate-pulse flex items-center gap-1"><span className="animate-spin">🧠</span> Gerando insight...</div>
+                            )}
+                        </div>
+                        ))}
                     </div>
-                    ))}
-                </div>
                 </div>
             )}
         </div>
@@ -269,14 +269,14 @@ ${cp.imageUrl ? `![Diagrama](${cp.imageUrl})` : ''}
         {isParetoOnly && onUnlockFullStudy && (
             <div className="mt-8 bg-white p-8 rounded-xl border-2 border-dashed border-gray-200 text-center animate-fade-in">
                 <h3 className="text-lg font-bold text-gray-800 mb-2">Quer ir além do resumo?</h3>
-                <p className="text-gray-500 mb-6 max-w-lg mx-auto">O NeuroStudy gerou a essência. Para um estudo ativo completo com quiz e slides, mude o modo para "Normal" ou "Turbo".</p>
+                <p className="text-gray-500 mb-6 max-w-lg mx-auto">O NeuroStudy gerou a essência. Para um estudo ativo completo com checkpoints e quiz, clique abaixo.</p>
                 <button onClick={onUnlockFullStudy} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-transform active:scale-95 flex items-center gap-2 mx-auto">
-                    <Layers className="w-5 h-5"/> Sair do Modo Pareto <ChevronRight className="w-4 h-4"/>
+                    <Layers className="w-5 h-5"/> Desbloquear Estudo Completo <ChevronRight className="w-4 h-4"/>
                 </button>
             </div>
         )}
 
-        {!isParetoOnly && (
+        {!isParetoOnly && guide.checkpoints.length > 0 && (
             <div className="relative mt-8">
                 <div className="mb-8 bg-white p-4 rounded-xl border border-gray-200 shadow-sm no-print">
                     <div className="flex justify-between text-sm mb-2">
