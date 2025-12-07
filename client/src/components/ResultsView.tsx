@@ -411,10 +411,10 @@ ${cp.imageUrl ? `![Diagrama](${cp.imageUrl})` : ''}
                              {/* Checkbox Toggle */}
                              <button
                                 onClick={() => handleToggleCheckpoint(idx)}
-                                className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all duration-200 no-print ${cp.completed ? 'bg-green-500 border-green-600 shadow-sm scale-110' : 'bg-white border-gray-300 hover:border-indigo-400'}`}
+                                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1) no-print ${cp.completed ? 'bg-green-500 border-green-500 shadow-md scale-110 ring-2 ring-green-200 ring-offset-1' : 'bg-white border-gray-300 hover:border-indigo-400'}`}
                                 title={cp.completed ? "Marcar como pendente" : "Marcar como concluído"}
                              >
-                                 {cp.completed && <CheckCircle className="w-4 h-4 text-white" />}
+                                 {cp.completed && <CheckCircle className="w-4 h-4 text-white animate-in zoom-in duration-200" />}
                              </button>
 
                             <div>
