@@ -11,8 +11,7 @@ export enum InputType {
 export enum StudyMode {
   TURBO = 'TURBO',
   NORMAL = 'NORMAL',
-  SURVIVAL = 'SURVIVAL',
-  PARETO = 'PARETO'
+  SURVIVAL = 'SURVIVAL'
 }
 
 export interface CoreConcept {

@@ -209,7 +209,7 @@ export function App() {
     }
 
     // 2. Create Study
-    const title = `Estudo ${mode === StudyMode.PARETO ? 'Pareto 80/20' : 'Rápido'} - ${new Date().toLocaleTimeString()}`;
+    const title = `Estudo ${mode === StudyMode.SURVIVAL ? 'Pareto 80/20' : 'Rápido'} - ${new Date().toLocaleTimeString()}`;
     const newStudy = createStudy(folderId, title, mode);
 
     // 3. Process Content
@@ -256,13 +256,13 @@ export function App() {
   const handleParetoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-          // Use PARETO mode which corresponds to Pareto 80/20 in the backend prompt
+          // Use SURVIVAL mode which corresponds to Pareto 80/20 in the backend prompt
           let type = InputType.TEXT;
           if (file.type.includes('pdf')) type = InputType.PDF;
           else if (file.type.includes('video') || file.type.includes('audio')) type = InputType.VIDEO;
           else if (file.type.includes('image')) type = InputType.IMAGE;
-
-          handleQuickStart(file, type, StudyMode.PARETO);
+          
+          handleQuickStart(file, type, StudyMode.SURVIVAL);
       }
   };
 
@@ -586,14 +586,9 @@ export function App() {
                     >
                         <Edit className="w-4 h-4"/>
                     </button>
-                    {activeStudy.mode === StudyMode.PARETO && (
+                    {activeStudy.mode === StudyMode.SURVIVAL && (
                         <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded uppercase border border-red-200">
                             Pareto 80/20
-                        </span>
-                    )}
-                    {activeStudy.mode === StudyMode.SURVIVAL && (
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded uppercase border border-green-200">
-                            Sobrevivência
                         </span>
                     )}
                 </div>
@@ -652,17 +647,16 @@ export function App() {
 
                         {/* Mode Selector for Quick Start */}
                          <div className="flex justify-center gap-4 mb-8">
-                            {[StudyMode.PARETO, StudyMode.SURVIVAL, StudyMode.NORMAL, StudyMode.TURBO].map(mode => (
+                            {[StudyMode.SURVIVAL, StudyMode.NORMAL, StudyMode.TURBO].map(mode => (
                                 <button
                                     key={mode}
                                     onClick={() => setSelectedMode(mode)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${selectedMode === mode ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
                                 >
-                                    {mode === StudyMode.PARETO && <Target className="w-4 h-4" />}
                                     {mode === StudyMode.SURVIVAL && <BatteryCharging className="w-4 h-4" />}
                                     {mode === StudyMode.NORMAL && <Activity className="w-4 h-4" />}
                                     {mode === StudyMode.TURBO && <Rocket className="w-4 h-4" />}
-                                    <span className="text-sm font-bold capitalize">{mode === StudyMode.PARETO ? 'Pareto' : mode === StudyMode.SURVIVAL ? 'Sobrevivência' : mode}</span>
+                                    <span className="text-sm font-bold capitalize">{mode === 'SURVIVAL' ? 'Sobrevivência' : mode}</span>
                                 </button>
                             ))}
                         </div>
@@ -788,8 +782,7 @@ export function App() {
                              {selectedMode === StudyMode.TURBO && <Rocket className="w-5 h-5" />}
                              {selectedMode === StudyMode.NORMAL && <Activity className="w-5 h-5" />}
                              {selectedMode === StudyMode.SURVIVAL && <BatteryCharging className="w-5 h-5" />}
-                             {selectedMode === StudyMode.PARETO && <Target className="w-5 h-5" />}
-                             Iniciar Estudo Agora ({selectedMode === StudyMode.PARETO ? 'Pareto 80/20' : selectedMode === 'SURVIVAL' ? 'Sobrevivência' : selectedMode})
+                             Iniciar Estudo Agora ({selectedMode === 'SURVIVAL' ? 'Sobrevivência' : selectedMode})
                           </button>
                       </div>
                     )}
@@ -902,14 +895,7 @@ export function App() {
                                         <span className="text-xs font-bold text-indigo-500 uppercase">Modo:</span>
                                         {/* Replaced Select with Icon Buttons for Sources Tab */}
                                         <div className="flex gap-1">
-                                            <button
-                                                onClick={() => updateStudyMode(activeStudy.id, StudyMode.PARETO)}
-                                                className={`p-1.5 rounded ${activeStudy.mode === StudyMode.PARETO ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100 text-gray-400'}`}
-                                                title="Pareto 80/20"
-                                            >
-                                                <Target className="w-4 h-4"/>
-                                            </button>
-                                            <button
+                                            <button 
                                                 onClick={() => updateStudyMode(activeStudy.id, StudyMode.SURVIVAL)}
                                                 className={`p-1.5 rounded ${activeStudy.mode === StudyMode.SURVIVAL ? 'bg-green-100 text-green-700' : 'hover:bg-gray-100 text-gray-400'}`}
                                                 title="Sobrevivência"
