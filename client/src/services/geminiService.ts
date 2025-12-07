@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode, InputType } from "../types";
 
@@ -216,7 +217,17 @@ Analise o conteúdo e gere o JSON.
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    return JSON.parse(text) as StudyGuide;
+    
+    // Parse response and inject 'completed' state
+    const guide = JSON.parse(text) as StudyGuide;
+    if (guide.checkpoints) {
+        guide.checkpoints = guide.checkpoints.map(cp => ({
+            ...cp,
+            completed: false // Initialize progress tracking
+        }));
+    }
+    
+    return guide;
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;

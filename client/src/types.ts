@@ -1,3 +1,4 @@
+
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
@@ -27,6 +28,8 @@ export interface Checkpoint {
   drawLabel?: 'essential' | 'suggestion' | 'none';
   question: string;
   imageUrl?: string;
+  completed: boolean; // NOVO: Controle de progresso
+  completedAt?: number; // NOVO: Timestamp da conclusão
 }
 
 export interface StudyGuide {

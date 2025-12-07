@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { StudyGuide } from '../types';
 import { BrainCircuit, PenTool, Target, Eye, CheckCircle, Download, Printer, FileCode, HelpCircle, Brain, Image as ImageIcon, X, Edit, Layers, ChevronRight } from './Icons';
@@ -20,6 +21,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ guide, onReset, onGene
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
 
+  // Calculate Progress
+  const completedCount = guide.checkpoints.filter(cp => cp.completed).length;
+  const totalCount = guide.checkpoints.length;
+  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
   const adjustTextareaHeight = (element: HTMLTextAreaElement | null) => {
     if (element) {
       element.style.height = 'auto';
@@ -37,6 +43,7 @@ tags: [estudo, neurostudy, ${guide.subject.replace(/[^a-zA-Z0-9]/g, '').toLowerC
 assunto: ${guide.subject}
 data: ${new Date().toLocaleDateString('pt-BR')}
 status: 🟧 Ativo
+progress: ${completedCount}/${totalCount}
 ---
 
 # ${guide.subject}
@@ -50,7 +57,7 @@ ${guide.coreConcepts.map(c => `- **${c.concept}**: ${c.definition}`).join('\n')}
 ${!isParetoOnly ? `
 ## 📍 Jornada de Aprendizagem (Checkpoints)
 
-${guide.checkpoints.map((cp, i) => `### ${i+1}. ${cp.mission}
+${guide.checkpoints.map((cp, i) => `### ${i+1}. ${cp.mission} [${cp.completed ? 'x' : ' '}]
 > **Tempo**: ${cp.timestamp}
 
 - 👁️ **Procurar**: ${cp.lookFor}
@@ -109,6 +116,17 @@ ${cp.imageUrl ? `![Diagrama](${cp.imageUrl})` : ''}
     if (!onUpdateGuide) return;
     const newCheckpoints = [...guide.checkpoints];
     newCheckpoints[index] = { ...newCheckpoints[index], [field]: value };
+    onUpdateGuide({ ...guide, checkpoints: newCheckpoints });
+  };
+
+  const handleToggleCheckpoint = (index: number) => {
+    if (!onUpdateGuide) return;
+    const newCheckpoints = [...guide.checkpoints];
+    newCheckpoints[index] = { 
+      ...newCheckpoints[index], 
+      completed: !newCheckpoints[index].completed,
+      completedAt: !newCheckpoints[index].completed ? Date.now() : undefined
+    };
     onUpdateGuide({ ...guide, checkpoints: newCheckpoints });
   };
 
@@ -258,36 +276,79 @@ ${cp.imageUrl ? `![Diagrama](${cp.imageUrl})` : ''}
 
         {!isParetoOnly && (
             <div className="relative mt-8">
+                
+                {/* PROGRESS BAR - Added here as requested */}
+                <div className="mb-8 bg-white p-4 rounded-xl border border-gray-200 shadow-sm no-print">
+                    <div className="flex justify-between text-sm mb-2">
+                        <span className="font-bold text-gray-700 flex items-center gap-2"><Target className="w-4 h-4 text-indigo-500"/> Progresso da Jornada</span>
+                        <span className="text-indigo-600 font-bold">{completedCount}/{totalCount} checkpoints</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-3 border border-gray-100 overflow-hidden">
+                        <div 
+                        className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-3 rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-1"
+                        style={{ width: `${progress}%` }}
+                        >
+                        </div>
+                    </div>
+                </div>
+
                 <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300 hidden md:block print:hidden"></div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-8 pl-4 print:pl-0">A Jornada (Checkpoints)</h3>
                 <div className="space-y-8">
                 {guide.checkpoints.map((cp, idx) => {
                     const showDrawSection = cp.drawExactly && cp.drawExactly.trim().length > 0 && cp.drawLabel !== 'none';
                     const drawLabelText = cp.drawLabel === 'essential' ? 'DESENHO ESSENCIAL' : 'SUGESTÃO VISUAL';
+                    
                     return (
                     <div key={idx} className="relative md:pl-20 print:pl-0 break-inside-avoid">
-                    <div className="absolute left-4 top-6 w-8 h-8 bg-white border-4 border-indigo-500 rounded-full hidden md:flex items-center justify-center z-10 print:hidden"><span className="text-xs font-bold text-indigo-700">{idx + 1}</span></div>
-                    <div className="bg-white rounded-xl paper-shadow overflow-hidden border border-gray-100 print:shadow-none print:border-black print:mb-4">
-                        <div className="bg-slate-50 border-b border-gray-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-2 print:bg-gray-100 print:border-black">
-                        <div><span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider print:border print:border-black print:bg-white print:text-black">Checkpoint #{idx + 1}</span><h4 className="font-bold text-lg text-gray-900 mt-1">{cp.mission}</h4></div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 font-mono bg-gray-100 px-3 py-1 rounded-full print:bg-white print:border print:border-black print:text-black"><span>⏱️ {cp.timestamp}</span></div>
+                        {/* Timeline dot - turns green if completed */}
+                        <div className={`absolute left-4 top-6 w-8 h-8 border-4 rounded-full hidden md:flex items-center justify-center z-10 print:hidden transition-colors duration-300 ${cp.completed ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-indigo-500'}`}>
+                            <span className={`text-xs font-bold ${cp.completed ? 'text-white' : 'text-indigo-700'}`}>
+                                {cp.completed ? '✓' : idx + 1}
+                            </span>
                         </div>
-                        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <div className="flex gap-3"><div className="min-w-6 pt-1 text-blue-500 print:text-black"><Eye className="w-5 h-5"/></div><div><p className="text-xs font-bold text-gray-400 uppercase print:text-black">Procurar</p><p className="text-gray-700 print:text-black">{cp.lookFor}</p></div></div>
-                            <div className="flex gap-3"><div className="min-w-6 pt-1 text-green-600 print:text-black"><CheckCircle className="w-5 h-5"/></div><div><p className="text-xs font-bold text-gray-400 uppercase print:text-black">Pergunta (Active Recall)</p><p className="text-gray-800 font-medium italic print:text-black">"{cp.question}"</p></div></div>
-                        </div>
-                        <div className="bg-yellow-50 rounded-lg p-5 border border-yellow-100 space-y-4 print:bg-white print:border-black">
-                            <div className="flex gap-3 group/edit"><div className="min-w-6 pt-1 text-gray-600 print:text-black"><PenTool className="w-5 h-5"/></div><div className="w-full"><div className="flex items-center justify-between mb-1"><p className="text-xs font-bold text-gray-500 uppercase print:text-black">Anotar Exatamente Isso</p><div className="flex gap-1 opacity-0 group-hover/edit:opacity-100 transition-opacity bg-white shadow-sm border border-gray-200 rounded px-1 no-print"><button onMouseDown={(e) => {e.preventDefault(); handleFormat(idx, 'b');}} className="px-1 text-xs font-serif font-bold hover:bg-gray-100" title="Negrito">B</button><button onMouseDown={(e) => {e.preventDefault(); handleFormat(idx, 'i');}} className="px-1 text-xs font-serif italic hover:bg-gray-100" title="Itálico">I</button><button onMouseDown={(e) => {e.preventDefault(); handleFormat(idx, 'u');}} className="px-1 text-xs font-serif underline hover:bg-gray-100" title="Sublinhado">U</button></div></div><div className="border-l-2 border-gray-300 pl-3 print:border-black"><textarea id={`note-textarea-${idx}`} ref={el => { textareaRefs.current[idx] = el; if(el) adjustTextareaHeight(el); }} value={cp.noteExactly} onInput={(e) => adjustTextareaHeight(e.target as HTMLTextAreaElement)} onChange={(e) => handleUpdateCheckpoint(idx, 'noteExactly', e.target.value)} className="w-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-indigo-300 rounded px-2 py-1 transition-all text-gray-900 font-serif leading-relaxed resize-none overflow-hidden print:hidden focus:outline-none focus:ring-2 focus:ring-indigo-100" spellCheck={false} placeholder="Clique para editar..." /><div className="hidden print:block text-gray-900 font-serif leading-relaxed whitespace-pre-wrap">{renderFormatted(cp.noteExactly)}</div></div></div></div>
-                            {showDrawSection && (
-                            <div className={`mt-4 pt-4 border-t ${cp.drawLabel === 'essential' ? 'border-orange-200' : 'border-gray-200'} print:border-black`}>
-                                <div className="flex justify-between items-center mb-2"><p className={`text-xs font-bold uppercase print:text-black ${cp.drawLabel === 'essential' ? 'text-orange-600' : 'text-slate-500'}`}>{drawLabelText}</p>{!cp.imageUrl && (<button onClick={() => handleGenerateImage(idx, cp.drawExactly)} disabled={loadingImage === idx} className="text-xs flex items-center gap-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded transition-colors no-print">{loadingImage === idx ? <span className="animate-spin">⌛</span> : <ImageIcon className="w-3 h-3" />} Gerar Diagrama IA</button>)}</div>
-                                {cp.imageUrl ? (<div className="relative group"><img src={cp.imageUrl} alt="Diagrama Gerado" className="w-full h-auto rounded border border-gray-200" /><button onClick={() => handleGenerateImage(idx, cp.drawExactly)} className="absolute top-2 right-2 bg-white/80 p-1 rounded hover:bg-white text-xs opacity-0 group-hover:opacity-100 transition-opacity no-print">Regerar</button></div>) : (<div className={`border-2 border-dashed rounded p-4 text-sm print:border-black print:text-black group/editdraw relative ${cp.drawLabel === 'essential' ? 'border-orange-300 bg-orange-50/50 text-orange-800' : 'border-gray-300 bg-white text-gray-500'}`}><div className="flex gap-2"><span className="pt-1">✏️</span><div className="w-full"><textarea value={cp.drawExactly} onChange={(e) => handleUpdateCheckpoint(idx, 'drawExactly', e.target.value)} className="w-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-indigo-300 rounded px-2 py-1 transition-all text-inherit text-sm resize-y print:hidden focus:outline-none focus:ring-2 focus:ring-indigo-100" rows={2} /><div className="hidden print:block">{renderFormatted(cp.drawExactly)}</div></div></div><span className="absolute top-2 right-2 opacity-0 group-hover/editdraw:opacity-100 transition-opacity text-gray-300 print:hidden"><Edit className="w-3 h-3"/></span></div>)}
+
+                        <div className={`rounded-xl paper-shadow overflow-hidden border transition-all duration-300 print:shadow-none print:border-black print:mb-4 ${cp.completed ? 'border-emerald-200 bg-emerald-50/10' : 'bg-white border-gray-100'}`}>
+                            {/* Card Header with Checkbox */}
+                            <div className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b ${cp.completed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-slate-50 border-gray-200'} print:bg-gray-100 print:border-black`}>
+                                <div className="flex items-start gap-4">
+                                    <button 
+                                        onClick={() => handleToggleCheckpoint(idx)}
+                                        className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center shrink-0 no-print ${
+                                            cp.completed 
+                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200 scale-110' 
+                                            : 'bg-white border-gray-300 hover:border-emerald-400 hover:bg-emerald-50 text-transparent'
+                                        }`}
+                                        title={cp.completed ? 'Marcar como pendente' : 'Marcar como concluído'}
+                                    >
+                                        <CheckCircle className="w-6 h-6" />
+                                    </button>
+                                    <div>
+                                        <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider print:border print:border-black print:bg-white print:text-black ${cp.completed ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                            Checkpoint #{idx + 1}
+                                        </span>
+                                        <h4 className={`font-bold text-lg mt-1 transition-colors ${cp.completed ? 'text-emerald-900' : 'text-gray-900'}`}>{cp.mission}</h4>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-500 font-mono bg-white/50 px-3 py-1 rounded-full border border-gray-100 print:bg-white print:border print:border-black print:text-black self-start md:self-auto"><span>⏱️ {cp.timestamp}</span></div>
                             </div>
-                            )}
+
+                            <div className={`p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 transition-opacity ${cp.completed ? 'opacity-80 hover:opacity-100' : 'opacity-100'}`}>
+                                <div className="space-y-4">
+                                    <div className="flex gap-3"><div className="min-w-6 pt-1 text-blue-500 print:text-black"><Eye className="w-5 h-5"/></div><div><p className="text-xs font-bold text-gray-400 uppercase print:text-black">Procurar</p><p className="text-gray-700 print:text-black">{cp.lookFor}</p></div></div>
+                                    <div className="flex gap-3"><div className="min-w-6 pt-1 text-green-600 print:text-black"><CheckCircle className="w-5 h-5"/></div><div><p className="text-xs font-bold text-gray-400 uppercase print:text-black">Pergunta (Active Recall)</p><p className="text-gray-800 font-medium italic print:text-black">"{cp.question}"</p></div></div>
+                                </div>
+                                <div className="bg-yellow-50 rounded-lg p-5 border border-yellow-100 space-y-4 print:bg-white print:border-black">
+                                    <div className="flex gap-3 group/edit"><div className="min-w-6 pt-1 text-gray-600 print:text-black"><PenTool className="w-5 h-5"/></div><div className="w-full"><div className="flex items-center justify-between mb-1"><p className="text-xs font-bold text-gray-500 uppercase print:text-black">Anotar Exatamente Isso</p><div className="flex gap-1 opacity-0 group-hover/edit:opacity-100 transition-opacity bg-white shadow-sm border border-gray-200 rounded px-1 no-print"><button onMouseDown={(e) => {e.preventDefault(); handleFormat(idx, 'b');}} className="px-1 text-xs font-serif font-bold hover:bg-gray-100" title="Negrito">B</button><button onMouseDown={(e) => {e.preventDefault(); handleFormat(idx, 'i');}} className="px-1 text-xs font-serif italic hover:bg-gray-100" title="Itálico">I</button><button onMouseDown={(e) => {e.preventDefault(); handleFormat(idx, 'u');}} className="px-1 text-xs font-serif underline hover:bg-gray-100" title="Sublinhado">U</button></div></div><div className="border-l-2 border-gray-300 pl-3 print:border-black"><textarea id={`note-textarea-${idx}`} ref={el => { textareaRefs.current[idx] = el; if(el) adjustTextareaHeight(el); }} value={cp.noteExactly} onInput={(e) => adjustTextareaHeight(e.target as HTMLTextAreaElement)} onChange={(e) => handleUpdateCheckpoint(idx, 'noteExactly', e.target.value)} className="w-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-indigo-300 rounded px-2 py-1 transition-all text-gray-900 font-serif leading-relaxed resize-none overflow-hidden print:hidden focus:outline-none focus:ring-2 focus:ring-indigo-100" spellCheck={false} placeholder="Clique para editar..." /><div className="hidden print:block text-gray-900 font-serif leading-relaxed whitespace-pre-wrap">{renderFormatted(cp.noteExactly)}</div></div></div></div>
+                                    {showDrawSection && (
+                                    <div className={`mt-4 pt-4 border-t ${cp.drawLabel === 'essential' ? 'border-orange-200' : 'border-gray-200'} print:border-black`}>
+                                        <div className="flex justify-between items-center mb-2"><p className={`text-xs font-bold uppercase print:text-black ${cp.drawLabel === 'essential' ? 'text-orange-600' : 'text-slate-500'}`}>{drawLabelText}</p>{!cp.imageUrl && (<button onClick={() => handleGenerateImage(idx, cp.drawExactly)} disabled={loadingImage === idx} className="text-xs flex items-center gap-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded transition-colors no-print">{loadingImage === idx ? <span className="animate-spin">⌛</span> : <ImageIcon className="w-3 h-3" />} Gerar Diagrama IA</button>)}</div>
+                                        {cp.imageUrl ? (<div className="relative group"><img src={cp.imageUrl} alt="Diagrama Gerado" className="w-full h-auto rounded border border-gray-200" /><button onClick={() => handleGenerateImage(idx, cp.drawExactly)} className="absolute top-2 right-2 bg-white/80 p-1 rounded hover:bg-white text-xs opacity-0 group-hover:opacity-100 transition-opacity no-print">Regerar</button></div>) : (<div className={`border-2 border-dashed rounded p-4 text-sm print:border-black print:text-black group/editdraw relative ${cp.drawLabel === 'essential' ? 'border-orange-300 bg-orange-50/50 text-orange-800' : 'border-gray-300 bg-white text-gray-500'}`}><div className="flex gap-2"><span className="pt-1">✏️</span><div className="w-full"><textarea value={cp.drawExactly} onChange={(e) => handleUpdateCheckpoint(idx, 'drawExactly', e.target.value)} className="w-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-indigo-300 rounded px-2 py-1 transition-all text-inherit text-sm resize-y print:hidden focus:outline-none focus:ring-2 focus:ring-indigo-100" rows={2} /><div className="hidden print:block">{renderFormatted(cp.drawExactly)}</div></div></div><span className="absolute top-2 right-2 opacity-0 group-hover/editdraw:opacity-100 transition-opacity text-gray-300 print:hidden"><Edit className="w-3 h-3"/></span></div>)}
+                                    </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        </div>
-                    </div>
                     </div>
                 )})}
                 </div>
