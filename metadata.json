@@ -1,0 +1,7 @@
+{
+  "name": "fase 1 NeuroStudy Architect",
+  "description": "A scientific study platform that transforms PDFs, videos, and texts into active learning guides based on neuroscience principles (Advance Organizers, Active Learning, and Spaced Repetition).",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
