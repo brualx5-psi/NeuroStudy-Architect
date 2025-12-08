@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, BrainCircuit, Activity, Rocket, BatteryCharging, CheckCircle, Brain, Target, PenTool, Eye, Sparkles, BookOpen, RefreshCw, GraduationCap, Layers, HelpCircle } from './Icons';
 
@@ -213,16 +214,16 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
                 </div>
                 
                 <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Essencial */}
+                    {/* Sobrevivência */}
                     <div className="bg-green-50 rounded-xl p-4 border border-green-100">
                         <div className="flex items-start gap-3">
                             <div className="bg-white text-green-600 p-2 rounded-lg shadow-sm border border-green-100 shrink-0">
                                 <BatteryCharging className="w-6 h-6"/>
                             </div>
                             <div>
-                                <h4 className="font-bold text-green-900 mb-1">Essencial</h4>
+                                <h4 className="font-bold text-green-900 mb-1">Sobrevivência</h4>
                                 <p className="text-xs text-green-800 leading-relaxed">
-                                    Para dias de pouca energia. Cria um guia simplificado com os checkpoints mais importantes.
+                                    Para dias de pouca energia. Foca no essencial para salvar o dia com o menor esforço possível.
                                 </p>
                             </div>
                         </div>
@@ -243,16 +244,16 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
                         </div>
                     </div>
 
-                    {/* Turbo */}
+                    {/* Hard */}
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
                          <div className="flex items-start gap-3">
                             <div className="bg-white text-purple-600 p-2 rounded-lg shadow-sm border border-purple-100 shrink-0">
                                 <Rocket className="w-6 h-6"/>
                             </div>
                             <div>
-                                <h4 className="font-bold text-purple-900 mb-1">Turbo</h4>
+                                <h4 className="font-bold text-purple-900 mb-1">Hard</h4>
                                 <p className="text-xs text-purple-800 leading-relaxed">
-                                    Extraia 100% do conteúdo. Checkpoints frequentes e granularidade alta.
+                                    Modo Hardcore. Análise profunda, muitos checkpoints e detalhamento máximo.
                                 </p>
                             </div>
                         </div>

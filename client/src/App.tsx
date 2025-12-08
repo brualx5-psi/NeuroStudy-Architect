@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards } from './services/geminiService';
@@ -241,7 +242,7 @@ export function App() {
     if (mode === StudyMode.PARETO) {
         title = `Pareto 80/20: ${fileName}`;
     } else {
-        const modeName = mode === StudyMode.ESSENTIAL ? 'Essencial' : mode === StudyMode.TURBO ? 'Turbo' : 'Rápido';
+        const modeName = mode === StudyMode.SURVIVAL ? 'Sobrevivência' : mode === StudyMode.HARD ? 'Hard' : 'Rápido';
         title = `Estudo ${modeName}: ${fileName}`;
     }
     const newStudy = createStudy(folderId, title, mode);
@@ -574,7 +575,7 @@ export function App() {
                     <div className="flex items-center gap-2 group overflow-hidden">
                         <h2 className="text-lg md:text-xl font-bold text-gray-800 truncate" title={activeStudy.title}>{activeStudy.title}</h2>
                         <button onClick={() => { setIsEditingTitle(true); setEditTitleInput(activeStudy.title); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-600 transition-opacity hidden md:block" title="Renomear Estudo"><Edit className="w-4 h-4"/></button>
-                        {activeStudy.mode === StudyMode.ESSENTIAL && <span className="hidden md:inline-block ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded uppercase border border-green-200">Essencial</span>}
+                        {activeStudy.mode === StudyMode.SURVIVAL && <span className="hidden md:inline-block ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded uppercase border border-green-200">Sobrevivência</span>}
                     </div>
                 )}
             </div>
@@ -613,12 +614,12 @@ export function App() {
                         </div>
 
                          <div className="flex justify-center gap-2 md:gap-4 mb-8 flex-wrap">
-                            {[StudyMode.ESSENTIAL, StudyMode.NORMAL, StudyMode.TURBO].map(mode => (
+                            {[StudyMode.SURVIVAL, StudyMode.NORMAL, StudyMode.HARD].map(mode => (
                                 <button key={mode} onClick={() => setSelectedMode(mode)} className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border transition-all ${selectedMode === mode ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
-                                    {mode === StudyMode.ESSENTIAL && <BatteryCharging className="w-3 h-3 md:w-4 md:h-4" />}
+                                    {mode === StudyMode.SURVIVAL && <BatteryCharging className="w-3 h-3 md:w-4 md:h-4" />}
                                     {mode === StudyMode.NORMAL && <Activity className="w-3 h-3 md:w-4 md:h-4" />}
-                                    {mode === StudyMode.TURBO && <Rocket className="w-3 h-3 md:w-4 md:h-4" />}
-                                    <span className="text-xs md:text-sm font-bold capitalize">{mode === 'ESSENTIAL' ? 'Essencial' : mode}</span>
+                                    {mode === StudyMode.HARD && <Rocket className="w-3 h-3 md:w-4 md:h-4" />}
+                                    <span className="text-xs md:text-sm font-bold capitalize">{mode === StudyMode.SURVIVAL ? 'Sobrevivência' : mode === StudyMode.HARD ? 'Hard' : mode}</span>
                                 </button>
                             ))}
                         </div>
@@ -683,10 +684,10 @@ export function App() {
                           </div>
                           <textarea autoFocus className="w-full h-48 md:h-64 p-4 md:p-6 border border-gray-300 rounded-xl shadow-inner text-base md:text-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none mb-4" placeholder={inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2012-7" : inputType === InputType.URL ? "Ex: https://pt.wikipedia.org/wiki/Neurociência" : "Cole o conteúdo aqui..."} value={inputText} onChange={(e) => setInputText(e.target.value)}></textarea>
                           <button onClick={() => handleQuickStart(inputText, inputType, selectedMode)} disabled={!inputText.trim()} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 disabled:opacity-50 transition-all active:scale-[0.99] flex items-center justify-center gap-2">
-                             {selectedMode === StudyMode.TURBO && <Rocket className="w-5 h-5" />}
+                             {selectedMode === StudyMode.HARD && <Rocket className="w-5 h-5" />}
                              {selectedMode === StudyMode.NORMAL && <Activity className="w-5 h-5" />}
-                             {selectedMode === StudyMode.ESSENTIAL && <BatteryCharging className="w-5 h-5" />}
-                             Iniciar Estudo ({selectedMode === 'ESSENTIAL' ? 'Essencial' : selectedMode})
+                             {selectedMode === StudyMode.SURVIVAL && <BatteryCharging className="w-5 h-5" />}
+                             Iniciar Estudo ({selectedMode === StudyMode.SURVIVAL ? 'Sobrevivência' : selectedMode === StudyMode.HARD ? 'Hard' : selectedMode})
                           </button>
                       </div>
                     )}
@@ -740,21 +741,21 @@ export function App() {
                                     )}
                                 </div>
                             </div>
-                            <div className={`border p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 transition-colors ${activeStudy.mode === StudyMode.ESSENTIAL ? 'bg-green-50 border-green-100' : activeStudy.mode === StudyMode.TURBO ? 'bg-purple-50 border-purple-100' : 'bg-indigo-50 border-indigo-100'}`}>
+                            <div className={`border p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 transition-colors ${activeStudy.mode === StudyMode.SURVIVAL ? 'bg-green-50 border-green-100' : activeStudy.mode === StudyMode.HARD ? 'bg-purple-50 border-purple-100' : 'bg-indigo-50 border-indigo-100'}`}>
                                 <div>
-                                    <h3 className={`font-bold text-lg ${activeStudy.mode === StudyMode.ESSENTIAL ? 'text-green-900' : activeStudy.mode === StudyMode.TURBO ? 'text-purple-900' : 'text-indigo-900'}`}>{activeStudy.mode === StudyMode.ESSENTIAL ? 'Modo Essencial' : activeStudy.mode === StudyMode.TURBO ? 'Modo Turbo' : 'Pronto para transformar?'}</h3>
-                                    <p className={`text-sm ${activeStudy.mode === StudyMode.ESSENTIAL ? 'text-green-700' : activeStudy.mode === StudyMode.TURBO ? 'text-purple-700' : 'text-indigo-700'}`}>{activeStudy.mode === StudyMode.ESSENTIAL ? 'Gera um guia focado e curto.' : activeStudy.mode === StudyMode.TURBO ? 'Análise detalhada e granular.' : 'O NeuroStudy vai criar o roteiro perfeito.'}</p>
+                                    <h3 className={`font-bold text-lg ${activeStudy.mode === StudyMode.SURVIVAL ? 'text-green-900' : activeStudy.mode === StudyMode.HARD ? 'text-purple-900' : 'text-indigo-900'}`}>{activeStudy.mode === StudyMode.SURVIVAL ? 'Modo Sobrevivência' : activeStudy.mode === StudyMode.HARD ? 'Modo Hard' : 'Pronto para transformar?'}</h3>
+                                    <p className={`text-sm ${activeStudy.mode === StudyMode.SURVIVAL ? 'text-green-700' : activeStudy.mode === StudyMode.HARD ? 'text-purple-700' : 'text-indigo-700'}`}>{activeStudy.mode === StudyMode.SURVIVAL ? 'Gera um guia focado e curto.' : activeStudy.mode === StudyMode.HARD ? 'Análise detalhada e granular.' : 'O NeuroStudy vai criar o roteiro perfeito.'}</p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
                                     <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200">
                                         <span className="text-xs font-bold text-gray-500 uppercase">Modo:</span>
                                         <div className="flex gap-1">
-                                            <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.ESSENTIAL)} className={`p-1.5 rounded transition-colors ${activeStudy.mode === StudyMode.ESSENTIAL ? 'bg-green-100 text-green-700 ring-2 ring-green-500 ring-offset-1' : 'hover:bg-gray-100 text-gray-400'}`} title="Essencial"><BatteryCharging className="w-4 h-4"/></button>
+                                            <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.SURVIVAL)} className={`p-1.5 rounded transition-colors ${activeStudy.mode === StudyMode.SURVIVAL ? 'bg-green-100 text-green-700 ring-2 ring-green-500 ring-offset-1' : 'hover:bg-gray-100 text-gray-400'}`} title="Sobrevivência"><BatteryCharging className="w-4 h-4"/></button>
                                             <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.NORMAL)} className={`p-1.5 rounded transition-colors ${activeStudy.mode === StudyMode.NORMAL ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-1' : 'hover:bg-gray-100 text-gray-400'}`} title="Normal (Equilibrado)"><Activity className="w-4 h-4"/></button>
-                                            <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.TURBO)} className={`p-1.5 rounded transition-colors ${activeStudy.mode === StudyMode.TURBO ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-500 ring-offset-1' : 'hover:bg-gray-100 text-gray-400'}`} title="Turbo (Completo)"><Rocket className="w-4 h-4"/></button>
+                                            <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.HARD)} className={`p-1.5 rounded transition-colors ${activeStudy.mode === StudyMode.HARD ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-500 ring-offset-1' : 'hover:bg-gray-100 text-gray-400'}`} title="Hard (Completo)"><Rocket className="w-4 h-4"/></button>
                                         </div>
                                     </div>
-                                    <button onClick={handleGenerateGuide} disabled={activeStudy.sources.length === 0 || processingState.isLoading} className={`w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-lg text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-transform active:scale-[0.99] ${activeStudy.mode === StudyMode.ESSENTIAL ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : activeStudy.mode === StudyMode.TURBO ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
+                                    <button onClick={handleGenerateGuide} disabled={activeStudy.sources.length === 0 || processingState.isLoading} className={`w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-lg text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-transform active:scale-[0.99] ${activeStudy.mode === StudyMode.SURVIVAL ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : activeStudy.mode === StudyMode.HARD ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
                                         {processingState.isLoading ? (<><span className="animate-spin text-white">⚙️</span> Processando...</>) : (<><BrainCircuit className="w-5 h-5" /> Gerar Roteiro</>)}
                                     </button>
                                 </div>
