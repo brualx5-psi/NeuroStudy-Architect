@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards } from './services/geminiService';
@@ -784,13 +785,13 @@ export function App() {
 
                     {activeTab === 'quiz' && !isParetoStudy && (
                          <div className="animate-fade-in">
-                            <QuizView questions={activeStudy.quiz || []} onGenerate={handleGenerateQuiz} onClear={handleClearQuiz} />
+                            {QuizView && <QuizView questions={activeStudy.quiz || []} onGenerate={handleGenerateQuiz} onClear={handleClearQuiz} />}
                          </div>
                     )}
 
                     {activeTab === 'flashcards' && !isParetoStudy && (
                          <div className="animate-fade-in">
-                            <FlashcardsView cards={activeStudy.flashcards || []} onGenerate={handleGenerateFlashcards} />
+                            {FlashcardsView && <FlashcardsView cards={activeStudy.flashcards || []} onGenerate={handleGenerateFlashcards} />}
                          </div>
                     )}
                 </div>
