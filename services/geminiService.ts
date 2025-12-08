@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode, InputType } from "../types";
 
@@ -85,12 +86,31 @@ export const generateStudyGuide = async (
     - Seja extremamente específico em 'noteExactly'.
     - Ideal para quem quer extrair 100% da aula.
     `;
-  } else if (mode === StudyMode.SURVIVAL) {
+  // FIX: Replace SURVIVAL with ESSENTIAL and add PARETO mode logic
+  } else if (mode === StudyMode.ESSENTIAL) {
     modeInstructions = `
-    MODO: SOBREVIVÊNCIA (Essencial apenas).
-    - Crie POUCOS checkpoints, abrangendo grandes blocos de tempo.
-    - Foque APENAS no Pareto 80/20 absoluto. Ignore detalhes menores.
-    - Sínteses curtas e diretas.
+    MODO: ESSENCIAL (Estudo Focado com Checkpoints).
+    - Crie POUCOS checkpoints (max 3 ou 4), abrangendo grandes partes do conteúdo.
+    - Foque apenas nos conceitos e pontos cruciais para o entendimento geral.
+    - Resumos curtos e diretos. Ideal para uma revisão rápida ou quando o tempo é curto.
+    `;
+  } else if (mode === StudyMode.PARETO) {
+    modeInstructions = `
+    MODO: PARETO 80/20 (RESUMO CORRIDO).
+    
+    SUA ÚNICA MISSÃO: Identificar os 20% do conteúdo que entregam 80% do valor e escrever um RESUMO DENSO E CORRIDO.
+    
+    ESTRUTURA OBRIGATÓRIA DO JSON:
+    1. 'overview': Aqui você escreverá TODO o conteúdo. 
+       - Escreva um texto corrido, bem estruturado, com parágrafos.
+       - Use **negrito** para destacar termos importantes.
+       - Explique os conceitos centrais e as relações de causa e efeito.
+       - Não faça listas com bullets aqui, faça texto narrativo explicativo.
+       - Deve ser completo o suficiente para a pessoa entender o assunto sem ler o original.
+    
+    2. 'coreConcepts': DEIXE ESTE ARRAY VAZIO []. Não separe os conceitos, integre-os no texto do overview.
+    
+    3. 'checkpoints': DEIXE ESTE ARRAY VAZIO []. Não crie jornada.
     `;
   } else {
     modeInstructions = `
@@ -112,7 +132,7 @@ export const generateStudyGuide = async (
 
   const MASTER_PROMPT = `
 Você é um Arquiteto de Aprendizagem Especialista baseada em Neurociência.
-Sua tarefa é transformar o conteúdo fornecido em um "Roteiro de Estudo Ativo" seguindo rigorosamente o método "A Ciência por Trás da Mágica".
+Sua tarefa é transformar o conteúdo fornecido seguindo as instruções do MODO SELECIONADO.
 
 IDIOMA DE SAÍDA: PORTUGUÊS DO BRASIL (pt-BR).
 
@@ -121,26 +141,12 @@ ${contentInstructions}
 
 IMPORTANTE: Se o conteúdo original estiver em INGLÊS, TRADUZA e ADAPTE para PT-BR.
 
+// FIX: Update JSON output rules to support PARETO mode
 Regras de Saída (JSON):
 1. **subject**: Título da aula/tema.
-2. **overview**: Resumo de 2-3 linhas (Advance Organizer).
-3. **coreConcepts**: Identifique os conceitos essenciais que representam 80% do aprendizado (Pareto).
-    - NÃO SE LIMITE A 4 CONCEITOS.
-    - Liste QUANTOS FOREM NECESSÁRIOS para cobrir o essencial (pode ser 2, 6, 8, etc.).
-    - A quantidade depende da densidade do conteúdo e do modo (${mode}).
-4. **checkpoints**: Divida o conteúdo conforme o MODO escolhido.
-    - **mission**: Objetivo do trecho.
-    - **timestamp**: Localização (Tempo ou Seção).
-    - **lookFor**: O que procurar especificamente.
-    - **noteExactly**: O texto principal para anotar (Handwriting trigger).
-    - **drawExactly**: Instrução para desenhar um diagrama/esquema.
-        - SE NÃO HOUVER necessidade visual, deixe vazio ("").
-        - SE FOR IMPORTANTE, descreva o diagrama.
-    - **drawLabel**: CLASSIFIQUE a importância do desenho:
-        - 'essential': Se o conceito DEPENDE do visual para ser entendido.
-        - 'suggestion': Se é um visual extra/auxiliar.
-        - 'none': Se não há desenho.
-    - **question**: Uma pergunta de recuperação ativa.
+2. **overview**: Texto principal (Advance Organizer ou Resumo Pareto Completo).
+3. **coreConcepts**: Conceitos chave (VAZIO SE FOR MODO PARETO).
+4. **checkpoints**: Roteiro passo a passo (VAZIO SE FOR MODO PARETO).
 
 Analise o conteúdo e gere o JSON.
 `;
@@ -229,7 +235,17 @@ Analise o conteúdo e gere o JSON.
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    return JSON.parse(text) as StudyGuide;
+    
+    // FIX: Initialize checkpoints with completed status
+    const guide = JSON.parse(text) as StudyGuide;
+    if (guide.checkpoints) {
+        guide.checkpoints = guide.checkpoints.map(cp => ({
+            ...cp,
+            completed: false 
+        }));
+    }
+    
+    return guide;
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;
@@ -284,7 +300,8 @@ export const generateQuiz = async (
 
   let questionCount = config?.quantity || 6;
   if (!config) {
-    if (mode === StudyMode.SURVIVAL) questionCount = 3;
+    // FIX: Replace SURVIVAL with ESSENTIAL
+    if (mode === StudyMode.ESSENTIAL) questionCount = 3;
     if (mode === StudyMode.TURBO) questionCount = 10;
   }
 
@@ -297,7 +314,8 @@ export const generateQuiz = async (
       - **DIFÍCIL**: Perguntas de análise, comparação sofisticada, crítica e integração entre ideias diferentes.
 
       Distribuição sugerida para o modo ${mode}:
-      ${mode === StudyMode.SURVIVAL ? "Maioria Fáceis e Médias. Foco no essencial." : ""}
+      // FIX: Replace SURVIVAL with ESSENTIAL
+      ${mode === StudyMode.ESSENTIAL ? "Maioria Fáceis e Médias. Foco no essencial." : ""}
       ${mode === StudyMode.NORMAL ? "Equilibrado: 30% Fácil, 40% Médio, 30% Difícil." : ""}
       ${mode === StudyMode.TURBO ? "Desafiador: Inclua mais questões Difíceis de análise crítica." : ""}
     `;

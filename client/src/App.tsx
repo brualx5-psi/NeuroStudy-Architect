@@ -62,6 +62,10 @@ export function App() {
 
   // --- ACTIONS ---
 
+  const handleGoToHome = () => {
+    setView('landing');
+  };
+
   const createFolder = (name: string, parentId?: string) => {
     const newFolder: Folder = { id: Date.now().toString(), name, parentId };
     setFolders([...folders, newFolder]);
@@ -474,7 +478,7 @@ export function App() {
             onMoveStudy={moveStudy}
             onOpenMethodology={() => setShowMethodologyModal(true)}
             onFolderExam={handleFolderExam}
-            onGoToHome={() => setView('landing')}
+            onGoToHome={handleGoToHome}
         />
       )}
 
@@ -509,7 +513,7 @@ export function App() {
         {isParetoStudy && activeStudy && (
             <header className="h-16 border-b border-red-100 bg-red-50 flex items-center justify-between px-8 flex-shrink-0 z-10">
                 <div className="flex items-center gap-3">
-                    <button onClick={() => setView('landing')} className="p-1 hover:bg-red-100 rounded-full text-red-700" title="Voltar"><ChevronRight className="w-5 h-5 rotate-180"/></button>
+                    <button onClick={handleGoToHome} className="p-1 hover:bg-red-100 rounded-full text-red-700" title="Voltar"><ChevronRight className="w-5 h-5 rotate-180"/></button>
                     <Target className="w-6 h-6 text-red-600"/>
                     <h2 className="text-xl font-bold text-red-800">Pareto 80/20: Resumo Essencial</h2>
                 </div>

@@ -1,4 +1,5 @@
 
+
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
@@ -11,7 +12,9 @@ export enum InputType {
 export enum StudyMode {
   TURBO = 'TURBO',
   NORMAL = 'NORMAL',
-  SURVIVAL = 'SURVIVAL'
+  // FIX: Renamed SURVIVAL to ESSENTIAL and added PARETO to match client/src/types.ts and fix errors in App.tsx
+  ESSENTIAL = 'ESSENTIAL',
+  PARETO = 'PARETO'
 }
 
 export interface CoreConcept {
@@ -28,6 +31,9 @@ export interface Checkpoint {
   drawLabel?: 'essential' | 'suggestion' | 'none'; // New: Classify importance of drawing
   question: string;
   imageUrl?: string; // New: Store generated diagram URL
+  // FIX: Add completed status for checkpoints to align with client version
+  completed: boolean;
+  completedAt?: number;
 }
 
 export interface StudyGuide {
