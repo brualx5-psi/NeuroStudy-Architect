@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const UploadCloud = ({ className }: { className?: string }) => (
@@ -17,7 +18,21 @@ export const Search = ({ className }: { className?: string }) => (
 );
 
 export const BrainCircuit = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 4.5a2.5 2.5 0 0 0-4.96-.46 2.5 2.5 0 0 0-1.98 3 2.5 2.5 0 0 0-1.32 4.24 3 3 0 0 0 .34 5.58 2.5 2.5 0 0 0 2.96 3.08 2.5 2.5 0 0 0 4.91.05L12 20V4.5Z"/><path d="M16 8a5 5 0 0 1 5 5"/><path d="M12 13a5 5 0 0 0 9-4"/><path d="M12 18a5 5 0 0 1 5-5"/></svg>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+        <g stroke="currentColor" strokeWidth="1.5">
+            <path d="M12 3 L21 12 L12 21 L3 12 Z" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 5 C8 5, 5 8, 5 12 C5 16, 8 19, 12 19" fill="none" strokeLinecap="round"/>
+            <path d="M12 5 C16 5, 19 8, 19 12 C19 16, 16 19, 12 19" fill="none" strokeLinecap="round"/>
+            <path d="M12 5 V 19" />
+            <path d="M9.5 7.5 C8.5 8, 8.5 9.5, 9.5 10.5" fill="none" strokeLinecap="round"/>
+            <path d="M10 13 C8 13.5, 7.5 15.5, 9 17" fill="none" strokeLinecap="round"/>
+            <path d="M7 9.5 C6.5 10.5, 6.5 12, 7.5 13" fill="none" strokeLinecap="round"/>
+            <path d="M14.5 7.5 C15.5 8, 15.5 9.5, 14.5 10.5" fill="none" strokeLinecap="round"/>
+            <path d="M14 13 C16 13.5, 16.5 15.5, 15 17" fill="none" strokeLinecap="round"/>
+            <path d="M17 9.5 C17.5 10.5, 17.5 12, 16.5 13" fill="none" strokeLinecap="round"/>
+            <path d="M18 18 L 18 20" strokeLinecap="round"/>
+        </g>
+    </svg>
 );
 
 export const Brain = ({ className }: { className?: string }) => (
@@ -169,8 +184,23 @@ export const Camera = ({ className }: { className?: string }) => (
 );
 
 export const Home = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-    <polyline points="9 22 9 12 15 12 15 22"/>
-  </svg>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+        <g stroke="currentColor" strokeWidth="1.5">
+            <path d="M12 3 L21 12 L12 21 L3 12 Z" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 5 C8 5, 5 8, 5 12 C5 16, 8 19, 12 19" fill="none" strokeLinecap="round"/>
+            <path d="M12 5 C16 5, 19 8, 19 12 C19 16, 16 19, 12 19" fill="none" strokeLinecap="round"/>
+            <path d="M12 5 V 19" />
+            <path d="M9.5 7.5 C8.5 8, 8.5 9.5, 9.5 10.5" fill="none" strokeLinecap="round"/>
+            <path d="M10 13 C8 13.5, 7.5 15.5, 9 17" fill="none" strokeLinecap="round"/>
+            <path d="M7 9.5 C6.5 10.5, 6.5 12, 7.5 13" fill="none" strokeLinecap="round"/>
+            <path d="M14.5 7.5 C15.5 8, 15.5 9.5, 14.5 10.5" fill="none" strokeLinecap="round"/>
+            <path d="M14 13 C16 13.5, 16.5 15.5, 15 17" fill="none" strokeLinecap="round"/>
+            <path d="M17 9.5 C17.5 10.5, 17.5 12, 16.5 13" fill="none" strokeLinecap="round"/>
+            <path d="M18 18 L 18 20" strokeLinecap="round"/>
+        </g>
+    </svg>
+);
+
+export const Menu = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
 );

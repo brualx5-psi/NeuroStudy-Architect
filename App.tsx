@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards } from './services/geminiService';
@@ -8,7 +9,7 @@ import { FlashcardsView } from './components/FlashcardsView';
 import { ChatWidget } from './components/ChatWidget';
 import { Sidebar } from './components/Sidebar';
 import { MethodologyModal } from './components/MethodologyModal';
-import { BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight } from './components/Icons';
+import { BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu } from './components/Icons';
 
 export function App() {
   // --- STATE ---
@@ -41,6 +42,9 @@ export function App() {
   // Methodology Modal State
   const [showMethodologyModal, setShowMethodologyModal] = useState(false);
 
+  // Mobile Menu State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const [processingState, setProcessingState] = useState<ProcessingState>({
     isLoading: false,
     error: null,
@@ -58,6 +62,7 @@ export function App() {
   useEffect(() => {
       setIsEditingTitle(false);
       setEditTitleInput('');
+      setIsMobileMenuOpen(false); // Close menu on study select
   }, [activeStudyId]);
 
   // --- ACTIONS ---
@@ -464,148 +469,170 @@ export function App() {
   return (
     <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden animate-in fade-in duration-500">
       {!isParetoStudy && (
-        <Sidebar 
-            folders={folders} 
-            studies={studies}
-            activeStudyId={activeStudyId}
-            onSelectStudy={setActiveStudyId}
-            onCreateFolder={createFolder}
-            onRenameFolder={renameFolder}
-            onCreateStudy={(fid, t) => createStudy(fid, t, StudyMode.NORMAL)} 
-            onDeleteStudy={deleteStudy}
-            onDeleteFolder={deleteFolder}
-            onMoveFolder={moveFolder}
-            onMoveStudy={moveStudy}
-            onOpenMethodology={() => setShowMethodologyModal(true)}
-            onFolderExam={handleFolderExam}
-            onGoToHome={handleGoToHome}
-        />
+        <>
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden animate-in fade-in"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+            
+            {/* Responsive Sidebar Container */}
+            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-50 transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+                <Sidebar 
+                    folders={folders} 
+                    studies={studies}
+                    activeStudyId={activeStudyId}
+                    onSelectStudy={setActiveStudyId}
+                    onCreateFolder={createFolder}
+                    onRenameFolder={renameFolder}
+                    onCreateStudy={(fid, t) => createStudy(fid, t, StudyMode.NORMAL)} 
+                    onDeleteStudy={deleteStudy}
+                    onDeleteFolder={deleteFolder}
+                    onMoveFolder={moveFolder}
+                    onMoveStudy={moveStudy}
+                    onOpenMethodology={() => setShowMethodologyModal(true)}
+                    onFolderExam={handleFolderExam}
+                    onGoToHome={handleGoToHome}
+                />
+            </div>
+        </>
       )}
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {activeStudy && !isParetoStudy && (
-          <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-8 flex-shrink-0 z-10">
-            {isEditingTitle ? (
-                <div className="flex items-center gap-2">
-                    <input autoFocus value={editTitleInput} onChange={(e) => setEditTitleInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()} onBlur={handleSaveTitle} className="text-xl font-bold text-gray-800 border-b-2 border-indigo-500 outline-none px-1" />
-                    <button onClick={handleSaveTitle} className="text-green-600"><CheckCircle className="w-5 h-5"/></button>
-                </div>
-            ) : (
-                <div className="flex items-center gap-2 group">
-                    <h2 className="text-xl font-bold text-gray-800 truncate max-w-md" title={activeStudy.title}>{activeStudy.title}</h2>
-                    <button onClick={() => { setIsEditingTitle(true); setEditTitleInput(activeStudy.title); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-600 transition-opacity" title="Renomear Estudo"><Edit className="w-4 h-4"/></button>
-                    {activeStudy.mode === StudyMode.ESSENTIAL && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded uppercase border border-green-200">Essencial</span>}
-                </div>
-            )}
+          <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 md:px-8 flex-shrink-0 z-10">
+            <div className="flex items-center gap-2 overflow-hidden mr-2">
+                <button 
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-2"
+                >
+                    <Menu className="w-6 h-6"/>
+                </button>
+
+                {isEditingTitle ? (
+                    <div className="flex items-center gap-2">
+                        <input autoFocus value={editTitleInput} onChange={(e) => setEditTitleInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()} onBlur={handleSaveTitle} className="text-lg md:text-xl font-bold text-gray-800 border-b-2 border-indigo-500 outline-none px-1 w-full" />
+                        <button onClick={handleSaveTitle} className="text-green-600"><CheckCircle className="w-5 h-5"/></button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 group overflow-hidden">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 truncate" title={activeStudy.title}>{activeStudy.title}</h2>
+                        <button onClick={() => { setIsEditingTitle(true); setEditTitleInput(activeStudy.title); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-600 transition-opacity hidden md:block" title="Renomear Estudo"><Edit className="w-4 h-4"/></button>
+                        {activeStudy.mode === StudyMode.ESSENTIAL && <span className="hidden md:inline-block ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded uppercase border border-green-200">Essencial</span>}
+                    </div>
+                )}
+            </div>
             
-            <div className="flex items-center gap-6">
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                    <button onClick={() => setActiveTab('sources')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'sources' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}>Fontes</button>
-                    <button onClick={() => setActiveTab('guide')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'guide' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><BookOpen className="w-4 h-4" /> Roteiro</button>
-                    <button onClick={() => setActiveTab('slides')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'slides' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><Monitor className="w-4 h-4" /> Slides</button>
-                    <button onClick={() => setActiveTab('quiz')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'quiz' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><HelpCircle className="w-4 h-4" /> Quiz</button>
-                    <button onClick={() => setActiveTab('flashcards')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'flashcards' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><Layers className="w-4 h-4" /> Cards</button>
+            <div className="flex items-center gap-2 md:gap-6">
+                <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar">
+                    <button onClick={() => setActiveTab('sources')} className={`whitespace-nowrap px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md transition-all ${activeTab === 'sources' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}>Fontes</button>
+                    <button onClick={() => setActiveTab('guide')} className={`whitespace-nowrap px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'guide' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><BookOpen className="w-3 h-3 md:w-4 md:h-4" /> Roteiro</button>
+                    <button onClick={() => setActiveTab('slides')} className={`whitespace-nowrap px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'slides' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><Monitor className="w-3 h-3 md:w-4 md:h-4" /> Slides</button>
+                    <button onClick={() => setActiveTab('quiz')} className={`whitespace-nowrap px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'quiz' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><HelpCircle className="w-3 h-3 md:w-4 md:h-4" /> Quiz</button>
+                    <button onClick={() => setActiveTab('flashcards')} className={`whitespace-nowrap px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'flashcards' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}><Layers className="w-3 h-3 md:w-4 md:h-4" /> Cards</button>
                 </div>
             </div>
           </header>
         )}
 
         {isParetoStudy && activeStudy && (
-            <header className="h-16 border-b border-red-100 bg-red-50 flex items-center justify-between px-8 flex-shrink-0 z-10">
+            <header className="h-16 border-b border-red-100 bg-red-50 flex items-center justify-between px-4 md:px-8 flex-shrink-0 z-10">
                 <div className="flex items-center gap-3">
                     <button onClick={handleGoToHome} className="p-1 hover:bg-red-100 rounded-full text-red-700" title="Voltar"><ChevronRight className="w-5 h-5 rotate-180"/></button>
-                    <Target className="w-6 h-6 text-red-600"/>
-                    <h2 className="text-xl font-bold text-red-800">Pareto 80/20: Resumo Essencial</h2>
+                    <Target className="w-6 h-6 text-red-600 hidden md:block"/>
+                    <h2 className="text-lg md:text-xl font-bold text-red-800 truncate">Pareto 80/20</h2>
                 </div>
-                <div className="flex items-center gap-2"><span className="text-xs text-red-600 uppercase font-bold tracking-wider">Modo Simplificado</span></div>
+                <div className="flex items-center gap-2"><span className="text-[10px] md:text-xs text-red-600 uppercase font-bold tracking-wider">Modo Simplificado</span></div>
             </header>
         )}
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-8 scroll-smooth relative">
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 scroll-smooth relative">
             {!activeStudy ? (
                 <div className="h-full flex flex-col items-center justify-center max-w-6xl mx-auto relative">
                     {quickInputMode === 'none' ? (
                       <>
-                        <div className="text-center mb-10">
-                            <h1 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">O que você vai <span className="text-indigo-600">aprender</span> hoje?</h1>
-                            <p className="text-lg text-gray-500 max-w-xl mx-auto">Transforme qualquer conteúdo em conhecimento ativo instantaneamente. Escolha uma fonte para começar.</p>
+                        <div className="text-center mb-8 md:mb-10 mt-8 md:mt-0">
+                            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">O que você vai <span className="text-indigo-600">aprender</span> hoje?</h1>
+                            <p className="text-sm md:text-lg text-gray-500 max-w-xl mx-auto px-4">Transforme qualquer conteúdo em conhecimento ativo instantaneamente. Escolha uma fonte para começar.</p>
                         </div>
 
-                         <div className="flex justify-center gap-4 mb-8">
+                         <div className="flex justify-center gap-2 md:gap-4 mb-8 flex-wrap">
                             {[StudyMode.ESSENTIAL, StudyMode.NORMAL, StudyMode.TURBO].map(mode => (
-                                <button key={mode} onClick={() => setSelectedMode(mode)} className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${selectedMode === mode ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
-                                    {mode === StudyMode.ESSENTIAL && <BatteryCharging className="w-4 h-4" />}
-                                    {mode === StudyMode.NORMAL && <Activity className="w-4 h-4" />}
-                                    {mode === StudyMode.TURBO && <Rocket className="w-4 h-4" />}
-                                    <span className="text-sm font-bold capitalize">{mode === 'ESSENTIAL' ? 'Essencial' : mode}</span>
+                                <button key={mode} onClick={() => setSelectedMode(mode)} className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border transition-all ${selectedMode === mode ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
+                                    {mode === StudyMode.ESSENTIAL && <BatteryCharging className="w-3 h-3 md:w-4 md:h-4" />}
+                                    {mode === StudyMode.NORMAL && <Activity className="w-3 h-3 md:w-4 md:h-4" />}
+                                    {mode === StudyMode.TURBO && <Rocket className="w-3 h-3 md:w-4 md:h-4" />}
+                                    <span className="text-xs md:text-sm font-bold capitalize">{mode === 'ESSENTIAL' ? 'Essencial' : mode}</span>
                                 </button>
                             ))}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full px-4">
-                            <label className="group relative flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 w-full px-2 md:px-4 pb-20">
+                            <label className="group relative flex flex-col items-center justify-center p-4 md:p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-red-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform"></div>
-                                <div className="p-3 bg-red-50 rounded-full text-red-600 mb-3 group-hover:bg-red-600 group-hover:text-white transition-colors"><FileText className="w-6 h-6" /></div>
-                                <h3 className="font-bold text-gray-900 mb-1">Estudar PDF</h3>
-                                <p className="text-xs text-gray-500 text-center">Livros e slides.</p>
+                                <div className="p-2 md:p-3 bg-red-50 rounded-full text-red-600 mb-2 md:mb-3 group-hover:bg-red-600 group-hover:text-white transition-colors"><FileText className="w-5 h-5 md:w-6 md:h-6" /></div>
+                                <h3 className="font-bold text-gray-900 mb-1 text-sm md:text-base">Estudar PDF</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 text-center">Livros e slides.</p>
                                 <input type="file" accept=".pdf" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if(file) handleQuickStart(file, InputType.PDF, selectedMode); }} />
                             </label>
 
-                            <label className="group relative flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden">
+                            <label className="group relative flex flex-col items-center justify-center p-4 md:p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform"></div>
-                                <div className="p-3 bg-blue-50 rounded-full text-blue-600 mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors"><Video className="w-6 h-6" /></div>
-                                <h3 className="font-bold text-gray-900 mb-1">Vídeo/Áudio</h3>
-                                <p className="text-xs text-gray-500 text-center">Transcrever aula.</p>
+                                <div className="p-2 md:p-3 bg-blue-50 rounded-full text-blue-600 mb-2 md:mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors"><Video className="w-5 h-5 md:w-6 md:h-6" /></div>
+                                <h3 className="font-bold text-gray-900 mb-1 text-sm md:text-base">Vídeo/Áudio</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 text-center">Transcrever aula.</p>
                                 <input type="file" accept="video/*,audio/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if(file) handleQuickStart(file, InputType.VIDEO, selectedMode); }} />
                             </label>
 
-                            <label className="group relative flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden">
+                            <label className="group relative flex flex-col items-center justify-center p-4 md:p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-pink-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform"></div>
-                                <div className="p-3 bg-pink-50 rounded-full text-pink-600 mb-3 group-hover:bg-pink-600 group-hover:text-white transition-colors"><Camera className="w-6 h-6" /></div>
-                                <h3 className="font-bold text-gray-900 mb-1">Foto Caderno</h3>
-                                <p className="text-xs text-gray-500 text-center">Anotações/Livros.</p>
+                                <div className="p-2 md:p-3 bg-pink-50 rounded-full text-pink-600 mb-2 md:mb-3 group-hover:bg-pink-600 group-hover:text-white transition-colors"><Camera className="w-5 h-5 md:w-6 md:h-6" /></div>
+                                <h3 className="font-bold text-gray-900 mb-1 text-sm md:text-base">Foto Caderno</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 text-center">Anotações/Livros.</p>
                                 <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if(file) handleQuickStart(file, InputType.IMAGE, selectedMode); }} />
                             </label>
 
-                            <button onClick={() => { setInputType(InputType.TEXT); setQuickInputMode('text'); }} className="group relative flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden">
+                            <button onClick={() => { setInputType(InputType.TEXT); setQuickInputMode('text'); }} className="group relative flex flex-col items-center justify-center p-4 md:p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform"></div>
-                                <div className="p-3 bg-amber-50 rounded-full text-amber-600 mb-3 group-hover:bg-amber-600 group-hover:text-white transition-colors"><Zap className="w-6 h-6" /></div>
-                                <h3 className="font-bold text-gray-900 mb-1">Colar Texto</h3>
-                                <p className="text-xs text-gray-500 text-center">Resumos e notas.</p>
+                                <div className="p-2 md:p-3 bg-amber-50 rounded-full text-amber-600 mb-2 md:mb-3 group-hover:bg-amber-600 group-hover:text-white transition-colors"><Zap className="w-5 h-5 md:w-6 md:h-6" /></div>
+                                <h3 className="font-bold text-gray-900 mb-1 text-sm md:text-base">Colar Texto</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 text-center">Resumos e notas.</p>
                             </button>
 
-                             <button onClick={() => { setInputType(InputType.URL); setQuickInputMode('text'); }} className="group relative flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden">
+                             <button onClick={() => { setInputType(InputType.URL); setQuickInputMode('text'); }} className="group relative flex flex-col items-center justify-center p-4 md:p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-cyan-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform"></div>
-                                <div className="p-3 bg-cyan-50 rounded-full text-cyan-600 mb-3 group-hover:bg-cyan-600 group-hover:text-white transition-colors"><Globe className="w-6 h-6" /></div>
-                                <h3 className="font-bold text-gray-900 mb-1">Estudar Site</h3>
-                                <p className="text-xs text-gray-500 text-center">Links e Blogs.</p>
+                                <div className="p-2 md:p-3 bg-cyan-50 rounded-full text-cyan-600 mb-2 md:mb-3 group-hover:bg-cyan-600 group-hover:text-white transition-colors"><Globe className="w-5 h-5 md:w-6 md:h-6" /></div>
+                                <h3 className="font-bold text-gray-900 mb-1 text-sm md:text-base">Estudar Site</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 text-center">Links e Blogs.</p>
                             </button>
 
-                             <button onClick={() => { setInputType(InputType.DOI); setQuickInputMode('text'); }} className="group relative flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden">
+                             <button onClick={() => { setInputType(InputType.DOI); setQuickInputMode('text'); }} className="group relative flex flex-col items-center justify-center p-4 md:p-6 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform"></div>
-                                <div className="p-3 bg-emerald-50 rounded-full text-emerald-600 mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><Link className="w-6 h-6" /></div>
-                                <h3 className="font-bold text-gray-900 mb-1">Artigo DOI</h3>
-                                <p className="text-xs text-gray-500 text-center">Busca científica.</p>
+                                <div className="p-2 md:p-3 bg-emerald-50 rounded-full text-emerald-600 mb-2 md:mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><Link className="w-5 h-5 md:w-6 md:h-6" /></div>
+                                <h3 className="font-bold text-gray-900 mb-1 text-sm md:text-base">Artigo DOI</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 text-center">Busca científica.</p>
                             </button>
                         </div>
 
-                        <div className="mt-12 flex items-center gap-2 text-gray-400 text-sm">
+                        <div className="mt-8 flex items-center gap-2 text-gray-400 text-xs md:text-sm hidden md:flex">
                             <BrainCircuit className="w-4 h-4" />
                             <span>Suas pastas recentes estão na barra lateral à esquerda.</span>
                         </div>
                       </>
                     ) : (
-                      <div className="w-full max-w-2xl animate-fade-in">
+                      <div className="w-full max-w-2xl animate-fade-in px-4">
                           <div className="flex items-center justify-between mb-4">
-                             <h2 className="text-2xl font-bold text-gray-800">{inputType === InputType.DOI ? 'Colar DOI do Artigo' : inputType === InputType.URL ? 'Colar Link do Site' : 'Colar Texto para Estudo'}</h2>
-                             <button onClick={() => setQuickInputMode('none')} className="text-gray-500 hover:text-gray-700">Cancelar</button>
+                             <h2 className="text-xl md:text-2xl font-bold text-gray-800">{inputType === InputType.DOI ? 'Colar DOI do Artigo' : inputType === InputType.URL ? 'Colar Link do Site' : 'Colar Texto para Estudo'}</h2>
+                             <button onClick={() => setQuickInputMode('none')} className="text-gray-500 hover:text-gray-700 text-sm">Cancelar</button>
                           </div>
-                          <textarea autoFocus className="w-full h-64 p-6 border border-gray-300 rounded-xl shadow-inner text-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none mb-4" placeholder={inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2012-7" : inputType === InputType.URL ? "Ex: https://pt.wikipedia.org/wiki/Neurociência" : "Cole o conteúdo aqui..."} value={inputText} onChange={(e) => setInputText(e.target.value)}></textarea>
+                          <textarea autoFocus className="w-full h-48 md:h-64 p-4 md:p-6 border border-gray-300 rounded-xl shadow-inner text-base md:text-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none mb-4" placeholder={inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2012-7" : inputType === InputType.URL ? "Ex: https://pt.wikipedia.org/wiki/Neurociência" : "Cole o conteúdo aqui..."} value={inputText} onChange={(e) => setInputText(e.target.value)}></textarea>
                           <button onClick={() => handleQuickStart(inputText, inputType, selectedMode)} disabled={!inputText.trim()} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 disabled:opacity-50 transition-all active:scale-[0.99] flex items-center justify-center gap-2">
                              {selectedMode === StudyMode.TURBO && <Rocket className="w-5 h-5" />}
                              {selectedMode === StudyMode.NORMAL && <Activity className="w-5 h-5" />}
                              {selectedMode === StudyMode.ESSENTIAL && <BatteryCharging className="w-5 h-5" />}
-                             Iniciar Estudo Agora ({selectedMode === 'ESSENTIAL' ? 'Essencial' : selectedMode})
+                             Iniciar Estudo ({selectedMode === 'ESSENTIAL' ? 'Essencial' : selectedMode})
                           </button>
                       </div>
                     )}
@@ -618,13 +645,13 @@ export function App() {
                                 <div className="bg-white p-6 rounded-xl paper-shadow border border-gray-100">
                                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500"/> Adicionar Fonte</h3>
                                     <div className="space-y-4">
-                                        <div className="flex bg-gray-100 p-1 rounded-lg">
-                                            <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 py-1.5 text-xs font-medium rounded ${inputType === InputType.TEXT ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Texto</button>
-                                            <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 py-1.5 text-xs font-medium rounded ${inputType === InputType.PDF ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>PDF</button>
-                                            <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 py-1.5 text-xs font-medium rounded ${inputType === InputType.IMAGE ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Imagem</button>
-                                            <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 py-1.5 text-xs font-medium rounded ${inputType === InputType.VIDEO ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Vídeo</button>
-                                            <button onClick={() => setInputType(InputType.URL)} className={`flex-1 py-1.5 text-xs font-medium rounded ${inputType === InputType.URL ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Site</button>
-                                            <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 py-1.5 text-xs font-medium rounded ${inputType === InputType.DOI ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>DOI</button>
+                                        <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar">
+                                            <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[60px] py-1.5 text-xs font-medium rounded ${inputType === InputType.TEXT ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Texto</button>
+                                            <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[60px] py-1.5 text-xs font-medium rounded ${inputType === InputType.PDF ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>PDF</button>
+                                            <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[60px] py-1.5 text-xs font-medium rounded ${inputType === InputType.IMAGE ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Imagem</button>
+                                            <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 min-w-[60px] py-1.5 text-xs font-medium rounded ${inputType === InputType.VIDEO ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Vídeo</button>
+                                            <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[60px] py-1.5 text-xs font-medium rounded ${inputType === InputType.URL ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>Site</button>
+                                            <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[60px] py-1.5 text-xs font-medium rounded ${inputType === InputType.DOI ? 'bg-white shadow text-indigo-700' : 'text-gray-500'}`}>DOI</button>
                                         </div>
                                         {inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL ? (
                                             <textarea className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder={inputType === InputType.DOI ? "Cole o DOI aqui..." : inputType === InputType.URL ? "Cole o link do site aqui..." : "Cole seu texto..."} value={inputText} onChange={(e) => setInputText(e.target.value)} />
@@ -650,7 +677,7 @@ export function App() {
                                                 <li key={source.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 group">
                                                     <div className="flex items-center gap-3 overflow-hidden">
                                                         {source.type === InputType.PDF ? <FileText className="w-4 h-4 text-red-500"/> : source.type === InputType.VIDEO ? <Video className="w-4 h-4 text-blue-500"/> : source.type === InputType.IMAGE ? <Camera className="w-4 h-4 text-pink-500"/> : source.type === InputType.DOI ? <Link className="w-4 h-4 text-emerald-500"/> : source.type === InputType.URL ? <Globe className="w-4 h-4 text-cyan-500"/> : <FileText className="w-4 h-4 text-gray-500"/>}
-                                                        <span className="text-sm text-gray-700 truncate">{source.name}</span>
+                                                        <span className="text-sm text-gray-700 truncate max-w-[150px]">{source.name}</span>
                                                     </div>
                                                     <button onClick={() => removeSource(source.id)} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash className="w-4 h-4" /></button>
                                                 </li>
@@ -661,10 +688,10 @@ export function App() {
                             </div>
                             <div className={`border p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 transition-colors ${activeStudy.mode === StudyMode.ESSENTIAL ? 'bg-green-50 border-green-100' : activeStudy.mode === StudyMode.TURBO ? 'bg-purple-50 border-purple-100' : 'bg-indigo-50 border-indigo-100'}`}>
                                 <div>
-                                    <h3 className={`font-bold text-lg ${activeStudy.mode === StudyMode.ESSENTIAL ? 'text-green-900' : activeStudy.mode === StudyMode.TURBO ? 'text-purple-900' : 'text-indigo-900'}`}>{activeStudy.mode === StudyMode.ESSENTIAL ? 'Modo Essencial (Foco nos Pontos-Chave)' : activeStudy.mode === StudyMode.TURBO ? 'Modo Turbo (Detalhe Máximo)' : 'Pronto para transformar?'}</h3>
-                                    <p className={`text-sm ${activeStudy.mode === StudyMode.ESSENTIAL ? 'text-green-700' : activeStudy.mode === StudyMode.TURBO ? 'text-purple-700' : 'text-indigo-700'}`}>{activeStudy.mode === StudyMode.ESSENTIAL ? 'Ideal para quando o tempo é curto. Gera um guia simplificado com os checkpoints mais importantes.' : activeStudy.mode === StudyMode.TURBO ? 'Análise granular e detalhada para quem não pode perder nenhuma informação.' : 'O NeuroStudy vai analisar suas fontes e criar o roteiro perfeito.'}</p>
+                                    <h3 className={`font-bold text-lg ${activeStudy.mode === StudyMode.ESSENTIAL ? 'text-green-900' : activeStudy.mode === StudyMode.TURBO ? 'text-purple-900' : 'text-indigo-900'}`}>{activeStudy.mode === StudyMode.ESSENTIAL ? 'Modo Essencial' : activeStudy.mode === StudyMode.TURBO ? 'Modo Turbo' : 'Pronto para transformar?'}</h3>
+                                    <p className={`text-sm ${activeStudy.mode === StudyMode.ESSENTIAL ? 'text-green-700' : activeStudy.mode === StudyMode.TURBO ? 'text-purple-700' : 'text-indigo-700'}`}>{activeStudy.mode === StudyMode.ESSENTIAL ? 'Gera um guia focado e curto.' : activeStudy.mode === StudyMode.TURBO ? 'Análise detalhada e granular.' : 'O NeuroStudy vai criar o roteiro perfeito.'}</p>
                                 </div>
-                                <div className="flex items-center gap-4">
+                                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
                                     <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200">
                                         <span className="text-xs font-bold text-gray-500 uppercase">Modo:</span>
                                         <div className="flex gap-1">
@@ -673,8 +700,8 @@ export function App() {
                                             <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.TURBO)} className={`p-1.5 rounded transition-colors ${activeStudy.mode === StudyMode.TURBO ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-500 ring-offset-1' : 'hover:bg-gray-100 text-gray-400'}`} title="Turbo (Completo)"><Rocket className="w-4 h-4"/></button>
                                         </div>
                                     </div>
-                                    <button onClick={handleGenerateGuide} disabled={activeStudy.sources.length === 0 || processingState.isLoading} className={`px-8 py-3 rounded-xl font-bold text-lg text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-transform active:scale-[0.99] ${activeStudy.mode === StudyMode.ESSENTIAL ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : activeStudy.mode === StudyMode.TURBO ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
-                                        {processingState.isLoading ? (<><span className="animate-spin text-white">⚙️</span> {processingState.step === 'transcribing' ? 'Transcrevendo...' : processingState.step === 'analyzing' ? 'Lendo...' : processingState.step === 'generating' ? 'Escrevendo...' : 'Processando...'}</>) : (<><BrainCircuit className="w-5 h-5" /> Gerar Roteiro</>)}
+                                    <button onClick={handleGenerateGuide} disabled={activeStudy.sources.length === 0 || processingState.isLoading} className={`w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-lg text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-transform active:scale-[0.99] ${activeStudy.mode === StudyMode.ESSENTIAL ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : activeStudy.mode === StudyMode.TURBO ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
+                                        {processingState.isLoading ? (<><span className="animate-spin text-white">⚙️</span> Processando...</>) : (<><BrainCircuit className="w-5 h-5" /> Gerar Roteiro</>)}
                                     </button>
                                 </div>
                             </div>
