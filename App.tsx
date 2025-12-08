@@ -9,10 +9,29 @@ import { FlashcardsView } from './components/FlashcardsView';
 import { ChatWidget } from './components/ChatWidget';
 import { Sidebar } from './components/Sidebar';
 import { MethodologyModal } from './components/MethodologyModal';
-import { BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu } from './components/Icons';
+import { BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock } from './components/Icons';
 
 export function App() {
   // --- STATE ---
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  
+  useEffect(() => {
+    const authorized = localStorage.getItem('neurostudy_auth');
+    if (authorized === 'true') {
+      setIsAuthorized(true);
+    }
+  }, []);
+
+  const handleLogin = () => {
+    if (passwordInput === 'neurostudy2025') {
+      setIsAuthorized(true);
+      localStorage.setItem('neurostudy_auth', 'true');
+    } else {
+      alert('Senha incorreta.');
+    }
+  };
+
   const [view, setView] = useState<'landing' | 'app'>('landing');
 
   // Folders & Studies (Mock Database)
@@ -398,6 +417,37 @@ export function App() {
     if (!activeStudyId) return;
     setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz: null } : s));
   };
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-in fade-in zoom-in duration-300">
+          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
+          <p className="text-gray-500 mb-6">Esta plataforma está em fase de testes fechados. Por favor, insira a senha de acesso.</p>
+          
+          <input 
+            type="password"
+            placeholder="Senha de acesso"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-4"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            autoFocus
+          />
+          
+          <button 
+            onClick={handleLogin}
+            className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+          >
+            Entrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'landing') {
     return (
