@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards } from './services/geminiService';
@@ -489,7 +488,11 @@ export function App() {
                     <div className="relative group w-full md:w-80">
                         <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*"/>
                         <button
-                            onClick={() => paretoInputRef.current?.click()}
+                            onClick={() => {
+                                if (paretoInputRef.current) {
+                                    paretoInputRef.current.click();
+                                }
+                            }}
                             className="relative flex flex-col items-start p-6 bg-white hover:bg-red-50 border-2 border-red-100 hover:border-red-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden"
                         >
                              <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
@@ -768,7 +771,7 @@ export function App() {
                                     guide={activeStudy.guide} 
                                     onReset={() => { setActiveTab('sources'); if(isParetoStudy) setView('landing'); }}
                                     onGenerateQuiz={() => setActiveTab('quiz')}
-                                    onUpdateGuide={(newGuide) => updateStudyGuide(activeStudyId, newGuide)}
+                                    onUpdateGuide={(newGuide) => activeStudyId && updateStudyGuide(activeStudyId, newGuide)}
                                     isParetoOnly={isParetoStudy}
                                 />
                             ) : null
