@@ -27,7 +27,9 @@ export default defineConfig(({ mode }) => {
     },
     // CRITICAL FIX: This injects the API key into the client-side code
     define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      // Ensure process.env is defined to avoid crashes in some libraries
+      'process.env': JSON.stringify(env) 
     }
   };
 });
