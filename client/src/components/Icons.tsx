@@ -215,25 +215,7 @@ export const Smile = ({ className }: { className?: string }) => (
 
 // CUSTOM LOGO COMPONENT EXPORTED HERE
 export const NeuroLogo = ({ className, size = 40 }: { className?: string, size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <defs>
-      <linearGradient id="brain-gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#4F46E5" /> {/* Indigo 600 */}
-        <stop offset="1" stopColor="#9333EA" /> {/* Purple 600 */}
-      </linearGradient>
-    </defs>
-    {/* Outline do Cérebro */}
-    <path d="M50 25 C 30 25, 15 40, 15 60 C 15 80, 30 90, 48 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
-    <path d="M52 25 C 72 25, 87 40, 87 60 C 87 80, 72 90, 54 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
-    
-    {/* Sulcos/Conexões Internas */}
-    <circle cx="35" cy="50" r="5" fill="#4F46E5" />
-    <circle cx="65" cy="50" r="5" fill="#9333EA" />
-    <circle cx="50" cy="35" r="5" fill="#6366F1" />
-    <circle cx="50" cy="70" r="5" fill="#7C3AED" />
-    
-    {/* Linhas de conexão */}
-    <path d="M35 50 L 50 35 L 65 50 L 50 70 Z" stroke="url(#brain-gradient)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
-    <path d="M50 15 L 50 25" stroke="url(#brain-gradient)" strokeWidth="4" strokeLinecap="round"/>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M12 2C13.2 2 14.3 2.3 15.3 2.8C15.9 2.5 16.6 2.3 17.3 2.3C19.7 2.3 21.7 4.3 21.7 6.7C21.7 8.3 20.8 9.7 19.5 10.5C19.5 10.7 19.5 10.9 19.5 11.1C19.5 15.6 16.1 19.2 12 19.2C7.9 19.2 4.5 15.6 4.5 11.1C4.5 10.9 4.5 10.7 4.5 10.5C3.2 9.7 2.3 8.3 2.3 6.7C2.3 4.3 4.3 2.3 6.7 2.3C7.4 2.3 8.1 2.5 8.7 2.8C9.7 2.3 10.8 2 12 2ZM12 4.2C11.1 4.2 10.2 4.4 9.4 4.8C9.6 5.4 9.7 6 9.7 6.7C9.7 8.3 8.3 9.7 6.7 9.7C6.3 9.7 6 9.6 5.7 9.5C6 11.8 7.8 13.6 10 14.2V12.1C9.6 11.9 9.3 11.5 9.3 11.1C9.3 10.5 9.8 10 10.4 10H13.6C14.2 10 14.7 10.5 14.7 11.1C14.7 11.5 14.4 11.9 14 12.1V14.2C16.2 13.6 18 11.8 18.3 9.5C18 9.6 17.7 9.7 17.3 9.7C15.7 9.7 14.3 8.3 14.3 6.7C14.3 6 14.4 5.4 14.6 4.8C13.8 4.4 12.9 4.2 12 4.2ZM6.7 4.5C5.5 4.5 4.5 5.5 4.5 6.7C4.5 7.9 5.5 8.9 6.7 8.9C7.9 8.9 8.9 7.9 8.9 6.7C8.9 5.5 7.9 4.5 6.7 4.5ZM17.3 4.5C16.1 4.5 15.1 5.5 15.1 6.7C15.1 7.9 16.1 8.9 17.3 8.9C18.5 8.9 19.5 7.9 19.5 6.7C19.5 5.5 18.5 4.5 17.3 4.5Z" fill="currentColor"/>
   </svg>
 );

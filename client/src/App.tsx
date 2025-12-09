@@ -456,9 +456,9 @@ export function App() {
         <header className="px-8 py-6 flex justify-between items-center bg-white border-b border-gray-200">
             <div className="flex items-center gap-2">
                 {/* LOGO NO HEADER DA LANDING PAGE */}
-                <div className="flex items-center gap-2 bg-indigo-50 pl-2 pr-4 py-1.5 rounded-xl border border-indigo-100">
-                    <NeuroLogo size={32} />
-                    <span className="font-extrabold text-indigo-900 tracking-tight text-lg">NeuroStudy</span>
+                <div className="flex items-center gap-2">
+                    <NeuroLogo size={32} className="text-indigo-600" />
+                    <span className="font-extrabold text-slate-900 tracking-tight text-xl">NeuroStudy</span>
                 </div>
             </div>
             <button onClick={() => setView('app')} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
@@ -472,7 +472,7 @@ export function App() {
                     {/* HERO LOGO - CENTRALIZADO E GRANDE */}
                     <div className="flex justify-center mb-6">
                         <div className="p-8 bg-gradient-to-br from-indigo-50 to-white rounded-[2rem] shadow-xl border border-indigo-100">
-                            <NeuroLogo size={100} />
+                            <NeuroLogo size={100} className="text-indigo-600" />
                         </div>
                     </div>
                     
