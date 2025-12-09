@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards } from './services/geminiService';
@@ -89,7 +88,7 @@ export function App() {
   const handleGoToHome = () => {
     setView('landing');
     setIsMobileMenuOpen(false);
-    setActiveStudyId(null); // FIX: Limpa o estudo ativo para sair do layout Pareto
+    setActiveStudyId(null);
   };
 
   const createFolder = (name: string, parentId?: string) => {
@@ -775,7 +774,7 @@ export function App() {
                                         if (isParetoStudy) {
                                             handleGoToHome();
                                         } else {
-                                            setActiveTab('sources'); 
+                                            setActiveTab('sources');
                                         }
                                     }}
                                     onGenerateQuiz={() => setActiveTab('quiz')}
