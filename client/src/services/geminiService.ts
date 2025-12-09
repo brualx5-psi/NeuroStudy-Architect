@@ -41,9 +41,10 @@ const RESPONSE_SCHEMA: Schema = {
 };
 
 const getApiKey = (): string | undefined => {
-  return process.env.API_KEY;
+  // Tenta pegar a chave do jeito certo (Vite)
+  // Verifica os dois nomes comuns para garantir que funcione na sua Vercel
+  return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
 };
-
 // Helper para buscar metadados reais do DOI (para evitar alucinações)
 const fetchDoiMetadata = async (doi: string): Promise<{ title: string, abstract: string } | null> => {
   try {
