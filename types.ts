@@ -1,5 +1,6 @@
 
 
+
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
@@ -10,10 +11,9 @@ export enum InputType {
 }
 
 export enum StudyMode {
-  TURBO = 'TURBO',
+  HARD = 'HARD',
   NORMAL = 'NORMAL',
-  // FIX: Renamed SURVIVAL to ESSENTIAL and added PARETO to match client/src/types.ts and fix errors in App.tsx
-  ESSENTIAL = 'ESSENTIAL',
+  SURVIVAL = 'SURVIVAL',
   PARETO = 'PARETO'
 }
 

@@ -1,5 +1,6 @@
 
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode, InputType } from "../types";
 
@@ -79,20 +80,21 @@ export const generateStudyGuide = async (
 
   // --- MODE SPECIFIC INSTRUCTIONS ---
   let modeInstructions = "";
-  if (mode === StudyMode.TURBO) {
+  if (mode === StudyMode.HARD) {
     modeInstructions = `
-    MODO: TURBO (Detalhe Máximo).
+    MODO: HARD (HARDCORE / Detalhe Máximo).
+    - Objetivo: Domínio total do conteúdo. Sem atalhos.
     - Quebre o conteúdo em checkpoints PEQUENOS e frequentes (alta granularidade).
-    - Seja extremamente específico em 'noteExactly'.
+    - Seja extremamente específico e técnico em 'noteExactly'.
     - Ideal para quem quer extrair 100% da aula.
     `;
-  // FIX: Replace SURVIVAL with ESSENTIAL and add PARETO mode logic
-  } else if (mode === StudyMode.ESSENTIAL) {
+  } else if (mode === StudyMode.SURVIVAL) {
     modeInstructions = `
-    MODO: ESSENCIAL (Estudo Focado com Checkpoints).
-    - Crie POUCOS checkpoints (max 3 ou 4), abrangendo grandes partes do conteúdo.
-    - Foque apenas nos conceitos e pontos cruciais para o entendimento geral.
-    - Resumos curtos e diretos. Ideal para uma revisão rápida ou quando o tempo é curto.
+    MODO: SOBREVIVÊNCIA (O Mínimo Viável).
+    - Objetivo: Salvar o dia com o menor esforço possível.
+    - Crie POUCOS checkpoints (max 3 ou 4), apenas os cruciais.
+    - Foque apenas nos conceitos "80/20" que garantem a aprovação.
+    - Resumos curtos e diretos.
     `;
   } else if (mode === StudyMode.PARETO) {
     modeInstructions = `
@@ -300,9 +302,8 @@ export const generateQuiz = async (
 
   let questionCount = config?.quantity || 6;
   if (!config) {
-    // FIX: Replace SURVIVAL with ESSENTIAL
-    if (mode === StudyMode.ESSENTIAL) questionCount = 3;
-    if (mode === StudyMode.TURBO) questionCount = 10;
+    if (mode === StudyMode.SURVIVAL) questionCount = 3;
+    if (mode === StudyMode.HARD) questionCount = 10;
   }
 
   const difficultyPrompt = config?.difficulty && config.difficulty !== 'mixed' 
@@ -314,10 +315,9 @@ export const generateQuiz = async (
       - **DIFÍCIL**: Perguntas de análise, comparação sofisticada, crítica e integração entre ideias diferentes.
 
       Distribuição sugerida para o modo ${mode}:
-      // FIX: Replace SURVIVAL with ESSENTIAL
-      ${mode === StudyMode.ESSENTIAL ? "Maioria Fáceis e Médias. Foco no essencial." : ""}
+      ${mode === StudyMode.SURVIVAL ? "Maioria Fáceis e Médias. Foco no essencial." : ""}
       ${mode === StudyMode.NORMAL ? "Equilibrado: 30% Fácil, 40% Médio, 30% Difícil." : ""}
-      ${mode === StudyMode.TURBO ? "Desafiador: Inclua mais questões Difíceis de análise crítica." : ""}
+      ${mode === StudyMode.HARD ? "Desafiador: Inclua mais questões Difíceis de análise crítica." : ""}
     `;
 
   const context = {
