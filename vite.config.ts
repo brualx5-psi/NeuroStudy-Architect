@@ -8,11 +8,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'client/src'),
-    },
-  },
+  // Removed alias '@' to ensure relative paths are used consistently
   root: '.',
   publicDir: 'client/public',
   build: {

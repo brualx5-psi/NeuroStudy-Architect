@@ -1,7 +1,4 @@
 
-// Fix for "Cannot find name 'process'" error in client-side code
-declare var process: any;
-
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
