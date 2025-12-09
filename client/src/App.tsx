@@ -10,6 +10,31 @@ import { Sidebar } from './components/Sidebar';
 import { MethodologyModal } from './components/MethodologyModal';
 import { Brain, BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock } from './components/Icons';
 
+// --- CUSTOM LOGO COMPONENT ---
+const NeuroLogo = ({ className, size = 40 }: { className?: string, size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <defs>
+      <linearGradient id="brain-gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#4F46E5" /> {/* Indigo 600 */}
+        <stop offset="1" stopColor="#9333EA" /> {/* Purple 600 */}
+      </linearGradient>
+    </defs>
+    {/* Outline do Cérebro */}
+    <path d="M50 25 C 30 25, 15 40, 15 60 C 15 80, 30 90, 48 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
+    <path d="M52 25 C 72 25, 87 40, 87 60 C 87 80, 72 90, 54 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
+    
+    {/* Sulcos/Conexões Internas */}
+    <circle cx="35" cy="50" r="5" fill="#4F46E5" />
+    <circle cx="65" cy="50" r="5" fill="#9333EA" />
+    <circle cx="50" cy="35" r="5" fill="#6366F1" />
+    <circle cx="50" cy="70" r="5" fill="#7C3AED" />
+    
+    {/* Linhas de conexão */}
+    <path d="M35 50 L 50 35 L 65 50 L 50 70 Z" stroke="url(#brain-gradient)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+    <path d="M50 15 L 50 25" stroke="url(#brain-gradient)" strokeWidth="4" strokeLinecap="round"/>
+  </svg>
+);
+
 export function App() {
   // --- STATE ---
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -455,10 +480,10 @@ export function App() {
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
         <header className="px-8 py-6 flex justify-between items-center bg-white border-b border-gray-200">
             <div className="flex items-center gap-2">
-                {/* NEW LOGO IMPLEMENTATION WITH BRAIN ICON */}
-                <div className="flex items-center gap-2 bg-indigo-600 pl-2 pr-3 py-1.5 rounded-lg shadow-sm">
-                    <Brain className="w-6 h-6 text-white" />
-                    <span className="font-bold text-white tracking-tight">NeuroStudy</span>
+                {/* LOGO NO HEADER DA LANDING PAGE */}
+                <div className="flex items-center gap-2 bg-indigo-50 pl-2 pr-4 py-1.5 rounded-xl border border-indigo-100">
+                    <NeuroLogo size={32} />
+                    <span className="font-extrabold text-indigo-900 tracking-tight text-lg">NeuroStudy</span>
                 </div>
             </div>
             <button onClick={() => setView('app')} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
@@ -469,10 +494,10 @@ export function App() {
                 <div className="space-y-4">
                     <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-widest border border-indigo-100">Neurociência Aplicada</span>
                     
-                    {/* HERO LOGO - REIMPLEMENTED AS BRAIN ICON */}
+                    {/* HERO LOGO - CENTRALIZADO E GRANDE */}
                     <div className="flex justify-center mb-6">
-                        <div className="p-6 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-3xl shadow-xl border-4 border-white">
-                            <Brain className="w-20 h-20 text-indigo-600" />
+                        <div className="p-8 bg-gradient-to-br from-indigo-50 to-white rounded-[2rem] shadow-xl border border-indigo-100">
+                            <NeuroLogo size={100} />
                         </div>
                     </div>
                     
