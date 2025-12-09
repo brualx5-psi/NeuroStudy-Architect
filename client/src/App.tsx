@@ -8,32 +8,7 @@ import { FlashcardsView } from './components/FlashcardsView';
 import { ChatWidget } from './components/ChatWidget';
 import { Sidebar } from './components/Sidebar';
 import { MethodologyModal } from './components/MethodologyModal';
-import { Brain, BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock } from './components/Icons';
-
-// --- CUSTOM LOGO COMPONENT ---
-const NeuroLogo = ({ className, size = 40 }: { className?: string, size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <defs>
-      <linearGradient id="brain-gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#4F46E5" /> {/* Indigo 600 */}
-        <stop offset="1" stopColor="#9333EA" /> {/* Purple 600 */}
-      </linearGradient>
-    </defs>
-    {/* Outline do Cérebro */}
-    <path d="M50 25 C 30 25, 15 40, 15 60 C 15 80, 30 90, 48 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
-    <path d="M52 25 C 72 25, 87 40, 87 60 C 87 80, 72 90, 54 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
-    
-    {/* Sulcos/Conexões Internas */}
-    <circle cx="35" cy="50" r="5" fill="#4F46E5" />
-    <circle cx="65" cy="50" r="5" fill="#9333EA" />
-    <circle cx="50" cy="35" r="5" fill="#6366F1" />
-    <circle cx="50" cy="70" r="5" fill="#7C3AED" />
-    
-    {/* Linhas de conexão */}
-    <path d="M35 50 L 50 35 L 65 50 L 50 70 Z" stroke="url(#brain-gradient)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
-    <path d="M50 15 L 50 25" stroke="url(#brain-gradient)" strokeWidth="4" strokeLinecap="round"/>
-  </svg>
-);
+import { NeuroLogo, Brain, BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock } from './components/Icons';
 
 export function App() {
   // --- STATE ---

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
-import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, Home } from './Icons';
+import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, Home, NeuroLogo } from './Icons';
 
 interface SidebarProps {
   folders: Folder[];
@@ -312,7 +312,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full text-left text-xl font-bold text-indigo-900 flex items-center gap-2 hover:text-indigo-600 transition-colors"
           title="Voltar à tela inicial"
         >
-           <Home className="w-6 h-6 text-indigo-600"/> NeuroStudy
+           <NeuroLogo size={28} className="text-indigo-600 shrink-0"/> NeuroStudy
         </button>
         {dragOverHeader && <p className="text-xs text-indigo-500 mt-1">Soltar para mover para Raiz</p>}
       </div>

@@ -172,7 +172,7 @@ export const Mic = ({ className }: { className?: string }) => (
 );
 
 export const Settings = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
 );
 
 export const Layers = ({ className }: { className?: string }) => (
@@ -211,4 +211,29 @@ export const Lock = ({ className }: { className?: string }) => (
 
 export const Smile = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
+);
+
+// CUSTOM LOGO COMPONENT EXPORTED HERE
+export const NeuroLogo = ({ className, size = 40 }: { className?: string, size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <defs>
+      <linearGradient id="brain-gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#4F46E5" /> {/* Indigo 600 */}
+        <stop offset="1" stopColor="#9333EA" /> {/* Purple 600 */}
+      </linearGradient>
+    </defs>
+    {/* Outline do Cérebro */}
+    <path d="M50 25 C 30 25, 15 40, 15 60 C 15 80, 30 90, 48 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
+    <path d="M52 25 C 72 25, 87 40, 87 60 C 87 80, 72 90, 54 90" stroke="url(#brain-gradient)" strokeWidth="8" strokeLinecap="round"/>
+    
+    {/* Sulcos/Conexões Internas */}
+    <circle cx="35" cy="50" r="5" fill="#4F46E5" />
+    <circle cx="65" cy="50" r="5" fill="#9333EA" />
+    <circle cx="50" cy="35" r="5" fill="#6366F1" />
+    <circle cx="50" cy="70" r="5" fill="#7C3AED" />
+    
+    {/* Linhas de conexão */}
+    <path d="M35 50 L 50 35 L 65 50 L 50 70 Z" stroke="url(#brain-gradient)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+    <path d="M50 15 L 50 25" stroke="url(#brain-gradient)" strokeWidth="4" strokeLinecap="round"/>
+  </svg>
 );
