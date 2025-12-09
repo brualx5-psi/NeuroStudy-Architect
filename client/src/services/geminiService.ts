@@ -41,10 +41,9 @@ const RESPONSE_SCHEMA: Schema = {
 };
 
 const getApiKey = (): string | undefined => {
-  // Tenta pegar a chave do jeito certo (Vite)
-  // Verifica os dois nomes comuns para garantir que funcione na sua Vercel
-  return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  return process.env.API_KEY;
 };
+
 // Helper para buscar metadados reais do DOI (para evitar alucinações)
 const fetchDoiMetadata = async (doi: string): Promise<{ title: string, abstract: string } | null> => {
   try {
@@ -125,7 +124,8 @@ export const generateStudyGuide = async (
   const MASTER_PROMPT = `
 Você é um Arquiteto de Aprendizagem Especialista.
 Tarefa: Transformar o conteúdo seguindo o modo: ${mode}.
-Idioma: PORTUGUÊS DO BRASIL (pt-BR).
+IDIOMA OBRIGATÓRIO DE SAÍDA: PORTUGUÊS DO BRASIL (pt-BR) 🇧🇷.
+Se o conteúdo original estiver em inglês ou outra língua, TRADUZA TUDO para Português do Brasil.
 
 ${modeInstructions}
 ${contentInstructions}
@@ -184,7 +184,7 @@ export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
   const ai = new GoogleGenAI({ apiKey });
   const modelName = 'gemini-2.5-flash';
 
-  const prompt = `Crie 5-8 slides educacionais JSON sobre: ${guide.subject}. Baseado em: ${guide.overview}`;
+  const prompt = `Crie 5-8 slides educacionais JSON sobre: ${guide.subject}. Baseado em: ${guide.overview}. IDIOMA: PORTUGUÊS DO BRASIL.`;
   
   const response = await ai.models.generateContent({
     model: modelName,
@@ -200,7 +200,7 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
   const ai = new GoogleGenAI({ apiKey });
   const modelName = 'gemini-2.5-flash';
   
-  const prompt = `Crie um Quiz JSON com 6 perguntas sobre ${guide.subject}. Misture múltipla escolha e aberta.`;
+  const prompt = `Crie um Quiz JSON com 6 perguntas sobre ${guide.subject}. Misture múltipla escolha e aberta. IDIOMA: PORTUGUÊS DO BRASIL.`;
   
   const response = await ai.models.generateContent({
     model: modelName,
@@ -216,7 +216,7 @@ export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]
   const ai = new GoogleGenAI({ apiKey });
   const modelName = 'gemini-2.5-flash';
   
-  const prompt = `Crie 10 Flashcards JSON (front/back) sobre ${guide.subject}.`;
+  const prompt = `Crie 10 Flashcards JSON (front/back) sobre ${guide.subject}. IDIOMA: PORTUGUÊS DO BRASIL.`;
   
   const response = await ai.models.generateContent({
     model: modelName,
@@ -242,7 +242,13 @@ export const refineContent = async (text: string, task: string): Promise<string>
   const apiKey = getApiKey();
   if (!apiKey) return "Erro.";
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: { parts: [{ text: `Task: ${task}. Content: ${text}` }] } });
+  // FORCE PORTUGUESE OUTPUT IN INSTRUCTION
+  const instruction = `Task: ${task}. Content to analyze: "${text}".
+  CRITICAL INSTRUCTION: OUTPUT MUST BE IN PORTUGUESE (BRAZIL/PT-BR) 🇧🇷.
+  Even if the input text is English, TRANSLATE AND ADAPT THE EXPLANATION TO PORTUGUESE.
+  Keep it concise and educational.`;
+  
+  const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: { parts: [{ text: instruction }] } });
   return response.text || "";
 };
 
