@@ -1,9 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode, InputType } from "../types";
 
-// Ensure process is defined for TS
-declare var process: any;
-
 const RESPONSE_SCHEMA: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -67,14 +64,7 @@ export const generateStudyGuide = async (
   mode: StudyMode = StudyMode.NORMAL,
   isBinary: boolean = false
 ): Promise<StudyGuide> => {
-  const apiKey = process.env.API_KEY;
-  
-  if (!apiKey) {
-    console.error("ERRO: API Key não encontrada no process.env");
-    throw new Error("Chave de API não configurada.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelName = 'gemini-2.5-flash'; 
 
   // --- INSTRUÇÕES DO MODO ---
@@ -175,9 +165,7 @@ SAÍDA OBRIGATÓRIA: JSON VÁLIDO seguindo o schema.
 };
 
 export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("Chave API não encontrada");
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelName = 'gemini-2.5-flash';
 
   const prompt = `Crie 5-8 slides educacionais JSON sobre: ${guide.subject}. Baseado em: ${guide.overview}. IDIOMA: PORTUGUÊS DO BRASIL.`;
@@ -191,9 +179,7 @@ export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
 };
 
 export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: any): Promise<QuizQuestion[]> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("Chave API não encontrada");
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelName = 'gemini-2.5-flash';
   
   const prompt = `Crie um Quiz JSON com 6 perguntas sobre ${guide.subject}. Misture múltipla escolha e aberta. IDIOMA: PORTUGUÊS DO BRASIL.`;
@@ -207,9 +193,7 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
 };
 
 export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("Chave API não encontrada");
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelName = 'gemini-2.5-flash';
   
   const prompt = `Crie 10 Flashcards JSON (front/back) sobre ${guide.subject}. IDIOMA: PORTUGUÊS DO BRASIL.`;
@@ -223,11 +207,8 @@ export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]
 };
 
 export const sendChatMessage = async (history: ChatMessage[], newMessage: string, context?: any): Promise<string> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return "Erro de Configuração: API Key não encontrada.";
-  
-  const ai = new GoogleGenAI({ apiKey });
-  const modelName = 'gemini-2.0-flash'; // Modelo mais rápido para chat
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const modelName = 'gemini-2.5-flash'; 
   
   const chat = ai.chats.create({ model: modelName, history: history.slice(-5).map(m => ({ role: m.role, parts: [{ text: m.text }] })) });
   const result = await chat.sendMessage({ message: newMessage });
@@ -235,9 +216,7 @@ export const sendChatMessage = async (history: ChatMessage[], newMessage: string
 };
 
 export const refineContent = async (text: string, task: string): Promise<string> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return "Erro.";
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   // FORCE PORTUGUESE OUTPUT IN INSTRUCTION
   const instruction = `Task: ${task}. Content to analyze: "${text}".
   CRITICAL INSTRUCTION: OUTPUT MUST BE IN PORTUGUESE (BRAZIL/PT-BR) 🇧🇷.
