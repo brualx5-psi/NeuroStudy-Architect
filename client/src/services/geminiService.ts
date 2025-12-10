@@ -3,6 +3,8 @@ import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode, Inp
 
 // Função para pegar a chave com segurança no Vite
 const getApiKey = (): string | undefined => {
+  // Apenas use import.meta.env, que é o padrão do Vite.
+  // Verifica os dois nomes possíveis para garantir compatibilidade com sua Vercel.
   return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
 };
 
@@ -177,12 +179,23 @@ export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]
     return JSON.parse(text || "[]");
 };
 
-export const sendChatMessage = async (history: ChatMessage[], msg: string): Promise<string> => {
+export const sendChatMessage = async (history: ChatMessage[], msg: string, studyGuide: StudyGuide | null = null): Promise<string> => {
     const apiKey = getApiKey();
     if (!apiKey) return "Erro de API Key.";
     const ai = new GoogleGenAI({ apiKey });
-    const chat = ai.chats.create({ model: 'gemini-2.0-flash', history: history.slice(-5).map(m=>({role:m.role, parts:[{text:m.text}]})) });
-    const res = await chat.sendMessage(msg);
+    
+    let systemInstruction = "Você é um professor virtual socrático e prestativo.";
+    if (studyGuide) {
+        systemInstruction += ` O aluno está estudando: ${studyGuide.subject}. Contexto: ${studyGuide.overview}.`;
+    }
+
+    const chat = ai.chats.create({ 
+        model: 'gemini-2.5-flash', 
+        history: history.slice(-5).map(m=>({role:m.role, parts:[{text:m.text}]})),
+        config: { systemInstruction }
+    });
+    
+    const res = await chat.sendMessage({ message: msg });
     return res.text || "";
 };
 
