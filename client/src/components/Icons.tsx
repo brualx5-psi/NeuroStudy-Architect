@@ -187,24 +187,6 @@ export const Camera = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
 );
 
-export const Home = ({ className }: { className?: string }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        <g stroke="currentColor" strokeWidth="1.5">
-            <path d="M12 3 L21 12 L12 21 L3 12 Z" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 5 C8 5, 5 8, 5 12 C5 16, 8 19, 12 19" fill="none" strokeLinecap="round"/>
-            <path d="M12 5 C16 5, 19 8, 19 12 C19 16, 16 19, 12 19" fill="none" strokeLinecap="round"/>
-            <path d="M12 5 V 19" />
-            <path d="M9.5 7.5 C8.5 8, 8.5 9.5, 9.5 10.5" fill="none" strokeLinecap="round"/>
-            <path d="M10 13 C8 13.5, 7.5 15.5, 9 17" fill="none" strokeLinecap="round"/>
-            <path d="M7 9.5 C6.5 10.5, 6.5 12, 7.5 13" fill="none" strokeLinecap="round"/>
-            <path d="M14.5 7.5 C15.5 8, 15.5 9.5, 14.5 10.5" fill="none" strokeLinecap="round"/>
-            <path d="M14 13 C16 13.5, 16.5 15.5, 15 17" fill="none" strokeLinecap="round"/>
-            <path d="M17 9.5 C17.5 10.5, 17.5 12, 16.5 13" fill="none" strokeLinecap="round"/>
-            <path d="M18 18 L 18 20" strokeLinecap="round"/>
-        </g>
-    </svg>
-);
-
 export const Menu = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
 );
@@ -247,14 +229,15 @@ export const Tomato = ({ className }: { className?: string }) => (
 
 // CUSTOM LOGO COMPONENT EXPORTED HERE
 export const NeuroLogo = ({ className, size = 40 }: { className?: string, size?: number }) => (
-  <div className={className} style={{ height: size, display: 'flex', alignItems: 'center' }}>
+  <div className={className} style={{ height: size, width: size, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       <img
         src="https://i.ibb.co/Q7RkqQ1J/logooficial.png"
         alt="NeuroStudy Architect"
         style={{
             height: '100%',
-            width: 'auto',
-            objectFit: 'contain'
+            width: '100%',
+            objectFit: 'contain',
+            transform: 'scale(1.4)' // Increased scale to fill edges as requested
         }}
         onError={(e) => {
              // Fallback minimal se a imagem falhar

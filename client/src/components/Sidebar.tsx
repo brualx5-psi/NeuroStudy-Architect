@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
-import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, Home, NeuroLogo } from './Icons';
+import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo } from './Icons';
 
 interface SidebarProps {
   folders: Folder[];
