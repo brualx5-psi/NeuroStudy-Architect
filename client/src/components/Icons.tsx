@@ -17,6 +17,18 @@ export const Search = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
 );
 
+export const GenerateIcon = ({ className }: { className?: string }) => (
+  <img 
+    src="https://i.ibb.co/8DKqSKjZ/logo.png" 
+    alt="Gerar" 
+    className={`${className} object-contain`}
+    onError={(e) => {
+        // Fallback visual caso o link direto precise de ajuste
+        e.currentTarget.style.display = 'none';
+    }}
+  />
+);
+
 export const BrainCircuit = ({ className }: { className?: string }) => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
         <g stroke="currentColor" strokeWidth="1.5">
