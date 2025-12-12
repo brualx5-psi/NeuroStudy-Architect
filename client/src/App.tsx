@@ -693,7 +693,8 @@ export function App() {
             </header>
         )}
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 scroll-smooth relative">
+        {/* UPDATED: Added bottom padding pb-32 to prevent floating elements from covering content on mobile */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 pb-32 scroll-smooth relative">
             {!activeStudy ? (
                 <div className="h-full flex flex-col items-center justify-center max-w-6xl mx-auto relative">
                      {/* NOTIFICATION BELL FOR HOME SCREEN */}
