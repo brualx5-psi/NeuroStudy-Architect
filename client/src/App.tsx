@@ -12,7 +12,8 @@ import { ProcessingStatus } from './components/ProcessingStatus';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
-import { NeuroLogo, Brain, BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon } from './components/Icons';
+import { SourcePreviewModal } from './components/SourcePreviewModal';
+import { NeuroLogo, Brain, BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye } from './components/Icons';
 
 export function App() {
   // --- STATE ---
@@ -35,7 +36,8 @@ export function App() {
     }
   };
 
-  const [view, setView] = useState<'landing' | 'app'>('landing');
+  // Alterado: Default agora é 'app' para pular a landing page
+  const [view, setView] = useState<'landing' | 'app'>('app');
 
   // Folders & Studies (Mock Database)
   const [folders, setFolders] = useState<Folder[]>([
@@ -57,9 +59,16 @@ export function App() {
   // Quick Start State
   const [quickInputMode, setQuickInputMode] = useState<'none' | 'text'>('none');
 
-  // Renaming State
+  // Renaming State (Study Title)
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleInput, setEditTitleInput] = useState('');
+
+  // Renaming State (Source)
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [editSourceName, setEditSourceName] = useState('');
+
+  // Source Preview State
+  const [previewSource, setPreviewSource] = useState<StudySource | null>(null);
 
   // Methodology Modal State
   const [showMethodologyModal, setShowMethodologyModal] = useState(false);
@@ -97,14 +106,15 @@ export function App() {
       setIsEditingTitle(false);
       setEditTitleInput('');
       setIsMobileMenuOpen(false); // Close menu on study select
+      setEditingSourceId(null);
   }, [activeStudyId]);
 
   // --- ACTIONS ---
 
   const handleGoToHome = () => {
-    setView('landing');
+    // Agora 'home' reseta o estudo ativo, mas mantem no app view
     setIsMobileMenuOpen(false);
-    setActiveStudyId(null); // CRITICAL: Clear active study to prevent stuck Pareto layout
+    setActiveStudyId(null); 
   };
 
   const createFolder = (name: string, parentId?: string) => {
@@ -213,7 +223,7 @@ export function App() {
       content = inputText;
       mimeType = 'text/plain';
       if (inputType === InputType.DOI) name = `DOI: ${inputText.slice(0, 20)}...`;
-      else if (inputType === InputType.URL) name = `Site: ${inputText.slice(0, 30)}...`;
+      else if (inputType === InputType.URL) name = `Link: ${inputText.slice(0, 30)}...`;
       else name = `Nota de Texto ${new Date().toLocaleTimeString()}`;
     } else {
       if (!selectedFile) return;
@@ -250,6 +260,29 @@ export function App() {
       }
       return s;
     }));
+  };
+
+  const handleStartRenamingSource = (source: StudySource) => {
+      setEditingSourceId(source.id);
+      setEditSourceName(source.name);
+  };
+
+  const handleSaveSourceRename = () => {
+      if (!activeStudyId || !editingSourceId) return;
+      
+      setStudies(prev => prev.map(s => {
+          if (s.id === activeStudyId) {
+              return {
+                  ...s,
+                  sources: s.sources.map(src => 
+                      src.id === editingSourceId ? { ...src, name: editSourceName } : src
+                  )
+              };
+          }
+          return s;
+      }));
+      setEditingSourceId(null);
+      setEditSourceName('');
   };
 
   const handleQuickStart = async (content: string | File, type: InputType, mode: StudyMode = StudyMode.NORMAL, autoGenerate: boolean = false) => {
@@ -464,6 +497,17 @@ export function App() {
       handleQuickStart(inputPayload, inputType, selectedMode);
   };
 
+  const renderSourceDescription = (type: InputType) => {
+      switch(type) {
+          case InputType.VIDEO: return <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded text-xs">ℹ️ O áudio do vídeo será transcrito e analisado.</span>;
+          case InputType.PDF: return <span className="text-red-600 bg-red-50 px-2 py-1 rounded text-xs">ℹ️ Texto e imagens do PDF serão processados.</span>;
+          case InputType.IMAGE: return <span className="text-purple-600 bg-purple-50 px-2 py-1 rounded text-xs">ℹ️ Foto do Caderno? A IA lê sua letra manuscrita.</span>;
+          case InputType.DOI: return <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">ℹ️ Busca automática pelo resumo do artigo científico.</span>;
+          case InputType.URL: return <span className="text-green-600 bg-green-50 px-2 py-1 rounded text-xs">ℹ️ Conteúdo da página web será extraído.</span>;
+          default: return null;
+      }
+  };
+
 
   if (!isAuthorized) {
     return (
@@ -496,99 +540,7 @@ export function App() {
     );
   }
 
-  if (view === 'landing') {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
-        <header className="px-8 py-6 flex justify-between items-center bg-white border-b border-gray-200">
-            <div className="flex items-center gap-2">
-                {/* LOGO NO HEADER DA LANDING PAGE */}
-                <div className="flex items-center gap-2">
-                    <NeuroLogo size={40} className="text-indigo-600" />
-                    <span className="font-extrabold text-slate-900 tracking-tight text-xl">NeuroStudy</span>
-                </div>
-            </div>
-            <button onClick={() => setView('app')} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
-        </header>
-
-        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-            <div className="max-w-4xl mx-auto space-y-12">
-                <div className="space-y-4">
-                    <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-widest border border-indigo-100">Neurociência Aplicada</span>
-                    
-                    {/* HERO LOGO - CENTRALIZADO E GRANDE */}
-                    <div className="flex justify-center mb-6">
-                        <div className="p-1 bg-gradient-to-br from-indigo-50 to-white rounded-[2rem] shadow-xl border border-indigo-100">
-                            <NeuroLogo size={100} className="text-indigo-600" />
-                        </div>
-                    </div>
-                    
-                    <h2 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">Pare de estudar.<br/><span className="text-indigo-600">Comece a aprender.</span></h2>
-                    <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed">Transforme PDFs, Vídeos e Anotações em guias de estudo ativo, slides e quizzes automaticamente.</p>
-                </div>
-
-                <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-                    {/* BUTTON 1: FULL PLATFORM */}
-                    <button
-                        onClick={() => setView('app')}
-                        className="group relative flex flex-col items-start p-6 bg-white hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-200 rounded-2xl transition-all w-full md:w-80 shadow-sm hover:shadow-xl hover:-translate-y-1"
-                    >
-                        <div className="bg-indigo-100 p-3 rounded-xl text-indigo-600 mb-4 group-hover:scale-110 transition-transform"><Layers className="w-8 h-8" /></div>
-                        <h3 className="text-lg font-bold text-gray-900">Método NeuroStudy</h3>
-                        <p className="text-sm text-gray-500 mt-2 text-left flex-1">
-                            Acesso completo. Pastas, roteiros, flashcards e professor virtual.
-                        </p>
-                        <span className="mt-4 w-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-indigo-700 transition-colors">
-                            Iniciar <ChevronRight className="w-4 h-4" />
-                        </span>
-                    </button>
-
-                    {/* BUTTON 2: PARETO FAST TRACK */}
-                    <div className="relative group w-full md:w-80">
-                        <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*"/>
-                        <button
-                            onClick={() => {
-                                if (paretoInputRef.current) {
-                                    paretoInputRef.current.click();
-                                }
-                            }}
-                            className="relative flex flex-col items-start p-6 bg-white hover:bg-red-50 border-2 border-red-100 hover:border-red-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden"
-                        >
-                             <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                            <div className="bg-red-100 p-3 rounded-xl text-red-600 mb-4 group-hover:scale-110 transition-transform"><Target className="w-8 h-8" /></div>
-                            <h3 className="text-lg font-bold text-gray-900">Método Pareto 80/20</h3>
-                            <p className="text-sm text-gray-500 mt-2 text-left flex-1">
-                                Extração rápida. Apenas o essencial do arquivo.
-                            </p>
-                            <span className="mt-4 w-full bg-red-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-red-700 transition-colors">
-                                Iniciar <ChevronRight className="w-4 h-4" />
-                            </span>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-8 opacity-60 grayscale hover:grayscale-0 transition-all">
-                    <div className="flex flex-col items-center gap-2"><BookOpen className="w-6 h-6 text-gray-400" /><span className="text-xs font-bold text-gray-400">PDFs e Livros</span></div>
-                    <div className="flex flex-col items-center gap-2"><Video className="w-6 h-6 text-gray-400" /><span className="text-xs font-bold text-gray-400">Vídeo Aulas</span></div>
-                    <div className="flex flex-col items-center gap-2"><Camera className="w-6 h-6 text-gray-400" /><span className="text-xs font-bold text-gray-400">Fotos de Caderno</span></div>
-                    <div className="flex flex-col items-center gap-2"><Globe className="w-6 h-6 text-gray-400" /><span className="text-xs font-bold text-gray-400">Sites e Artigos</span></div>
-                </div>
-            </div>
-        </main>
-        
-        {/* LANDING PAGE FOOTER */}
-        <footer className="py-6 text-center border-t border-gray-200 bg-white">
-            <p className="text-sm text-gray-500 font-medium">
-                Desenvolvido por <span className="text-gray-900 font-bold">Bruno Alexandre</span>
-            </p>
-            <div className="mt-2">
-                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wider">
-                    Versão Beta
-                </span>
-            </div>
-        </footer>
-      </div>
-    );
-  }
+  // NOTE: Removida a verificação if (view === 'landing') para ir direto ao app
 
   return (
     <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden animate-in fade-in duration-500">
@@ -741,12 +693,18 @@ export function App() {
                             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                                 <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500"/> Adicionar Conteúdo</h2>
                                 
-                                <div className="flex gap-2 mb-4 bg-gray-50 p-1 rounded-lg w-fit">
-                                    <button onClick={() => setInputType(InputType.TEXT)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
-                                    <button onClick={() => setInputType(InputType.PDF)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF</button>
-                                    <button onClick={() => setInputType(InputType.VIDEO)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
-                                    <button onClick={() => setInputType(InputType.IMAGE)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Imagem</button>
-                                    <button onClick={() => setInputType(InputType.URL)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
+                                <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-1.5 rounded-xl w-full">
+                                    <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
+                                    <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF</button>
+                                    <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
+                                    <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
+                                    <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
+                                    <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
+                                </div>
+                                
+                                {/* Dynamic Help Text */}
+                                <div className="mb-4 animate-in fade-in duration-200">
+                                    {renderSourceDescription(inputType)}
                                 </div>
 
                                 <div className="space-y-4">
@@ -754,8 +712,8 @@ export function App() {
                                         <textarea
                                             value={inputText}
                                             onChange={(e) => setInputText(e.target.value)}
-                                            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                                            placeholder={inputType === InputType.URL ? "Cole o link aqui..." : "Cole seu texto ou anotações aqui..."}
+                                            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-sans text-sm"
+                                            placeholder={inputType === InputType.URL ? "Cole o link aqui..." : inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2649-2" : "Cole suas anotações ou texto aqui..."}
                                         />
                                     ) : (
                                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
@@ -776,7 +734,7 @@ export function App() {
                                                     <>
                                                         <UploadCloud className="w-8 h-8"/>
                                                         <span className="font-medium">Clique ou arraste o arquivo aqui</span>
-                                                        <span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDFs' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens'}</span>
+                                                        <span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDFs' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens (Cadernos/Lousas)'}</span>
                                                     </>
                                                 )}
                                             </div>
@@ -796,17 +754,44 @@ export function App() {
                             {activeStudy.sources.length > 0 && (
                                 <div className="space-y-4">
                                     {activeStudy.sources.map((source, idx) => (
-                                        <div key={source.id} className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-in slide-in-from-top-2">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold">
+                                        <div key={source.id} className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-in slide-in-from-top-2 group hover:border-indigo-200 transition-colors">
+                                            <div className="flex items-center gap-4 flex-1">
+                                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold shrink-0">
                                                     {idx + 1}
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-bold text-gray-800">{source.name}</h3>
-                                                    <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">{source.type} • {new Date(source.dateAdded).toLocaleTimeString()}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    {editingSourceId === source.id ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <input 
+                                                                autoFocus
+                                                                value={editSourceName}
+                                                                onChange={(e) => setEditSourceName(e.target.value)}
+                                                                onBlur={handleSaveSourceRename}
+                                                                onKeyDown={(e) => e.key === 'Enter' && handleSaveSourceRename()}
+                                                                className="w-full text-sm font-bold text-gray-800 border-b border-indigo-500 outline-none bg-transparent"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="font-bold text-gray-800 truncate cursor-pointer hover:text-indigo-600 transition-colors" title="Clique para visualizar" onClick={() => setPreviewSource(source)}>{source.name}</h3>
+                                                            <button 
+                                                                onClick={() => handleStartRenamingSource(source)}
+                                                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-indigo-600 transition-opacity"
+                                                                title="Renomear Fonte"
+                                                            >
+                                                                <Edit className="w-3 h-3"/>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">{source.type} • {new Date(source.dateAdded).toLocaleTimeString()}</span>
+                                                        <button onClick={() => setPreviewSource(source)} className="flex items-center gap-1 text-[10px] text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors">
+                                                            <Eye className="w-3 h-3"/> Visualizar
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <button onClick={() => removeSource(source.id)} className="text-gray-400 hover:text-red-500 p-2"><Trash className="w-5 h-5"/></button>
+                                            <button onClick={() => removeSource(source.id)} className="text-gray-400 hover:text-red-500 p-2 ml-2"><Trash className="w-5 h-5"/></button>
                                         </div>
                                     ))}
 
@@ -943,12 +928,18 @@ export function App() {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500"/> Fonte do Conteúdo</h3>
                         
-                        <div className="flex gap-2 mb-4 bg-gray-50 p-1 rounded-lg w-fit">
-                            <button onClick={() => setInputType(InputType.TEXT)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
-                            <button onClick={() => setInputType(InputType.PDF)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF</button>
-                            <button onClick={() => setInputType(InputType.VIDEO)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
-                            <button onClick={() => setInputType(InputType.IMAGE)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Imagem</button>
-                            <button onClick={() => setInputType(InputType.URL)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
+                        <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-1.5 rounded-xl w-full">
+                            <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
+                            <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF</button>
+                            <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
+                            <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
+                            <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
+                            <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
+                        </div>
+                        
+                        {/* Dynamic Help Text */}
+                        <div className="mb-4 animate-in fade-in duration-200">
+                             {renderSourceDescription(inputType)}
                         </div>
 
                         <div className="space-y-4">
@@ -956,8 +947,8 @@ export function App() {
                                 <textarea
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
-                                    className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                                    placeholder={inputType === InputType.URL ? "Cole o link aqui..." : "Cole seu texto ou anotações aqui..."}
+                                    className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-sans text-sm"
+                                    placeholder={inputType === InputType.URL ? "Cole o link aqui..." : inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2649-2" : "Cole seu texto ou anotações aqui..."}
                                 />
                             ) : (
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
@@ -978,7 +969,7 @@ export function App() {
                                             <>
                                                 <UploadCloud className="w-8 h-8"/>
                                                 <span className="font-medium">Clique ou arraste o arquivo aqui</span>
-                                                <span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDFs' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens'}</span>
+                                                <span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDFs' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens (Cadernos/Lousas)'}</span>
                                             </>
                                         )}
                                     </div>
@@ -1003,6 +994,7 @@ export function App() {
         <PomodoroTimer />
         <ChatWidget studyGuide={activeStudy?.guide || null} />
         {showMethodologyModal && <MethodologyModal onClose={() => setShowMethodologyModal(false)} />}
+        {previewSource && <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} />}
       </div>
     </div>
   );

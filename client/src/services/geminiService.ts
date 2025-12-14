@@ -54,7 +54,7 @@ export const generateStudyGuide = async (
   const ai = new GoogleGenAI({ apiKey });
   
   // CRITICAL: Use gemini-3-pro-preview for deep reasoning and image analysis
-  const modelName = 'gemini-2.0-flash';
+  const modelName = 'gemini-3-pro-preview'; 
 
   let modeInstructions = "MODO: NORMAL.";
   if (mode === StudyMode.HARD) modeInstructions = "MODO: HARD (Detalhe Máximo e Profundidade).";
@@ -72,8 +72,14 @@ export const generateStudyGuide = async (
   Transformar o conteúdo fornecido (Texto, PDF, Vídeo ou Imagem) em um GUIA DE ESTUDO ATIVO estruturado.
   Não apenas resuma. Crie um roteiro de ações para o estudante.
   
-  PARA IMAGENS:
-  Se o conteúdo for uma imagem (foto de caderno, slide, esquema), analise visualmente cada detalhe, transcreva textos manuscritos e explique diagramas com precisão antes de criar o roteiro.
+  PARA IMAGENS (CADERNOS/LOUSAS):
+  Se o conteúdo for uma imagem (foto de caderno, anotação manuscrita, lousa, slide), analise visualmente cada detalhe. Transcreva textos manuscritos com precisão, interprete diagramas e setas. Use isso para criar o roteiro.
+  
+  PARA VÍDEOS:
+  O conteúdo fornecido é a transcrição ou o arquivo de vídeo. Analise o fluxo de ideias faladas e estruture em tópicos lógicos.
+
+  PARA DOI/ARTIGOS:
+  Se receber um DOI ou link acadêmico, foque na metodologia, resultados e conclusões.
 
   SAÍDA OBRIGATÓRIA: APENAS JSON VÁLIDO seguindo o schema.
   `;
@@ -83,7 +89,7 @@ export const generateStudyGuide = async (
   if (isBinary) {
      // Para PDF, Imagem, Vídeo
      parts.push({ inlineData: { mimeType: mimeType, data: content } });
-     parts.push({ text: "Analise este arquivo/imagem detalhadamente e gere o roteiro de estudos." });
+     parts.push({ text: "Analise este arquivo (imagem/video/pdf) detalhadamente e gere o roteiro de estudos." });
   } else {
      // Para Texto, URL, DOI
      parts.push({ text: content });
