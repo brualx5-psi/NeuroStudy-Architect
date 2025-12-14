@@ -23,7 +23,6 @@ export const GenerateIcon = ({ className }: { className?: string }) => (
     alt="Gerar" 
     className={`${className} object-contain`}
     onError={(e) => {
-        // Fallback visual caso o link direto precise de ajuste
         e.currentTarget.style.display = 'none';
     }}
   />

@@ -13,7 +13,7 @@ import { PomodoroTimer } from './components/PomodoroTimer';
 import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
-import { NeuroLogo, Brain, BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye } from './components/Icons';
+import { NeuroLogo, Brain, BrainCircuit, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Settings } from './components/Icons';
 
 export function App() {
   // --- STATE ---
@@ -338,7 +338,6 @@ export function App() {
 
     setQuickInputMode('none');
     setInputText('');
-    setSelectedFile(null);
     setView('app');
 
     if (autoGenerate) {
@@ -429,6 +428,9 @@ export function App() {
 
   const handleGenerateGuide = async () => {
     if (!activeStudy || activeStudy.sources.length === 0) return;
+    // Always take the last source? Or maybe all sources? For now, the prompt handles single main content usually, 
+    // but the request implies "add sources" then "generate". We'll take the latest added source as main for now or update logic to combine.
+    // NOTE: Current generateStudyGuide accepts one content string.
     const source = activeStudy.sources[activeStudy.sources.length - 1]; 
     handleGenerateGuideForStudy(activeStudy.id, source, activeStudy.mode);
   };
@@ -477,24 +479,10 @@ export function App() {
     setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz: null } : s));
   };
 
-  const handleCreateAndStart = async () => {
-      let content = '';
-      if (inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL) {
-          if (!inputText.trim()) {
-              alert("Por favor, insira o conteúdo.");
-              return;
-          }
-          content = inputText;
-      } else {
-          if (!selectedFile) {
-              alert("Por favor, selecione um arquivo.");
-              return;
-          }
-          content = ""; // handleQuickStart handles file logic via File object
-      }
-
-      const inputPayload = (inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL) ? content : selectedFile!;
-      handleQuickStart(inputPayload, inputType, selectedMode);
+  // Alterado para apenas criar a sala e não adicionar conteúdo ainda
+  const handleStartSession = () => {
+      const modeName = selectedMode === StudyMode.SURVIVAL ? 'Sobrevivência' : selectedMode === StudyMode.HARD ? 'Hard' : 'Normal';
+      createStudy('default', `Novo Estudo (${modeName})`, selectedMode);
   };
 
   const renderSourceDescription = (type: InputType) => {
@@ -539,8 +527,6 @@ export function App() {
       </div>
     );
   }
-
-  // NOTE: Removida a verificação if (view === 'landing') para ir direto ao app
 
   return (
     <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden animate-in fade-in duration-500">
@@ -795,13 +781,28 @@ export function App() {
                                         </div>
                                     ))}
 
-                                    <div className="flex justify-end pt-4">
+                                    <div className="flex flex-col gap-4 justify-end pt-4 border-t border-gray-100 mt-4">
+                                        <div className="flex items-center justify-end gap-2 text-sm text-gray-600">
+                                            <Settings className="w-4 h-4 text-gray-400"/>
+                                            <span className="font-bold">Modo:</span>
+                                            <select 
+                                                value={activeStudy.mode} 
+                                                onChange={(e) => updateStudyMode(activeStudy.id, e.target.value as StudyMode)}
+                                                className="bg-white border border-gray-300 rounded px-2 py-1 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            >
+                                                <option value={StudyMode.SURVIVAL}>Sobrevivência</option>
+                                                <option value={StudyMode.NORMAL}>Normal</option>
+                                                <option value={StudyMode.HARD}>Hard</option>
+                                                <option value={StudyMode.PARETO}>Pareto 80/20</option>
+                                            </select>
+                                        </div>
+
                                         <button 
                                             onClick={handleGenerateGuide}
-                                            className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center gap-3 overflow-hidden"
+                                            className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 overflow-hidden w-full"
                                         >
                                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                                            <Brain className="w-6 h-6 animate-pulse"/>
+                                            <GenerateIcon className="w-8 h-8 animate-pulse"/>
                                             <span className="relative">Gerar Roteiro NeuroStudy</span>
                                         </button>
                                     </div>
@@ -924,66 +925,15 @@ export function App() {
                         </button>
                     </div>
 
-                    {/* Source Input (Reusing Logic) */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500"/> Fonte do Conteúdo</h3>
-                        
-                        <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-1.5 rounded-xl w-full">
-                            <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
-                            <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF</button>
-                            <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
-                            <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
-                            <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
-                            <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
-                        </div>
-                        
-                        {/* Dynamic Help Text */}
-                        <div className="mb-4 animate-in fade-in duration-200">
-                             {renderSourceDescription(inputType)}
-                        </div>
-
-                        <div className="space-y-4">
-                            {inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL ? (
-                                <textarea
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-sans text-sm"
-                                    placeholder={inputType === InputType.URL ? "Cole o link aqui..." : inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2649-2" : "Cole seu texto ou anotações aqui..."}
-                                />
-                            ) : (
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                                    <input 
-                                        type="file" 
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                                        accept={inputType === InputType.PDF ? ".pdf" : inputType === InputType.VIDEO ? "video/*,audio/*" : "image/*"}
-                                    />
-                                    <div className="flex flex-col items-center gap-2 text-gray-500">
-                                        {selectedFile ? (
-                                            <>
-                                                <FileText className="w-8 h-8 text-indigo-500"/>
-                                                <span className="font-medium text-gray-900">{selectedFile.name}</span>
-                                                <span className="text-xs">Clique para trocar</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <UploadCloud className="w-8 h-8"/>
-                                                <span className="font-medium">Clique ou arraste o arquivo aqui</span>
-                                                <span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDFs' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens (Cadernos/Lousas)'}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            <button 
-                                onClick={handleCreateAndStart}
-                                className="w-full bg-indigo-600 text-white px-6 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 flex items-center justify-center gap-2"
-                            >
-                                <Rocket className="w-5 h-5"/>
-                                Iniciar Estudo
-                            </button>
-                        </div>
+                    <div className="pt-8">
+                        <button 
+                            onClick={handleStartSession}
+                            className="w-full bg-indigo-600 text-white px-6 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 flex items-center justify-center gap-2"
+                        >
+                            <Rocket className="w-5 h-5"/>
+                            Iniciar Estudo
+                        </button>
+                        <p className="text-center text-gray-400 text-xs mt-3">Você poderá adicionar PDFs, Vídeos e Textos na próxima etapa.</p>
                     </div>
                  </div>
              </div>
