@@ -37,7 +37,7 @@ export function App() {
     }
   };
 
-  // Alterado: Default volta a ser 'landing' para mostrar a página inicial
+  // Alterado: Default volta a ser 'landing' para permitir a escolha do método
   const [view, setView] = useState<'landing' | 'app'>('landing');
 
   // Folders & Studies (Mock Database)
@@ -113,9 +113,9 @@ export function App() {
   // --- ACTIONS ---
 
   const handleGoToHome = () => {
-    // Agora 'home' reseta o estudo ativo, mas mantem no app view
     setIsMobileMenuOpen(false);
-    setActiveStudyId(null); 
+    setActiveStudyId(null);
+    setView('landing'); // Voltar para a Landing Page para permitir trocar de método
   };
 
   const createFolder = (name: string, parentId?: string) => {
@@ -1028,8 +1028,8 @@ export function App() {
           )}
         </div>
 
-        {/* Floating Widgets - Pomodoro Timer só aparece se houver um estudo ativo */}
-        {activeStudy && <PomodoroTimer />}
+        {/* Floating Widgets */}
+        <PomodoroTimer />
         <ChatWidget studyGuide={activeStudy?.guide || null} />
         {showMethodologyModal && <MethodologyModal onClose={() => setShowMethodologyModal(false)} />}
         {previewSource && <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} />}
