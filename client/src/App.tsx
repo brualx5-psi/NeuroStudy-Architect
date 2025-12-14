@@ -535,7 +535,7 @@ export function App() {
                             <div className="bg-red-100 p-3 rounded-xl text-red-600 mb-4 group-hover:scale-110 transition-transform"><Target className="w-8 h-8" /></div>
                             <h3 className="text-lg font-bold text-gray-900">Método Pareto 80/20</h3>
                             <p className="text-sm text-gray-500 mt-2 text-left flex-1">
-                                Extração rápida. Apenas o essencial do arquivo. Sem pastas, sem login.
+                                Extração rápida. Apenas o essencial do arquivo.
                             </p>
                             <span className="mt-4 w-full bg-red-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-red-700 transition-colors">
                                 Iniciar <ChevronRight className="w-4 h-4" />
@@ -866,4 +866,46 @@ export function App() {
 
                     {/* VIEW: FLASHCARDS */}
                     {activeTab === 'flashcards' && !processingState.isLoading && (
-                        <div className="
+                        <div className="space-y-6">
+                            {activeStudy.flashcards ? (
+                                <FlashcardsView 
+                                    cards={activeStudy.flashcards} 
+                                    onGenerate={handleGenerateFlashcards}
+                                />
+                            ) : (
+                                <div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed">
+                                    <Layers className="w-16 h-16 text-gray-300 mx-auto mb-4"/>
+                                    <h3 className="text-xl font-bold text-gray-700 mb-2">Flashcards</h3>
+                                    <p className="text-gray-500 mb-6 max-w-md mx-auto">Pratique a recuperação ativa com cartões de memorização.</p>
+                                    
+                                    {isGuideComplete ? (
+                                        <button onClick={handleGenerateFlashcards} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Gerar Flashcards</button>
+                                    ) : (
+                                        <div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-200">
+                                            <Lock className="w-4 h-4"/> Complete todos os checkpoints para liberar
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+          ) : (
+             <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                     <NeuroLogo size={60} className="grayscale opacity-30"/>
+                 </div>
+                 <h2 className="text-xl font-bold text-gray-600 mb-2">Nenhum estudo selecionado</h2>
+                 <p className="max-w-xs">Selecione um item na barra lateral ou crie um novo estudo para começar.</p>
+             </div>
+          )}
+        </div>
+
+        {/* Floating Widgets */}
+        <PomodoroTimer />
+        <ChatWidget studyGuide={activeStudy?.guide || null} />
+      </div>
+    </div>
+  );
+}

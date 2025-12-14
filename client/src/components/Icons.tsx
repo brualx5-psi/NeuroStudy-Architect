@@ -19,7 +19,7 @@ export const Search = ({ className }: { className?: string }) => (
 
 export const GenerateIcon = ({ className }: { className?: string }) => (
   <img 
-    src="https://i.ibb.co/8DKqSKjZ/logo.png" 
+    src="https://i.ibb.co/NdcR7d9R/logo-sem-fundo.png" 
     alt="Gerar" 
     className={`${className} object-contain`}
     onError={(e) => {
