@@ -54,7 +54,7 @@ export const generateStudyGuide = async (
   const ai = new GoogleGenAI({ apiKey });
   
   // CRITICAL: Use gemini-3-pro-preview for deep reasoning and image analysis
-  const modelName = 'gemini-3-pro-preview'; 
+ const modelName = 'gemini-2.0-flash';
 
   let modeInstructions = "MODO: NORMAL.";
   if (mode === StudyMode.HARD) modeInstructions = "MODO: HARD (Detalhe Máximo e Profundidade).";
