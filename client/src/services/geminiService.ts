@@ -54,8 +54,8 @@ export const generateStudyGuide = async (
 
   const ai = new GoogleGenAI({ apiKey });
   
-  // CRITICAL: Use gemini-3-pro-preview for deep reasoning and image analysis
- const modelName = 'gemini-2.0-flash';
+  // Alterado para gemini-2.0-flash conforme solicitado
+  const modelName = 'gemini-2.0-flash';
 
   let modeInstructions = "MODO: NORMAL (Gere um roteiro ativo com checkpoints).";
   
@@ -111,8 +111,6 @@ export const generateStudyGuide = async (
         systemInstruction: MASTER_PROMPT,
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
-        // Configuração de Pensamento para o Gemini 3 Pro
-        thinkingConfig: { thinkingBudget: 32768 } 
       },
     });
 
@@ -142,7 +140,7 @@ export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: { parts: [{ text: `Crie slides JSON para apresentação de aula sobre: ${guide.subject}. Baseado no overview: ${guide.overview}` }] },
         config: { responseMimeType: "application/json" }
     });
@@ -161,7 +159,7 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
     const prompt = `Crie um Quiz JSON desafiador para: ${guide.subject}. Dificuldade: ${config?.difficulty || 'mista'}. Quantidade: ${config?.quantity || 6} questões.`;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: { parts: [{ text: prompt }] },
         config: { responseMimeType: "application/json" }
     });
@@ -178,7 +176,7 @@ export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: { parts: [{ text: `Crie Flashcards JSON (Frente/Verso) para memorização de: ${guide.subject}` }] },
         config: { responseMimeType: "application/json" }
     });
@@ -200,7 +198,7 @@ export const sendChatMessage = async (history: ChatMessage[], msg: string, study
     }
 
     const chat = ai.chats.create({ 
-        model: 'gemini-2.5-flash', 
+        model: 'gemini-2.0-flash', 
         history: history.slice(-5).map(m=>({role:m.role, parts:[{text:m.text}]})),
         config: { systemInstruction }
     });
@@ -229,7 +227,7 @@ export const refineContent = async (text: string, task: string): Promise<string>
     `;
 
     const response = await ai.models.generateContent({ 
-        model: 'gemini-2.5-flash', 
+        model: 'gemini-2.0-flash', 
         contents: { parts: [{ text: prompt }] } 
     });
     return response.text || "";

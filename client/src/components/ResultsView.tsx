@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { StudyGuide } from '../types';
-import { BrainCircuit, PenTool, Target, Eye, CheckCircle, Download, Printer, FileCode, HelpCircle, Brain, Image as ImageIcon, X, Edit, Layers, ChevronRight, Smile, Sparkles, Globe, Lock, Play, RefreshCw } from './Icons';
+import { BrainCircuit, PenTool, Target, Eye, CheckCircle, Download, Printer, FileCode, HelpCircle, Brain, Image as ImageIcon, X, Edit, Layers, ChevronRight, Smile, Sparkles, Globe, Lock, Play, RefreshCw, Clock } from './Icons';
 import { refineContent, generateDiagram } from '../services/geminiService';
 
 interface ResultsViewProps {
@@ -291,7 +290,7 @@ ${cp.imageUrl ? `![Diagrama](${cp.imageUrl})` : ''}
                                         </div>
                                     )}
 
-                                    <div className="bg-yellow-50 p-4 rounded-lg text-sm text-gray-800 border-l-4 border-yellow-400 font-mono print:bg-white print:border-black print:italic leading-relaxed shadow-sm">
+                                    <div className="bg-yellow-50 p-4 rounded-lg text-sm text-gray-800 border-l-4 border-yellow-400 font-mono print:bg-white print:border print:border-black print:italic leading-relaxed shadow-sm">
                                         <p className="text-[10px] font-bold text-yellow-600 uppercase mb-1">DEFINIÇÃO:</p>
                                         "{item.definition}"
                                     </div>
@@ -334,4 +333,89 @@ ${cp.imageUrl ? `![Diagrama](${cp.imageUrl})` : ''}
                                     <button onClick={() => handleToggleCheckpoint(idx)} className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center shrink-0 no-print ${cp.completed ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200 scale-110' : 'bg-white border-gray-300 hover:border-emerald-400 hover:bg-emerald-50 text-transparent'}`} title={cp.completed ? 'Marcar como pendente' : 'Marcar como concluído'}><CheckCircle className="w-6 h-6" /></button>
                                     <div><span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider print:border print:border-black print:bg-white print:text-black ${cp.completed ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>Checkpoint #{idx + 1}</span><h4 className={`font-bold text-lg mt-1 transition-colors ${cp.completed ? 'text-emerald-900' : 'text-gray-900'}`}>{cp.mission}</h4></div>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-500 font-mono bg-white/50 px-3 py-1 rounded-full border border-gray-100 print:bg-white print:border print
+                                <div className="flex items-center gap-2 text-sm text-gray-500 font-mono bg-white/50 px-3 py-1 rounded-full border border-gray-100 print:bg-white print:border print:border-black">
+                                    <Clock className="w-4 h-4" />
+                                    <span>{cp.timestamp}</span>
+                                </div>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                <div className="flex gap-4">
+                                    <div className="mt-1"><Eye className="w-5 h-5 text-blue-500" /></div>
+                                    <div><h5 className="font-bold text-gray-700 text-sm uppercase mb-1">O que procurar:</h5><p className="text-gray-600 leading-relaxed">{cp.lookFor}</p></div>
+                                </div>
+
+                                <div className="flex gap-4 bg-yellow-50/50 p-4 rounded-lg border border-yellow-100 print:bg-white print:border-gray-200">
+                                    <div className="mt-1"><PenTool className="w-5 h-5 text-orange-500" /></div>
+                                    <div className="flex-1 w-full">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <h5 className="font-bold text-gray-700 text-sm uppercase">Anotar Exatamente Isso:</h5>
+                                            <div className="flex gap-1 no-print">
+                                                <button onClick={() => handleFormat(idx, 'b')} className="px-2 py-0.5 bg-white border border-gray-200 rounded text-xs font-bold hover:bg-gray-50" title="Negrito">B</button>
+                                                <button onClick={() => handleFormat(idx, 'mark')} className="px-2 py-0.5 bg-yellow-100 border border-yellow-200 rounded text-xs font-bold text-yellow-800 hover:bg-yellow-200" title="Marca-texto">M</button>
+                                            </div>
+                                        </div>
+                                        <textarea
+                                            id={`note-textarea-${idx}`}
+                                            className="w-full bg-transparent border-none outline-none resize-none font-serif text-lg text-gray-800 leading-relaxed overflow-hidden"
+                                            value={cp.noteExactly}
+                                            onChange={(e) => handleUpdateCheckpoint(idx, 'noteExactly', e.target.value)}
+                                            rows={1}
+                                        />
+                                    </div>
+                                </div>
+
+                                {showDrawSection && (
+                                    <div className="flex gap-4 bg-purple-50/50 p-4 rounded-lg border border-purple-100 print:bg-white print:border-gray-200">
+                                        <div className="mt-1"><Edit className="w-5 h-5 text-purple-500" /></div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h5 className="font-bold text-purple-900 text-sm uppercase flex items-center gap-2">
+                                                    {drawLabelText}
+                                                    {cp.drawLabel === 'essential' && <span className="bg-purple-200 text-purple-800 text-[10px] px-1.5 py-0.5 rounded-full">Obrigatório</span>}
+                                                </h5>
+                                                {!cp.imageUrl && (
+                                                    <button 
+                                                        onClick={() => handleGenerateImage(idx, cp.drawExactly)} 
+                                                        disabled={loadingImage === idx}
+                                                        className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded transition-colors flex items-center gap-1 no-print disabled:opacity-50"
+                                                    >
+                                                        {loadingImage === idx ? 'Gerando...' : <><ImageIcon className="w-3 h-3"/> Gerar Diagrama AI</>}
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className="text-gray-700 italic border-l-2 border-purple-300 pl-3 mb-3">{cp.drawExactly}</p>
+                                            
+                                            {cp.imageUrl ? (
+                                                <div className="mt-2 rounded-lg overflow-hidden border border-purple-200 shadow-sm relative group">
+                                                     <img src={cp.imageUrl} alt="Diagrama gerado por IA" className="w-full h-auto max-h-64 object-contain bg-white" />
+                                                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+                                                         <button onClick={() => handleGenerateImage(idx, cp.drawExactly)} className="bg-white/80 p-1.5 rounded-full hover:bg-white text-purple-700 shadow-sm" title="Regerar Imagem"><RefreshCw className="w-4 h-4"/></button>
+                                                     </div>
+                                                </div>
+                                            ) : (
+                                                <div className="h-32 border-2 border-dashed border-purple-200 rounded-lg flex items-center justify-center text-purple-300 text-sm print:border-black">Espaço para desenho</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 print:bg-white print:border-black">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <HelpCircle className="w-4 h-4 text-indigo-500" />
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pergunta de Verificação</span>
+                                    </div>
+                                    <p className="font-bold text-gray-800">{cp.question}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    );
+                })}
+                </div>
+            </div>
+        )}
+      </div>
+    </div>
+  );
+};
