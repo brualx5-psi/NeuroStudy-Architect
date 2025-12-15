@@ -1,22 +1,26 @@
-
 import React, { useEffect, useState } from 'react';
 import { Brain, Sparkles, Activity, Search, FileText, Layers, CheckCircle } from './Icons';
 
 interface ProcessingStatusProps {
   step: 'idle' | 'analyzing' | 'transcribing' | 'generating' | 'slides' | 'quiz' | 'flashcards' | 'diagram' | 'complete';
   type?: 'guide' | 'slides' | 'quiz' | 'flashcards';
+  size?: 'normal' | 'large'; // Novo: Permite controlar o tamanho
 }
 
+// DICAS BASEADAS EM EVIDÊNCIA (PBE)
 const TIPS = [
-  "💡 Dica: O cérebro aprende melhor em intervalos curtos (Técnica Pomodoro).",
-  "🧠 Sabia? Dormir bem é essencial para consolidar a memória de longo prazo.",
-  "💧 Hidrate-se: A desidratação reduz a atenção e a memória de trabalho.",
-  "🗣️ Active Recall: Tente explicar o conteúdo em voz alta para aprender mais rápido.",
-  "📝 Escrever à mão ativa áreas do cérebro diferentes da digitação.",
-  "🔄 Repetição Espaçada: Revise este conteúdo amanhã, depois em 3 dias, depois em uma semana."
+  "🧠 Prática Intercalada (Interleaving): Misturar tipos de problemas melhora a identificação de padrões mais do que estudar em blocos repetitivos.",
+  "🗣️ Efeito de Teste (Retrieval Practice): O esforço de tentar lembrar uma resposta fortalece as conexões neurais muito mais do que reler o texto.",
+  "🎨 Codificação Dupla: O cérebro processa informações visuais e verbais por canais diferentes. Usar ambos dobra a chance de retenção.",
+  "❓ Elaboração Interrogativa: Perguntar 'Por que isso é verdade?' e buscar a resposta cria ganchos mentais profundos.",
+  "💤 Consolidação do Sono: O sono REM processa memórias emocionais e complexas, enquanto o sono profundo consolida fatos declarativos.",
+  "🍅 Atenção Focada: O cérebro humano só sustenta atenção plena por cerca de 20 a 25 minutos antes de precisar de um 'reset' (Pomodoro).",
+  "💧 Hidratação Cognitiva: Uma desidratação de apenas 2% já reduz significativamente a atenção sustentada e a memória de trabalho.",
+  "🏃 BDNF e Exercício: Atividades aeróbicas liberam BDNF, uma proteína que atua como 'fertilizante' para o crescimento de novos neurônios.",
+  "🔄 Repetição Espaçada: Revisar conteúdo prestes a ser esquecido é o momento mais eficiente para garantir a memória de longo prazo."
 ];
 
-export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type = 'guide' }) => {
+export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type = 'guide', size = 'normal' }) => {
   const [progress, setProgress] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
 
@@ -42,7 +46,6 @@ export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type =
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= targetProgress) return prev;
-        // Add some randomness to make it feel natural
         return Math.min(prev + Math.random() * 2, targetProgress);
       });
     }, speed);
@@ -52,45 +55,49 @@ export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type =
 
   const getStepInfo = () => {
     switch (step) {
-      case 'analyzing': return { icon: <Search className="w-8 h-8 text-indigo-500 animate-bounce" />, title: "Analisando Estrutura...", desc: "Identificando conceitos chave e padrões." };
-      case 'transcribing': return { icon: <FileText className="w-8 h-8 text-blue-500 animate-pulse" />, title: "Transcrevendo Mídia...", desc: "Convertendo áudio/vídeo em texto processável." };
-      case 'generating': return { icon: <Brain className="w-8 h-8 text-purple-500 animate-pulse" />, title: "Sintetizando Conhecimento...", desc: "Aplicando filtros de Pareto (80/20) e criando checkpoints." };
-      case 'slides': return { icon: <Activity className="w-8 h-8 text-orange-500 animate-spin" />, title: "Diagramando Slides...", desc: "Estruturando apresentação visual e notas do orador." };
-      case 'quiz': return { icon: <CheckCircle className="w-8 h-8 text-green-500 animate-bounce" />, title: "Formulando Questões...", desc: "Criando desafios de recuperação ativa." };
-      case 'flashcards': return { icon: <Layers className="w-8 h-8 text-pink-500 animate-pulse" />, title: "Criando Flashcards...", desc: "Gerando pares de memorização frente/verso." };
-      default: return { icon: <Sparkles className="w-8 h-8 text-gray-400" />, title: "Processando...", desc: "Aguarde um momento." };
+      case 'analyzing': return { icon: <Search className={size === 'large' ? "w-16 h-16 text-indigo-500 animate-bounce" : "w-8 h-8 text-indigo-500 animate-bounce"} />, title: "Analisando Estrutura Cognitiva...", desc: "Identificando conceitos chave e padrões hierárquicos." };
+      case 'transcribing': return { icon: <FileText className={size === 'large' ? "w-16 h-16 text-blue-500 animate-pulse" : "w-8 h-8 text-blue-500 animate-pulse"} />, title: "Processando Mídia...", desc: "Convertendo conteúdo em texto processável." };
+      case 'generating': return { icon: <Brain className={size === 'large' ? "w-16 h-16 text-purple-500 animate-pulse" : "w-8 h-8 text-purple-500 animate-pulse"} />, title: "Sintetizando Conhecimento...", desc: "Aplicando filtros de Pareto (80/20) e criando checkpoints de aprendizado." };
+      case 'slides': return { icon: <Activity className={size === 'large' ? "w-16 h-16 text-orange-500 animate-spin" : "w-8 h-8 text-orange-500 animate-spin"} />, title: "Diagramando Slides...", desc: "Estruturando apresentação visual e notas do orador." };
+      case 'quiz': return { icon: <CheckCircle className={size === 'large' ? "w-16 h-16 text-green-500 animate-bounce" : "w-8 h-8 text-green-500 animate-bounce"} />, title: "Formulando Questões...", desc: "Criando desafios de recuperação ativa baseados no conteúdo." };
+      case 'flashcards': return { icon: <Layers className={size === 'large' ? "w-16 h-16 text-pink-500 animate-pulse" : "w-8 h-8 text-pink-500 animate-pulse"} />, title: "Criando Flashcards...", desc: "Gerando pares de memorização frente/verso para espaçamento." };
+      default: return { icon: <Sparkles className={size === 'large' ? "w-16 h-16 text-gray-400" : "w-8 h-8 text-gray-400"} />, title: "Iniciando Processo...", desc: "Preparando ambiente de estudo." };
     }
   };
 
   const info = getStepInfo();
+  const isLarge = size === 'large';
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 w-full max-w-lg mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 animate-in fade-in zoom-in duration-300">
+    <div className={`flex flex-col items-center justify-center p-8 w-full mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 animate-in fade-in zoom-in duration-500 ${isLarge ? 'max-w-2xl py-20' : 'max-w-lg'}`}>
       
       {/* Icon Wrapper */}
-      <div className="mb-6 relative">
+      <div className={`relative ${isLarge ? 'mb-10' : 'mb-6'}`}>
         <div className="absolute inset-0 bg-indigo-100 rounded-full scale-150 opacity-20 animate-ping"></div>
-        <div className="bg-indigo-50 p-4 rounded-full relative z-10">
+        <div className={`bg-indigo-50 rounded-full relative z-10 ${isLarge ? 'p-8' : 'p-4'}`}>
           {info.icon}
         </div>
       </div>
 
       {/* Text Info */}
-      <h3 className="text-xl font-bold text-gray-800 mb-2">{info.title}</h3>
-      <p className="text-gray-500 text-sm mb-8 text-center max-w-xs">{info.desc}</p>
+      <h3 className={`${isLarge ? 'text-3xl' : 'text-xl'} font-bold text-gray-800 mb-2 text-center`}>{info.title}</h3>
+      <p className={`text-gray-500 text-center mb-8 ${isLarge ? 'text-lg max-w-md' : 'text-sm max-w-xs'}`}>{info.desc}</p>
 
       {/* Progress Bar */}
-      <div className="w-full bg-gray-100 rounded-full h-3 mb-6 overflow-hidden relative">
+      <div className={`w-full bg-gray-100 rounded-full overflow-hidden relative ${isLarge ? 'h-4 mb-10' : 'h-3 mb-6'}`}>
         <div 
-          className="bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 h-3 rounded-full transition-all duration-300 ease-out animate-shimmer bg-[length:200%_100%]"
+          className={`bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-full transition-all duration-300 ease-out animate-shimmer bg-[length:200%_100%] ${isLarge ? 'h-4' : 'h-3'}`}
           style={{ width: `${progress}%` }}
         ></div>
       </div>
 
-      {/* Neuro Tip */}
-      <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 w-full text-center">
-        <p className="text-xs text-indigo-800 font-medium italic">
-          {TIPS[tipIndex]}
+      {/* Neuro Tip (PBE) */}
+      <div className={`bg-indigo-50/50 border border-indigo-100 rounded-xl w-full text-center flex flex-col items-center justify-center ${isLarge ? 'p-6 min-h-[120px]' : 'p-3'}`}>
+        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+            <Sparkles className="w-3 h-3"/> Ciência do Aprendizado
+        </span>
+        <p className={`${isLarge ? 'text-base' : 'text-xs'} text-indigo-900 font-medium italic leading-relaxed`}>
+          "{TIPS[tipIndex]}"
         </p>
       </div>
 

@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
-import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search } from './Icons';
+import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target } from './Icons';
 
 interface SidebarProps {
   folders: Folder[];
@@ -36,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onFolderExam,
   onGoToHome
 }) => {
-  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({'default': true, 'quick-studies': true});
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   
@@ -46,15 +45,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [creatingStudyInFolder, setCreatingStudyInFolder] = useState<string | null>(null);
   const [newStudyTitle, setNewStudyTitle] = useState('');
 
-  const [isCreatingRootFolder, setIsCreatingRootFolder] = useState(false);
+  // Estados para controlar qual seção raiz está criando pasta
+  const [creatingRootFolderIn, setCreatingRootFolderIn] = useState<string | null>(null);
   const [newRootFolderName, setNewRootFolderName] = useState('');
 
-  // Search State
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Drag and Drop State
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
-  const [dragOverHeader, setDragOverHeader] = useState(false);
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }));
@@ -72,12 +68,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setEditingFolderId(null);
   };
 
-  const handleCreateSubfolder = (parentId: string) => {
-    if (newSubfolderName.trim()) {
-      onCreateFolder(newSubfolderName, parentId);
+  const handleCreateFolder = (parentId: string) => {
+    const name = parentId.startsWith('root-') ? newRootFolderName : newSubfolderName;
+    if (name.trim()) {
+      onCreateFolder(name, parentId); // Se for root-*, salva como parentId
       setNewSubfolderName('');
+      setNewRootFolderName('');
       setCreatingSubfolderIn(null);
-      setExpandedFolders(prev => ({ ...prev, [parentId]: true }));
+      setCreatingRootFolderIn(null);
+      if (!parentId.startsWith('root-')) setExpandedFolders(prev => ({ ...prev, [parentId]: true }));
     }
   };
 
@@ -91,7 +90,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // --- Drag Handlers ---
-
   const handleDragStart = (e: React.DragEvent, type: 'FOLDER' | 'STUDY', id: string) => {
     e.dataTransfer.setData('type', type);
     e.dataTransfer.setData('id', id);
@@ -101,347 +99,191 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleDragOver = (e: React.DragEvent, folderId?: string) => {
     e.preventDefault();
     if (folderId) setDragOverFolderId(folderId);
-    else setDragOverHeader(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     setDragOverFolderId(null);
-    setDragOverHeader(false);
   };
 
   const handleDrop = (e: React.DragEvent, targetFolderId?: string) => {
     e.preventDefault();
     setDragOverFolderId(null);
-    setDragOverHeader(false);
-
     const type = e.dataTransfer.getData('type');
     const id = e.dataTransfer.getData('id');
-
     if (!type || !id) return;
 
-    if (type === 'FOLDER') {
-        // Move folder
-        onMoveFolder(id, targetFolderId); // undefined targetFolderId means root
-    } else if (type === 'STUDY') {
-        // Move study
-        const finalTarget = targetFolderId || 'default';
-        onMoveStudy(id, finalTarget);
-    }
+    if (type === 'FOLDER') onMoveFolder(id, targetFolderId);
+    else if (type === 'STUDY' && targetFolderId) onMoveStudy(id, targetFolderId);
   };
 
-  // --- Search Logic ---
-  const filteredStudies = searchQuery 
-    ? studies.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-  
-  const filteredFolders = searchQuery
-    ? folders.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-
-
-  // Recursive component for rendering folder tree
-  const renderFolderTree = (parentId: string | undefined, depth: number = 0) => {
+  // --- Render Tree ---
+  const renderFolderTree = (parentId: string, depth: number = 0, themeColor: string) => {
     const currentLevelFolders = folders.filter(f => f.parentId === parentId);
-    
-    // Always render if root to allow drop, but if checking emptiness for recursive call:
-    if (currentLevelFolders.length === 0 && parentId !== undefined && studies.filter(s => s.folderId === parentId).length === 0 && creatingSubfolderIn !== parentId && creatingStudyInFolder !== parentId) {
+    const currentLevelStudies = studies.filter(s => s.folderId === parentId);
+
+    if (currentLevelFolders.length === 0 && currentLevelStudies.length === 0 && creatingSubfolderIn !== parentId && creatingStudyInFolder !== parentId) {
         return null;
     }
 
-    return currentLevelFolders.map(folder => {
-      const folderStudies = studies.filter(s => s.folderId === folder.id);
-      const isOpen = expandedFolders[folder.id];
-      // 'default' can be renamed now, but not deleted. 'quick-studies' is fully locked.
-      const isDeletable = folder.id !== 'default' && folder.id !== 'quick-studies';
-      const isRenamable = folder.id !== 'quick-studies';
+    return (
+      <div className={`${depth === 0 ? 'mt-2 space-y-1' : 'ml-3 border-l border-gray-200 pl-1'}`}>
+        {currentLevelFolders.map(folder => {
+          const isOpen = expandedFolders[folder.id];
+          const isDragOver = dragOverFolderId === folder.id;
 
-      const isDragOver = dragOverFolderId === folder.id;
-
-      return (
-        <div key={folder.id} className="select-none transition-all duration-200">
-          {/* Folder Header */}
-          <div 
-            draggable={isRenamable} // System folders like quick-studies maybe shouldn't be dragged? Let's allow dragging 'default'
-            onDragStart={(e) => handleDragStart(e, 'FOLDER', folder.id)}
-            onDragOver={(e) => handleDragOver(e, folder.id)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, folder.id)}
-            className={`group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${editingFolderId === folder.id ? 'bg-white ring-2 ring-indigo-200' : isDragOver ? 'bg-indigo-100 ring-2 ring-indigo-300' : 'hover:bg-gray-200'}`}
-            style={{ marginLeft: `${depth * 12}px` }}
-            onClick={() => toggleFolder(folder.id)}
-          >
-             {editingFolderId === folder.id ? (
-                <div className="flex items-center gap-1 w-full" onClick={e => e.stopPropagation()}>
+          return (
+            <div key={folder.id} className="select-none">
+              <div 
+                draggable
+                onDragStart={(e) => handleDragStart(e, 'FOLDER', folder.id)}
+                onDragOver={(e) => handleDragOver(e, folder.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, folder.id)}
+                className={`group flex items-center justify-between p-1.5 rounded-md cursor-pointer transition-colors ${editingFolderId === folder.id ? 'bg-white ring-2 ring-indigo-200' : isDragOver ? 'bg-indigo-100' : 'hover:bg-gray-100'}`}
+                onClick={() => toggleFolder(folder.id)}
+              >
+                 {editingFolderId === folder.id ? (
                     <input 
-                        autoFocus
-                        className="w-full text-sm p-1 border border-indigo-300 rounded"
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && saveEdit()}
-                        onBlur={saveEdit}
+                        autoFocus className="w-full text-xs p-1 border rounded"
+                        value={editName} onChange={e => setEditName(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && saveEdit()} onBlur={saveEdit} onClick={e => e.stopPropagation()}
                     />
-                </div>
-             ) : (
-                <>
-                    <div className="flex items-center gap-2 text-gray-700 font-medium overflow-hidden">
-                    {isOpen ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0"/> : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0"/>}
-                    <FolderIcon className={`w-4 h-4 shrink-0 ${folder.id === 'quick-studies' ? 'text-amber-500 fill-amber-500' : 'text-yellow-500 fill-yellow-500'}`} />
-                    <span className="truncate max-w-[120px] text-sm">{folder.name}</span>
-                    <span className="text-xs text-gray-400">({folderStudies.length})</span>
-                    </div>
-                    
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/* Folder Exam Button */}
-                        {folderStudies.length > 0 && (
-                             <button 
-                                onClick={(e) => { e.stopPropagation(); onFolderExam(folder.id); }}
-                                className="p-1 text-purple-600 hover:bg-purple-100 rounded"
-                                title="Gerar Provão da Pasta"
-                            >
-                                <GraduationCap className="w-3 h-3"/>
-                            </button>
-                        )}
-
-                        {isRenamable && (
-                             <button 
-                                onClick={(e) => { e.stopPropagation(); startEditing(folder); }}
-                                className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded"
-                                title="Renomear"
-                            >
-                                <Edit className="w-3 h-3"/>
-                            </button>
-                        )}
-                        {/* Always allow creating subfolders/studies unless restricted */}
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); setCreatingSubfolderIn(folder.id); setExpandedFolders(p => ({...p, [folder.id]: true})); }}
-                            className="p-1 hover:text-green-600 hover:bg-green-50 rounded"
-                            title="Nova Subpasta"
-                        >
-                            <Plus className="w-3 h-3"/>
-                        </button>
-                        {isDeletable && (
-                             <button 
-                                onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }}
-                                className="p-1 hover:text-red-500 hover:bg-red-50 rounded"
-                                title="Excluir"
-                            >
-                                <Trash className="w-3 h-3"/>
-                            </button>
-                        )}
-                    </div>
-                </>
-             )}
-          </div>
-
-          {/* Folder Content (Subfolders + Studies) */}
-          {isOpen && (
-            <div className="space-y-0.5">
-               {/* New Subfolder Input */}
-               {creatingSubfolderIn === folder.id && (
-                  <div className="flex items-center gap-2 p-1 bg-white rounded border border-gray-200 ml-6 my-1">
-                     <CornerDownRight className="w-3 h-3 text-gray-400"/>
-                     <input
-                        autoFocus
-                        placeholder="Nome da subpasta..."
-                        className="text-sm p-1 border-none outline-none w-full bg-transparent"
-                        value={newSubfolderName}
-                        onChange={e => setNewSubfolderName(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleCreateSubfolder(folder.id)}
-                     />
-                     <button onClick={() => setCreatingSubfolderIn(null)}><X className="w-3 h-3 text-gray-400"/></button>
-                  </div>
-               )}
-
-               {/* Render Subfolders */}
-               {renderFolderTree(folder.id, depth + 1)}
-
-               {/* Create Study Action */}
-               <div style={{ marginLeft: `${(depth + 1) * 12 + 8}px` }}>
-                    {creatingStudyInFolder === folder.id ? (
-                        <div className="flex flex-col gap-2 p-2 bg-white rounded border border-indigo-200 shadow-sm my-1">
-                            <input
-                            autoFocus
-                            type="text"
-                            value={newStudyTitle}
-                            onChange={e => setNewStudyTitle(e.target.value)}
-                            placeholder="Nome do estudo..."
-                            className="text-sm p-1 border border-gray-200 rounded w-full"
-                            onKeyDown={e => e.key === 'Enter' && handleCreateStudy(folder.id)}
-                            />
-                            <div className="flex justify-end gap-1">
-                            <button onClick={() => setCreatingStudyInFolder(null)} className="text-xs text-gray-500 hover:bg-gray-100 px-2 py-1 rounded">Cancelar</button>
-                            <button onClick={() => handleCreateStudy(folder.id)} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded">Criar</button>
-                            </div>
+                 ) : (
+                    <>
+                        <div className="flex items-center gap-2 text-gray-700 overflow-hidden">
+                            {isOpen ? <ChevronDown className="w-3 h-3 text-gray-400 shrink-0"/> : <ChevronRight className="w-3 h-3 text-gray-400 shrink-0"/>}
+                            <FolderIcon className={`w-4 h-4 shrink-0 ${themeColor}`} />
+                            <span className="truncate max-w-[140px] text-sm">{folder.name}</span>
                         </div>
-                    ) : (
-                        <button 
-                            onClick={() => setCreatingStudyInFolder(folder.id)}
-                            className="w-full text-left flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded dashed-border"
-                        >
-                            <Plus className="w-3 h-3"/> Novo Estudo aqui
-                        </button>
-                    )}
-               </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={(e) => { e.stopPropagation(); onFolderExam(folder.id); }} className="p-0.5 text-purple-600 hover:bg-purple-100 rounded" title="Provão"><GraduationCap className="w-3 h-3"/></button>
+                            <button onClick={(e) => { e.stopPropagation(); startEditing(folder); }} className="p-0.5 text-gray-400 hover:text-indigo-600 rounded" title="Renomear"><Edit className="w-3 h-3"/></button>
+                            <button onClick={(e) => { e.stopPropagation(); setCreatingSubfolderIn(folder.id); setExpandedFolders(p => ({...p, [folder.id]: true})); }} className="p-0.5 text-gray-400 hover:text-green-600 rounded" title="Nova Subpasta"><Plus className="w-3 h-3"/></button>
+                            <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="p-0.5 text-gray-400 hover:text-red-500 rounded" title="Excluir"><Trash className="w-3 h-3"/></button>
+                        </div>
+                    </>
+                 )}
+              </div>
 
-               {/* Render Studies in this Folder */}
-               {folderStudies.map(study => (
-                 <div 
-                    key={study.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)}
-                    style={{ marginLeft: `${(depth + 1) * 12}px` }}
-                    onClick={() => onSelectStudy(study.id)}
-                    className={`group flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 ${activeStudyId === study.id ? 'bg-white text-indigo-700 font-semibold shadow-sm border-indigo-500' : 'border-transparent text-gray-600 hover:bg-gray-100 hover:border-gray-300'}`}
-                 >
-                   <div className="flex items-center gap-2 truncate">
-                      <FileText className="w-3 h-3"/>
-                      <span className="truncate">{study.title}</span>
+              {isOpen && (
+                <div>
+                   {creatingSubfolderIn === folder.id && (
+                      <div className="flex items-center gap-2 p-1 ml-4 my-1">
+                         <CornerDownRight className="w-3 h-3 text-gray-400"/>
+                         <input autoFocus placeholder="Nome..." className="text-xs p-1 border rounded w-full"
+                            value={newSubfolderName} onChange={e => setNewSubfolderName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleCreateFolder(folder.id)}
+                         />
+                         <button onClick={() => setCreatingSubfolderIn(null)}><X className="w-3 h-3 text-gray-400"/></button>
+                      </div>
+                   )}
+                   {renderFolderTree(folder.id, depth + 1, themeColor)}
+                   
+                   {/* Create Study Inside Folder */}
+                   <div className="ml-4 mt-1">
+                        {creatingStudyInFolder === folder.id ? (
+                            <div className="p-1 border rounded bg-white"><input autoFocus className="text-xs w-full" placeholder="Nome do estudo..." value={newStudyTitle} onChange={e => setNewStudyTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreateStudy(folder.id)} /></div>
+                        ) : (
+                            <button onClick={(e) => {e.stopPropagation(); setCreatingStudyInFolder(folder.id);}} className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 px-1"><Plus className="w-3 h-3"/> Novo Estudo</button>
+                        )}
                    </div>
-                   <button 
-                     onClick={(e) => { e.stopPropagation(); onDeleteStudy(study.id); }}
-                     className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500"
-                   >
-                     <Trash className="w-3 h-3"/>
-                   </button>
-                 </div>
-               ))}
+
+                   {/* Studies in this folder */}
+                   {studies.filter(s => s.folderId === folder.id).map(study => (
+                     <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`ml-4 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
+                       <div className="flex items-center gap-2 truncate"><FileText className="w-3 h-3"/> <span className="truncate">{study.title}</span></div>
+                       <button onClick={(e) => { e.stopPropagation(); onDeleteStudy(study.id); }} className="text-gray-300 hover:text-red-500"><Trash className="w-3 h-3"/></button>
+                     </div>
+                   ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      );
-    });
+          );
+        })}
+        
+        {/* Studies at the root of this section (without folder) */}
+        {currentLevelStudies.map(study => (
+             <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`mt-1 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
+               <div className="flex items-center gap-2 truncate"><FileText className="w-3 h-3"/> <span className="truncate">{study.title}</span></div>
+               <button onClick={(e) => { e.stopPropagation(); onDeleteStudy(study.id); }} className="text-gray-300 hover:text-red-500"><Trash className="w-3 h-3"/></button>
+             </div>
+        ))}
+      </div>
+    );
   };
+
+  const SectionHeader = ({ id, title, icon: Icon, colorClass, rootId }: any) => (
+      <div className="mb-2">
+          <div className={`flex items-center justify-between px-3 py-2 ${colorClass} bg-opacity-10 rounded-lg`}>
+              <div className="flex items-center gap-2 font-bold text-sm">
+                  <Icon className={`w-4 h-4 ${colorClass.replace('bg-', 'text-')}`}/>
+                  <span className={colorClass.replace('bg-', 'text-').replace('-50', '-700')}>{title}</span>
+              </div>
+              <button 
+                onClick={() => setCreatingRootFolderIn(rootId)}
+                className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`} 
+                title="Nova Pasta"
+              >
+                  <Plus className="w-4 h-4"/>
+              </button>
+          </div>
+          
+          {creatingRootFolderIn === rootId && (
+              <div className="flex items-center gap-2 p-2 mx-2 bg-white border rounded shadow-sm my-2 animate-fade-in">
+                  <input autoFocus placeholder="Nome da pasta..." className="text-xs p-1 w-full outline-none"
+                    value={newRootFolderName} onChange={e => setNewRootFolderName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCreateFolder(rootId)}
+                  />
+                  <button onClick={() => setCreatingRootFolderIn(null)}><X className="w-3 h-3 text-gray-400"/></button>
+              </div>
+          )}
+
+          {renderFolderTree(rootId, 0, colorClass.replace('bg-', 'text-').replace('-50', '-500'))}
+          
+          {/* Empty State Hint */}
+          {folders.filter(f => f.parentId === rootId).length === 0 && studies.filter(s => s.folderId === rootId).length === 0 && !creatingRootFolderIn && (
+              <div className="px-4 py-3 text-[10px] text-gray-400 italic text-center border-2 border-dashed border-gray-100 rounded-lg mx-2 mt-1">
+                  Vazio
+              </div>
+          )}
+      </div>
+  );
 
   return (
     <div className="w-64 bg-gray-50 border-r border-gray-200 h-screen flex flex-col flex-shrink-0">
       <div 
-        className={`p-4 border-b border-gray-200 transition-colors ${dragOverHeader ? 'bg-indigo-50 ring-inset ring-2 ring-indigo-300' : ''}`}
-        onDragOver={(e) => handleDragOver(e)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e)}
+        className="p-4 border-b border-gray-200"
+        onDragOver={(e) => handleDragOver(e)} onDrop={(e) => handleDrop(e)}
       >
-        <button 
-          onClick={onGoToHome}
-          className="w-full text-left transition-colors flex items-center gap-2 px-2"
-          title="Voltar à tela inicial"
-        >
+        <button onClick={onGoToHome} className="w-full text-left flex items-center gap-2 px-2" title="Início">
            <NeuroLogo size={35} className="text-indigo-600 shrink-0" /> 
            <span className="font-bold text-indigo-900 text-lg">NeuroStudy</span>
         </button>
-        {dragOverHeader && <p className="text-xs text-indigo-500 mt-1">Soltar para mover para Raiz</p>}
       </div>
 
-      {/* Search Bar */}
       <div className="px-4 pt-4 pb-2">
         <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
-            <input 
-                type="text" 
-                placeholder="Buscar..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
-            />
-            {searchQuery && (
-                <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-                >
-                    <X className="w-3 h-3" />
-                </button>
-            )}
+            <Search className="w-3 h-3 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
+            <input type="text" placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-8 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none" />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
-        {searchQuery ? (
-            <div className="space-y-4 px-2 animate-in fade-in slide-in-from-top-2">
-                {filteredStudies.length === 0 && filteredFolders.length === 0 && (
-                    <div className="text-center mt-8">
-                        <Search className="w-8 h-8 text-gray-300 mx-auto mb-2"/>
-                        <p className="text-xs text-gray-400">Nenhum resultado encontrado.</p>
-                    </div>
-                )}
+      <div className="flex-1 overflow-y-auto p-2 scrollbar-thin space-y-6">
+        {/* SEÇÃO 1: NEUROSTUDY (PADRÃO) */}
+        <SectionHeader id="neuro" title="NeuroStudy" icon={Layers} colorClass="bg-indigo-50" rootId="root-neuro" />
 
-                {filteredFolders.length > 0 && (
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Pastas</p>
-                        {filteredFolders.map(f => (
-                            <div key={f.id} className="flex items-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-700 text-sm cursor-pointer transition-colors" onClick={() => {
-                                setSearchQuery('');
-                                setExpandedFolders(prev => ({...prev, [f.id]: true})); 
-                            }}>
-                                <FolderIcon className="w-4 h-4 text-yellow-500"/>
-                                <span>{f.name}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
+        {/* SEÇÃO 2: LIVROS */}
+        <SectionHeader id="books" title="Biblioteca" icon={BookOpen} colorClass="bg-orange-50" rootId="root-books" />
 
-                {filteredStudies.length > 0 && (
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Estudos</p>
-                        {filteredStudies.map(s => (
-                            <div key={s.id} onClick={() => { onSelectStudy(s.id); }} className="flex items-center gap-2 p-2 rounded hover:bg-indigo-50 text-gray-700 hover:text-indigo-700 text-sm cursor-pointer transition-colors border border-transparent hover:border-indigo-100">
-                                <FileText className="w-4 h-4 text-indigo-500"/>
-                                <span className="truncate">{s.title}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        ) : (
-            renderFolderTree(undefined)
-        )}
+        {/* SEÇÃO 3: PARETO */}
+        <SectionHeader id="pareto" title="Pareto 80/20" icon={Target} colorClass="bg-red-50" rootId="root-pareto" />
       </div>
 
-      <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
-         {/* Create Root Folder */}
-         {isCreatingRootFolder ? (
-           <div className="flex gap-2 animate-in slide-in-from-bottom-2">
-             <input
-                autoFocus
-                type="text"
-                value={newRootFolderName}
-                onChange={e => setNewRootFolderName(e.target.value)}
-                placeholder="Nome da pasta raiz"
-                className="flex-1 text-sm p-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                onKeyDown={e => {
-                    if (e.key === 'Enter' && newRootFolderName.trim()) {
-                        onCreateFolder(newRootFolderName);
-                        setNewRootFolderName('');
-                        setIsCreatingRootFolder(false);
-                    }
-                }}
-             />
-             <button onClick={() => setIsCreatingRootFolder(false)} className="bg-gray-200 text-gray-600 p-1.5 rounded hover:bg-gray-300"><X className="w-4 h-4"/></button>
-           </div>
-         ) : (
-           <button 
-             onClick={() => setIsCreatingRootFolder(true)}
-             className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 text-gray-600 font-medium py-2 rounded-lg transition-colors text-sm shadow-sm"
-           >
-             <Plus className="w-4 h-4" /> Nova Pasta Raiz
-           </button>
-         )}
-
-         {/* Methodology Button - Placed below Root Folder action */}
-         <button 
-            onClick={onOpenMethodology}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-medium py-2 rounded-lg transition-colors text-sm shadow-sm"
-         >
-            <GraduationCap className="w-4 h-4" /> Método e Instruções
+      <div className="p-4 border-t border-gray-200 bg-gray-50 text-center">
+         <button onClick={onOpenMethodology} className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-2 rounded-lg text-xs shadow-sm">
+            <GraduationCap className="w-3 h-3" /> Método e Instruções
          </button>
-
-         {/* Credits */}
-         <div className="pt-2 text-center">
-            <p className="text-[10px] text-gray-400 font-medium">
-                Desenvolvido por Bruno Alexandre
-            </p>
-            <span className="text-[10px] text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-wider font-bold mt-1 inline-block">
-                Versão Beta
-            </span>
-         </div>
+         <p className="text-[10px] text-gray-400 mt-2 font-medium">Versão Beta</p>
       </div>
     </div>
   );
