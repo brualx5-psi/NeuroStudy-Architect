@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
-  // --- LÓGICA DE RECOLHER/EXPANDIR ---
+  // --- LÓGICA DE RECOLHER/EXPANDIR (CORRIGIDA) ---
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }));
   };
@@ -89,6 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
+  // --- Drag Handlers ---
   const handleDragStart = (e: React.DragEvent, type: 'FOLDER' | 'STUDY', id: string) => {
     e.dataTransfer.setData('type', type);
     e.dataTransfer.setData('id', id);
@@ -106,10 +107,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const type = e.dataTransfer.getData('type');
     const id = e.dataTransfer.getData('id');
     if (!type || !id) return;
+
     if (type === 'FOLDER') onMoveFolder(id, targetFolderId);
     else if (type === 'STUDY' && targetFolderId) onMoveStudy(id, targetFolderId);
   };
 
+  // --- Render Tree ---
   const renderFolderTree = (parentId: string, depth: number = 0, themeColor: string) => {
     const currentLevelFolders = folders.filter(f => f.parentId === parentId);
     const currentLevelStudies = studies.filter(s => s.folderId === parentId);
@@ -176,6 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                    )}
                    {renderFolderTree(folder.id, depth + 1, themeColor)}
                    
+                   {/* Create Study Inside Folder */}
                    <div className="ml-4 mt-1">
                         {creatingStudyInFolder === folder.id ? (
                             <div className="p-1 border rounded bg-white"><input autoFocus className="text-xs w-full" placeholder="Nome do estudo..." value={newStudyTitle} onChange={e => setNewStudyTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreateStudy(folder.id)} /></div>
@@ -184,6 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         )}
                    </div>
 
+                   {/* Studies in this folder */}
                    {filteredStudies.map(study => (
                      <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`ml-4 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
                        <div className="flex items-center gap-2 truncate"><FileText className="w-3 h-3"/> <span className="truncate">{study.title}</span></div>
@@ -196,6 +201,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
         
+        {/* Studies at the root of this section (without folder) */}
         {filteredStudies.map(study => (
              <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`mt-1 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
                <div className="flex items-center gap-2 truncate"><FileText className="w-3 h-3"/> <span className="truncate">{study.title}</span></div>
@@ -233,6 +239,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           {renderFolderTree(rootId, 0, colorClass.replace('bg-', 'text-').replace('-50', '-500'))}
+          
+          {/* Empty State Hint */}
+          {folders.filter(f => f.parentId === rootId).length === 0 && studies.filter(s => s.folderId === rootId).length === 0 && !creatingRootFolderIn && (
+              <div className="px-4 py-3 text-[10px] text-gray-400 italic text-center border-2 border-dashed border-gray-100 rounded-lg mx-2 mt-1">
+                  Vazio
+              </div>
+          )}
       </div>
   );
 
