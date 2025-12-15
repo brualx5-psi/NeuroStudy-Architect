@@ -14,7 +14,7 @@ import { PomodoroTimer } from './components/PomodoroTimer';
 import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
-import { NeuroLogo, UploadCloud, FileText, Video, Search, BookOpen, Monitor, CheckCircle, Layers, Target, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Edit, Trash, BatteryCharging, Activity, Rocket } from './components/Icons';
+import { NeuroLogo, UploadCloud, FileText, Video, Search, BookOpen, Monitor, CheckCircle, Layers, Target, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Edit, Trash, BatteryCharging, Activity, Rocket, X } from './components/Icons';
 
 export function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -52,7 +52,7 @@ export function App() {
   const paretoInputRef = useRef<HTMLInputElement>(null);
   const bookInputRef = useRef<HTMLInputElement>(null);
 
-  // --- LOGIN & CARREGAMENTO ---
+  // --- 1. LOGIN & CARREGAMENTO ---
   useEffect(() => {
     const auth = localStorage.getItem('neurostudy_auth');
     if (auth === 'true') {
@@ -65,8 +65,6 @@ export function App() {
 
   // Carrega dados ao autorizar
   useEffect(() => {
-    if (!isAuthorized && view !== 'landing') return;
-    
     if (isAuthorized) {
         const initData = async () => {
           try {
@@ -80,9 +78,9 @@ export function App() {
         };
         initData();
     }
-  }, [isAuthorized, view]);
+  }, [isAuthorized]);
 
-  // --- SALVAMENTO AUTOMÁTICO ---
+  // --- 2. SALVAMENTO AUTOMÁTICO ---
   useEffect(() => {
     if (studies.length > 0 || folders.length > 0) {
       storage.saveData(studies, folders);
@@ -181,13 +179,22 @@ export function App() {
     if (autoGenerate) setTimeout(() => handleGenerateGuideForStudy(study.id, newSource, mode, isBook), 100);
   };
 
+  // --- GERAR ROTEIRO (COM TRATAMENTO DE ERRO) ---
   const handleGenerateGuideForStudy = async (studyId: string, source: StudySource, mode: StudyMode, isBook: boolean) => {
-    setProcessingState({ isLoading: true, error: null, step: 'analyzing' });
+    const isBinary = [InputType.PDF, InputType.VIDEO, InputType.IMAGE, InputType.EPUB].includes(source.type);
+    setProcessingState({ isLoading: true, error: null, step: source.type === InputType.VIDEO ? 'transcribing' : 'analyzing' });
+    
     try {
-        const guide = await generateStudyGuide(source.content, source.mimeType || 'text/plain', mode, [InputType.PDF, InputType.VIDEO, InputType.IMAGE].includes(source.type), isBook);
+        const timer = setTimeout(() => setProcessingState(p => ({...p, step: 'generating'})), 3000);
+        const guide = await generateStudyGuide(source.content, source.mimeType || 'text/plain', mode, isBinary, isBook);
+        clearTimeout(timer);
         updateStudy(studyId, { guide });
+        setProcessingState({ isLoading: false, error: null, step: 'idle' });
         setActiveTab('guide');
-    } catch (e: any) { setProcessingState({ isLoading: false, error: e.message, step: 'idle' }); } finally { setProcessingState(p => ({...p, isLoading: false, step: 'idle'})); }
+    } catch (e: any) { 
+        console.error("Erro ao gerar roteiro:", e);
+        setProcessingState({ isLoading: false, error: e.message || "Erro desconhecido.", step: 'idle' }); 
+    }
   };
 
   const addSourceToStudy = async () => {
@@ -203,9 +210,9 @@ export function App() {
   const handleStartRenamingSource = (source: StudySource) => { setEditingSourceId(source.id); setEditSourceName(source.name); };
   const handleSaveSourceRename = () => { if (!activeStudyId || !editingSourceId) return; setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: s.sources.map(src => src.id === editingSourceId ? { ...src, name: editSourceName } : src) }; return s; })); setEditingSourceId(null); setEditSourceName(''); };
   
-  const handleGenerateSlides = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'slides'}); const s = await generateSlides(activeStudy.guide); updateStudy(activeStudyId!, { slides: s }); setProcessingState(p=>({...p, isLoading:false})); }};
-  const handleGenerateQuiz = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'quiz'}); const q = await generateQuiz(activeStudy.guide, activeStudy.mode); updateStudy(activeStudyId!, { quiz: q }); setProcessingState(p=>({...p, isLoading:false})); }};
-  const handleGenerateFlashcards = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'flashcards'}); const f = await generateFlashcards(activeStudy.guide); updateStudy(activeStudyId!, { flashcards: f }); setProcessingState(p=>({...p, isLoading:false})); }};
+  const handleGenerateSlides = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'slides'}); try { const s = await generateSlides(activeStudy.guide); updateStudy(activeStudyId!, { slides: s }); } catch(e:any){ setProcessingState(p=>({...p, error: e.message})); } finally { setProcessingState(p=>({...p, isLoading:false})); } }};
+  const handleGenerateQuiz = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'quiz'}); try { const q = await generateQuiz(activeStudy.guide, activeStudy.mode); updateStudy(activeStudyId!, { quiz: q }); } catch(e:any){ setProcessingState(p=>({...p, error: e.message})); } finally { setProcessingState(p=>({...p, isLoading:false})); } }};
+  const handleGenerateFlashcards = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'flashcards'}); try { const f = await generateFlashcards(activeStudy.guide); updateStudy(activeStudyId!, { flashcards: f }); } catch(e:any){ setProcessingState(p=>({...p, error: e.message})); } finally { setProcessingState(p=>({...p, isLoading:false})); } }};
   
   // Helpers
   const handleParetoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if(f) handleQuickStart(f, InputType.TEXT, StudyMode.PARETO, true, false); };
@@ -214,18 +221,53 @@ export function App() {
   const handleFolderExam = (fid: string) => {}; 
   const renderSourceDescription = (t: InputType) => null;
 
-  // --- RENDER CONTENT (AQUI ESTÁ A CORREÇÃO MÁGICA) ---
-  // Separei a lógica para não confundir o compilador com muitos sinais de ? e :
+  // --- RENDER CONTENT (VISUAL RESTAURADO) ---
   const renderMainContent = () => {
+    // 1. TELA INICIAL (DASHBOARD) - COM BOTÕES BONITOS DE VOLTA
     if (!activeStudy) {
       return (
-        <div className="flex flex-col items-center justify-center h-full">
-           <h2 className="text-2xl font-bold mb-4">Comece um novo estudo</h2>
-           <button onClick={() => handleQuickStart("Exemplo", InputType.TEXT)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold">Criar Teste Rápido</button>
+        <div className="flex flex-col h-full bg-slate-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4">
+            <div className="max-w-4xl mx-auto w-full p-6 space-y-8">
+               <div className="text-center pt-8">
+                   <NeuroLogo size={60} className="mx-auto mb-4 text-indigo-600" />
+                   <h2 className="text-3xl font-bold text-gray-900">Novo Estudo</h2>
+                   <p className="text-gray-500">Escolha o nível de profundidade e sua fonte para começar.</p>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                   {/* Card Pareto */}
+                   <div className="relative group">
+                       <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*, .epub, .mobi"/>
+                       <button onClick={() => paretoInputRef.current?.click()} className="w-full p-6 bg-white border-2 border-red-100 hover:border-red-200 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group-hover:-translate-y-1">
+                           <div className="bg-red-50 w-12 h-12 rounded-xl flex items-center justify-center text-red-600 mb-4"><Target className="w-6 h-6"/></div>
+                           <h3 className="text-lg font-bold text-gray-900">Pareto 80/20</h3>
+                           <p className="text-sm text-gray-500 mt-2">Resumo ultra-rápido. O essencial de PDFs ou Vídeos em segundos.</p>
+                       </button>
+                   </div>
+
+                   {/* Card NeuroStudy (Padrão) */}
+                   <button onClick={handleStartSession} className="w-full p-6 bg-white border-2 border-indigo-100 hover:border-indigo-200 rounded-2xl shadow-sm hover:shadow-md transition-all text-left hover:-translate-y-1">
+                       <div className="bg-indigo-50 w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 mb-4"><Layers className="w-6 h-6"/></div>
+                       <h3 className="text-lg font-bold text-gray-900">NeuroStudy</h3>
+                       <p className="text-sm text-gray-500 mt-2">O método completo. Roteiro, Slides e Quiz para estudo profundo.</p>
+                   </button>
+
+                   {/* Card Livros */}
+                   <div className="relative group">
+                       <input type="file" ref={bookInputRef} className="hidden" onChange={handleBookUpload} accept=".pdf,.epub,.mobi"/>
+                       <button onClick={() => bookInputRef.current?.click()} className="w-full p-6 bg-white border-2 border-orange-100 hover:border-orange-200 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group-hover:-translate-y-1">
+                           <div className="bg-orange-50 w-12 h-12 rounded-xl flex items-center justify-center text-orange-600 mb-4"><BookOpen className="w-6 h-6"/></div>
+                           <h3 className="text-lg font-bold text-gray-900">Livros</h3>
+                           <p className="text-sm text-gray-500 mt-2">Análise de obras completas. Capítulos, conceitos e aplicação prática.</p>
+                       </button>
+                   </div>
+               </div>
+            </div>
         </div>
       );
     }
 
+    // 2. LOADING
     if (processingState.isLoading) {
       return (
         <div className="flex items-center justify-center h-full">
@@ -234,131 +276,9 @@ export function App() {
       );
     }
 
-    // TELA DE CONFIGURAÇÃO DE LIVRO (SE FOR LIVRO E NÃO TIVER ROTEIRO)
-    if (activeStudy.isBook && !activeStudy.guide) {
-       return (
-           <div className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in">
-               <div className="text-center mb-8">
-                   <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-orange-200"><BookOpen className="w-10 h-10"/></div>
-                   <h2 className="text-3xl font-bold text-gray-900 mb-2">Configurar Resumo do Livro</h2>
-               </div>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full px-4">
-                   <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.SURVIVAL)} className={`p-6 rounded-2xl border-2 text-left ${activeStudy.mode === StudyMode.SURVIVAL ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white'}`}><h3 className="font-bold">Sobrevivência</h3><p className="text-xs mt-2">Resumo 80/20 rápido.</p></button>
-                   <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.NORMAL)} className={`p-6 rounded-2xl border-2 text-left ${activeStudy.mode === StudyMode.NORMAL ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white'}`}><h3 className="font-bold">Normal</h3><p className="text-xs mt-2">Capítulo a capítulo.</p></button>
-                   <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.HARD)} className={`p-6 rounded-2xl border-2 text-left ${activeStudy.mode === StudyMode.HARD ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white'}`}><h3 className="font-bold">Hard</h3><p className="text-xs mt-2">Análise profunda.</p></button>
-               </div>
-               <button onClick={handleGenerateGuide} className="mt-8 bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-orange-600 flex items-center gap-2"><Play className="w-5 h-5 fill-current" /> Gerar Resumo</button>
-           </div>
-       );
-    }
-
-    // TELA PRINCIPAL DO ESTUDO
+    // 3. TELA DO ESTUDO ATIVO
     return (
       <div className="max-w-5xl mx-auto space-y-6">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-              <button onClick={() => setActiveTab('sources')} className={`px-4 py-2 rounded-lg font-bold text-sm ${activeTab === 'sources' ? 'bg-white shadow' : 'text-gray-500'}`}>Fontes</button>
-              <button onClick={() => setActiveTab('guide')} disabled={!activeStudy.guide} className="px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50">Roteiro</button>
-              {!isParetoStudy && <button onClick={() => setActiveTab('quiz')} disabled={!activeStudy.quiz} className="px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50">Quiz</button>}
-          </div>
-
-          {activeTab === 'sources' && (
-              <div className="space-y-6">
-                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                      <div className="flex gap-2 mb-4">
-                          <button onClick={() => setInputType(InputType.TEXT)} className="px-3 py-1 bg-gray-100 rounded text-sm">Texto</button>
-                          <button onClick={() => setInputType(InputType.PDF)} className="px-3 py-1 bg-gray-100 rounded text-sm">PDF</button>
-                      </div>
-                      {inputType === InputType.TEXT ? (
-                          <textarea value={inputText} onChange={e => setInputText(e.target.value)} className="w-full h-32 border rounded p-2" placeholder="Cole seu texto..." />
-                      ) : (
-                          <input type="file" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
-                      )}
-                      <button onClick={addSourceToStudy} className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded font-bold">Adicionar</button>
-                  </div>
-                  
-                  {activeStudy.sources.map(s => (
-                      <div key={s.id} className="bg-white p-4 rounded border flex justify-between">
-                          <span>{s.name}</span>
-                          <button onClick={() => removeSource(s.id)}><Trash className="w-4 h-4 text-red-500"/></button>
-                      </div>
-                  ))}
-                  
-                  {!activeStudy.isBook && activeStudy.sources.length > 0 && (
-                      <button onClick={() => handleGenerateGuideForStudy(activeStudy.id, activeStudy.sources[0], activeStudy.mode, false)} className="w-full bg-green-600 text-white py-3 rounded font-bold mt-4">Gerar Roteiro</button>
-                  )}
-              </div>
-          )}
-
-          {activeTab === 'guide' && activeStudy.guide && <ResultsView guide={activeStudy.guide} onReset={()=>{}} onGenerateQuiz={handleGenerateQuiz} onGoToFlashcards={handleGenerateFlashcards} />}
-          {activeTab === 'quiz' && activeStudy.quiz && <QuizView questions={activeStudy.quiz} onGenerate={handleGenerateQuiz} onClear={() => updateStudy(activeStudyId!, { quiz: null })} />}
-      </div>
-    );
-  };
-
-  if (!isAuthorized) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
-          <NeuroLogo size={60} className="mx-auto mb-6 text-indigo-600"/>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">NeuroStudy Architect</h1>
-          <input type="password" placeholder="Senha de acesso" className="w-full px-4 py-3 rounded-lg border border-gray-300 mb-4" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} autoFocus />
-          <button onClick={handleLogin} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700">Entrar</button>
-          <div className="mt-4 text-xs text-gray-400">Use 'convidado' para acesso Free</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (view === 'landing') {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
-            <div className="text-center">
-                <NeuroLogo size={100} className="mx-auto mb-6"/>
-                <h1 className="text-4xl font-bold text-slate-900 mb-4">Bem-vindo, {isPro ? 'Pro' : 'Convidado'}</h1>
-                <button onClick={() => setView('app')} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold">Ir para o Painel</button>
-            </div>
-        </div>
-      );
-  }
-
-  return (
-    <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden">
-      <Sidebar 
-        folders={folders} studies={studies} activeStudyId={activeStudyId} 
-        onSelectStudy={setActiveStudyId} onCreateFolder={createFolder} 
-        onCreateStudy={(fid, t) => createStudy(fid, t)} 
-        onDeleteStudy={deleteStudy} onDeleteFolder={deleteFolder}
-        onRenameFolder={renameFolder} onMoveFolder={moveFolder} onMoveStudy={moveStudy}
-        onOpenMethodology={() => setShowMethodologyModal(true)} onFolderExam={() => {}} onGoToHome={() => setView('landing')}
-      />
-      
-      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        <header className="flex justify-between items-center p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10">
-           <div className="flex items-center gap-4">
-               <button className="md:hidden" onClick={() => setIsMobileMenuOpen(true)}><Menu className="w-6 h-6" /></button>
-               {activeStudy ? (
-                   <h1 className="font-bold text-xl">{activeStudy.title}</h1>
-               ) : ( 
-                   <div className="flex items-center gap-3">
-                       <h1 className="text-xl font-bold text-gray-400 flex items-center gap-2"><NeuroLogo size={24} className="grayscale opacity-50"/> Painel</h1>
-                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${isPro ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                           {isPro ? '✨ PRO' : '☁️ FREE'}
-                       </span>
-                   </div>
-               )}
-           </div>
-           <button onClick={handleLogout} className="text-xs text-red-500 hover:underline">Sair</button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8">
-          {renderMainContent()} {/* <--- AQUI ESTÁ A CORREÇÃO */}
-        </div>
-
-        <PomodoroTimer />
-        <ChatWidget studyGuide={activeStudy?.guide || null} />
-        {showMethodologyModal && <MethodologyModal onClose={() => setShowMethodologyModal(false)} />}
-        {previewSource && <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} />}
-      </div>
-    </div>
-  );
-}
+          {/* ALERTA DE ERRO */}
+          {processingState.error && (
+              <div className="bg-red-50 text-red-60
