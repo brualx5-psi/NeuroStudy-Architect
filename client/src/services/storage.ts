@@ -1,46 +1,81 @@
 import { createClient } from '@supabase/supabase-js';
-import { StudySession } from '../types';
+import { StudySession, Folder } from '../types';
 
-const APP_MODE = import.meta.env.VITE_APP_MODE || 'DEMO';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+// Configuração do Supabase (Sempre tenta conectar, mas só usa se for PRO)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const supabase = (APP_MODE === 'PRO' && SUPABASE_URL && SUPABASE_KEY) 
-  ? createClient(SUPABASE_URL, SUPABASE_KEY) 
+const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey) 
   : null;
 
-const LOCAL_KEY = 'neurostudy_data';
+// Chaves para salvar no navegador (Backup e Modo Free)
+const LOCAL_STUDIES = 'neuro_studies_data';
+const LOCAL_FOLDERS = 'neuro_folders_data';
+
+// Verifica se é VOCÊ (Dono)
+const isProUser = () => localStorage.getItem('neurostudy_auth') === 'true';
 
 export const storage = {
-  async getAll(): Promise<StudySession[]> {
-    if (supabase) {
+  // --- CARREGAR DADOS ---
+  loadData: async () => {
+    let studies: StudySession[] = [];
+    let folders: Folder[] = [];
+
+    // 1. Tenta carregar do LocalStorage primeiro (funciona offline e para Free)
+    try {
+      const localS = localStorage.getItem(LOCAL_STUDIES);
+      const localF = localStorage.getItem(LOCAL_FOLDERS);
+      if (localS) studies = JSON.parse(localS);
+      if (localF) folders = JSON.parse(localF);
+    } catch (e) {
+      console.error('Erro local:', e);
+    }
+
+    // 2. Se for VOCÊ (Pro), tenta baixar a versão mais recente da nuvem
+    if (isProUser() && supabase) {
       try {
-        const { data, error } = await supabase.from('studies').select('data').order('updated_at', { ascending: false });
-        if (error) throw error;
-        return data?.map((row: any) => row.data) || [];
-      } catch (e) { return []; }
-    } else {
-      const local = localStorage.getItem(LOCAL_KEY);
-      return local ? JSON.parse(local) : [];
+        const { data } = await supabase.from('neuro_backup').select('*');
+        
+        if (data && data.length > 0) {
+          // Se achar dados na nuvem, eles têm prioridade
+          const cloudStudies = data.find(row => row.id === 'studies')?.content;
+          const cloudFolders = data.find(row => row.id === 'folders')?.content;
+          
+          if (cloudStudies) studies = cloudStudies;
+          if (cloudFolders) folders = cloudFolders;
+          console.log('☁️ Sincronizado com a Nuvem (Pro)');
+        }
+      } catch (e) {
+        console.error('⚠️ Erro ao conectar Supabase (usando local):', e);
+      }
     }
+
+    return { studies, folders };
   },
-  async save(study: StudySession) {
-    if (supabase) {
-      await supabase.from('studies').upsert({ id: study.id, updated_at: new Date().toISOString(), data: study });
-    } else {
-      const list = await this.getAll();
-      const index = list.findIndex(s => s.id === study.id);
-      if (index >= 0) list[index] = study; else list.unshift(study);
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(list));
-    }
-  },
-  async delete(id: string) {
-    if (supabase) {
-      await supabase.from('studies').delete().eq('id', id);
-    } else {
-      const list = await this.getAll();
-      const filtered = list.filter(s => s.id !== id);
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(filtered));
+
+  // --- SALVAR DADOS ---
+  saveData: async (studies: StudySession[], folders: Folder[]) => {
+    // 1. Sempre salva no navegador (Backup garantido)
+    localStorage.setItem(LOCAL_STUDIES, JSON.stringify(studies));
+    localStorage.setItem(LOCAL_FOLDERS, JSON.stringify(folders));
+
+    // 2. Se for VOCÊ (Pro), salva também na nuvem
+    if (isProUser() && supabase) {
+      try {
+        // Salva Estudos
+        await supabase
+          .from('neuro_backup')
+          .upsert({ id: 'studies', content: studies });
+        
+        // Salva Pastas
+        await supabase
+          .from('neuro_backup')
+          .upsert({ id: 'folders', content: folders });
+          
+      } catch (e) {
+        console.error('Erro ao subir para nuvem:', e);
+      }
     }
   }
 };
