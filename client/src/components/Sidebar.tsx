@@ -45,13 +45,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [creatingStudyInFolder, setCreatingStudyInFolder] = useState<string | null>(null);
   const [newStudyTitle, setNewStudyTitle] = useState('');
 
-  // Estados para controlar qual seção raiz está criando pasta
   const [creatingRootFolderIn, setCreatingRootFolderIn] = useState<string | null>(null);
   const [newRootFolderName, setNewRootFolderName] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
+  // --- LÓGICA DE RECOLHER/EXPANDIR ---
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }));
   };
@@ -71,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleCreateFolder = (parentId: string) => {
     const name = parentId.startsWith('root-') ? newRootFolderName : newSubfolderName;
     if (name.trim()) {
-      onCreateFolder(name, parentId); // Se for root-*, salva como parentId
+      onCreateFolder(name, parentId);
       setNewSubfolderName('');
       setNewRootFolderName('');
       setCreatingSubfolderIn(null);
@@ -89,7 +89,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // --- Drag Handlers ---
   const handleDragStart = (e: React.DragEvent, type: 'FOLDER' | 'STUDY', id: string) => {
     e.dataTransfer.setData('type', type);
     e.dataTransfer.setData('id', id);
@@ -101,33 +100,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (folderId) setDragOverFolderId(folderId);
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    setDragOverFolderId(null);
-  };
-
   const handleDrop = (e: React.DragEvent, targetFolderId?: string) => {
     e.preventDefault();
     setDragOverFolderId(null);
     const type = e.dataTransfer.getData('type');
     const id = e.dataTransfer.getData('id');
     if (!type || !id) return;
-
     if (type === 'FOLDER') onMoveFolder(id, targetFolderId);
     else if (type === 'STUDY' && targetFolderId) onMoveStudy(id, targetFolderId);
   };
 
-  // --- Render Tree ---
   const renderFolderTree = (parentId: string, depth: number = 0, themeColor: string) => {
     const currentLevelFolders = folders.filter(f => f.parentId === parentId);
     const currentLevelStudies = studies.filter(s => s.folderId === parentId);
 
-    if (currentLevelFolders.length === 0 && currentLevelStudies.length === 0 && creatingSubfolderIn !== parentId && creatingStudyInFolder !== parentId) {
+    // Filtro de busca
+    const filteredFolders = searchQuery ? currentLevelFolders.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())) : currentLevelFolders;
+    const filteredStudies = searchQuery ? currentLevelStudies.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase())) : currentLevelStudies;
+
+    if (filteredFolders.length === 0 && filteredStudies.length === 0 && creatingSubfolderIn !== parentId && creatingStudyInFolder !== parentId) {
         return null;
     }
 
     return (
       <div className={`${depth === 0 ? 'mt-2 space-y-1' : 'ml-3 border-l border-gray-200 pl-1'}`}>
-        {currentLevelFolders.map(folder => {
+        {filteredFolders.map(folder => {
           const isOpen = expandedFolders[folder.id];
           const isDragOver = dragOverFolderId === folder.id;
 
@@ -137,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 draggable
                 onDragStart={(e) => handleDragStart(e, 'FOLDER', folder.id)}
                 onDragOver={(e) => handleDragOver(e, folder.id)}
-                onDragLeave={handleDragLeave}
+                onDragLeave={() => setDragOverFolderId(null)}
                 onDrop={(e) => handleDrop(e, folder.id)}
                 className={`group flex items-center justify-between p-1.5 rounded-md cursor-pointer transition-colors ${editingFolderId === folder.id ? 'bg-white ring-2 ring-indigo-200' : isDragOver ? 'bg-indigo-100' : 'hover:bg-gray-100'}`}
                 onClick={() => toggleFolder(folder.id)}
@@ -179,7 +176,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                    )}
                    {renderFolderTree(folder.id, depth + 1, themeColor)}
                    
-                   {/* Create Study Inside Folder */}
                    <div className="ml-4 mt-1">
                         {creatingStudyInFolder === folder.id ? (
                             <div className="p-1 border rounded bg-white"><input autoFocus className="text-xs w-full" placeholder="Nome do estudo..." value={newStudyTitle} onChange={e => setNewStudyTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreateStudy(folder.id)} /></div>
@@ -188,8 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         )}
                    </div>
 
-                   {/* Studies in this folder */}
-                   {studies.filter(s => s.folderId === folder.id).map(study => (
+                   {filteredStudies.map(study => (
                      <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`ml-4 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
                        <div className="flex items-center gap-2 truncate"><FileText className="w-3 h-3"/> <span className="truncate">{study.title}</span></div>
                        <button onClick={(e) => { e.stopPropagation(); onDeleteStudy(study.id); }} className="text-gray-300 hover:text-red-500"><Trash className="w-3 h-3"/></button>
@@ -201,8 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
         
-        {/* Studies at the root of this section (without folder) */}
-        {currentLevelStudies.map(study => (
+        {filteredStudies.map(study => (
              <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`mt-1 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
                <div className="flex items-center gap-2 truncate"><FileText className="w-3 h-3"/> <span className="truncate">{study.title}</span></div>
                <button onClick={(e) => { e.stopPropagation(); onDeleteStudy(study.id); }} className="text-gray-300 hover:text-red-500"><Trash className="w-3 h-3"/></button>
@@ -239,13 +233,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           {renderFolderTree(rootId, 0, colorClass.replace('bg-', 'text-').replace('-50', '-500'))}
-          
-          {/* Empty State Hint */}
-          {folders.filter(f => f.parentId === rootId).length === 0 && studies.filter(s => s.folderId === rootId).length === 0 && !creatingRootFolderIn && (
-              <div className="px-4 py-3 text-[10px] text-gray-400 italic text-center border-2 border-dashed border-gray-100 rounded-lg mx-2 mt-1">
-                  Vazio
-              </div>
-          )}
       </div>
   );
 
@@ -269,13 +256,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 scrollbar-thin space-y-6">
-        {/* SEÇÃO 1: NEUROSTUDY (PADRÃO) */}
         <SectionHeader id="neuro" title="NeuroStudy" icon={Layers} colorClass="bg-indigo-50" rootId="root-neuro" />
-
-        {/* SEÇÃO 2: LIVROS */}
         <SectionHeader id="books" title="Biblioteca" icon={BookOpen} colorClass="bg-orange-50" rootId="root-books" />
-
-        {/* SEÇÃO 3: PARETO */}
         <SectionHeader id="pareto" title="Pareto 80/20" icon={Target} colorClass="bg-red-50" rootId="root-pareto" />
       </div>
 
