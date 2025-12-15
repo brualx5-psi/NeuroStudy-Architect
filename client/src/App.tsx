@@ -17,69 +17,86 @@ import { SourcePreviewModal } from './components/SourcePreviewModal';
 import { NeuroLogo, UploadCloud, FileText, Video, Search, BookOpen, Monitor, CheckCircle, Layers, Target, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Edit, Trash, BatteryCharging, Activity, Rocket, X } from './components/Icons';
 
 export function App() {
-  // --- ESTADOS ---
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+
+  // DADOS
   const [folders, setFolders] = useState<Folder[]>([]);
   const [studies, setStudies] = useState<StudySession[]>([]);
+  
+  // Interface
   const [view, setView] = useState<'landing' | 'app'>('landing');
   const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'sources' | 'guide' | 'slides' | 'quiz' | 'flashcards'>('sources');
   const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
   
-  // Inputs e Interface
+  // Inputs
   const [inputText, setInputText] = useState('');
   const [inputType, setInputType] = useState<InputType>(InputType.TEXT);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedMode, setSelectedMode] = useState<StudyMode>(StudyMode.NORMAL);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleInput, setEditTitleInput] = useState('');
+  const [quickInputMode, setQuickInputMode] = useState<'none' | 'text'>('none');
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [editSourceName, setEditSourceName] = useState('');
   const [previewSource, setPreviewSource] = useState<StudySource | null>(null);
   
-  // Modais e Menus
+  // Modais
   const [showMethodologyModal, setShowMethodologyModal] = useState(false);
-  const [showReviewScheduler, setShowReviewScheduler] = useState(false); // Modal de Revisão
+  const [showReviewScheduler, setShowReviewScheduler] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Refs
   const paretoInputRef = useRef<HTMLInputElement>(null);
   const bookInputRef = useRef<HTMLInputElement>(null);
 
-  // --- CARREGAR DADOS (LOCAL APENAS) ---
+  // --- LOGIN & CARREGAMENTO ---
   useEffect(() => {
-    const initData = async () => {
-      try {
-        const { studies: s, folders: f } = await storage.loadData();
-        setStudies(s || []);
-        setFolders(f || []);
-      } catch (e) {
-        console.error("Erro ao carregar:", e);
-      }
-    };
-    initData();
+    const auth = localStorage.getItem('neurostudy_auth');
+    if (auth === 'true') {
+      setIsAuthorized(true);
+    }
   }, []);
 
-  // --- SALVAR DADOS (LOCAL APENAS) ---
+  // Carrega dados
+  useEffect(() => {
+    if (isAuthorized) {
+        const initData = async () => {
+          const { studies: s, folders: f } = await storage.loadData();
+          setStudies(s || []);
+          setFolders(f || []);
+        };
+        initData();
+    }
+  }, [isAuthorized]);
+
+  // Salva dados
   useEffect(() => {
     if (studies.length > 0 || folders.length > 0) {
       storage.saveData(studies, folders);
     }
   }, [studies, folders]);
 
-  // --- FUNÇÕES DE UPDATE ---
-  const updateStudy = (id: string, updates: Partial<StudySession>) => {
-      setStudies(prev => prev.map(s => s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s));
-  };
-
-  // --- GERENCIAMENTO DE REVISÃO (CORRIGIDO) ---
-  const handleScheduleReview = (timestamp: number) => {
-    if (activeStudyId) {
-      updateStudy(activeStudyId, { nextReviewDate: timestamp });
-      setShowReviewScheduler(false);
-      alert("Revisão agendada com sucesso! 📅");
+  const handleLogin = () => {
+    if (passwordInput === 'neurostudy2025') {
+      localStorage.setItem('neurostudy_auth', 'true');
+      setIsAuthorized(true);
+    } else if (passwordInput === 'convidado') {
+      localStorage.removeItem('neurostudy_auth');
+      setIsAuthorized(true);
+    } else {
+      alert('Senha incorreta.');
     }
   };
 
-  // --- CRUD BÁSICO ---
+  const handleLogout = () => {
+    localStorage.removeItem('neurostudy_auth');
+    setIsAuthorized(false);
+    setView('landing');
+  };
+
+  // --- CRUD ---
   const createFolder = (name: string, parentId?: string) => { 
       const newFolder: Folder = { id: Date.now().toString(), name, parentId }; 
       setFolders(prev => [...prev, newFolder]); 
@@ -95,6 +112,19 @@ export function App() {
     setActiveStudyId(newStudy.id);
     setActiveTab('sources');
     return newStudy;
+  };
+
+  const updateStudy = (id: string, updates: Partial<StudySession>) => {
+      setStudies(prev => prev.map(s => s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s));
+  };
+
+  // --- FUNÇÃO DE AGENDAMENTO (NOVA) ---
+  const handleScheduleReview = (date: number) => {
+    if (activeStudyId) {
+        updateStudy(activeStudyId, { nextReviewDate: date });
+        setShowReviewScheduler(false);
+        alert("Revisão agendada com sucesso!");
+    }
   };
 
   const deleteStudy = (id: string) => { 
@@ -119,6 +149,9 @@ export function App() {
   const moveStudy = (sid: string, fid: string) => updateStudy(sid, { folderId: fid });
   const handleSaveTitle = () => { if (activeStudyId && editTitleInput.trim()) updateStudy(activeStudyId, { title: editTitleInput }); setIsEditingTitle(false); };
   
+  const updateStudyGuide = (studyId: string, newGuide: StudyGuide) => { updateStudy(studyId, { guide: newGuide }); };
+  const updateStudyMode = (studyId: string, mode: StudyMode) => { updateStudy(studyId, { mode }); };
+
   const activeStudy = studies.find(s => s.id === activeStudyId) || null;
   const isParetoStudy = activeStudy?.mode === StudyMode.PARETO;
   const isGuideComplete = (activeStudy?.guide?.checkpoints?.filter(c => c.completed).length || 0) === (activeStudy?.guide?.checkpoints?.length || 0) && (activeStudy?.guide?.checkpoints?.length || 0) > 0;
@@ -143,20 +176,12 @@ export function App() {
   };
 
   const handleGenerateGuideForStudy = async (studyId: string, source: StudySource, mode: StudyMode, isBook: boolean) => {
-    const isBinary = [InputType.PDF, InputType.VIDEO, InputType.IMAGE, InputType.EPUB].includes(source.type);
-    setProcessingState({ isLoading: true, error: null, step: source.type === InputType.VIDEO ? 'transcribing' : 'analyzing' });
-    
+    setProcessingState({ isLoading: true, error: null, step: 'analyzing' });
     try {
-        const timer = setTimeout(() => setProcessingState(p => ({...p, step: 'generating'})), 3000);
-        const guide = await generateStudyGuide(source.content, source.mimeType || 'text/plain', mode, isBinary, isBook);
-        clearTimeout(timer);
+        const guide = await generateStudyGuide(source.content, source.mimeType || 'text/plain', mode, [InputType.PDF, InputType.VIDEO, InputType.IMAGE].includes(source.type), isBook);
         updateStudy(studyId, { guide });
-        setProcessingState({ isLoading: false, error: null, step: 'idle' });
         setActiveTab('guide');
-    } catch (e: any) { 
-        console.error("Erro ao gerar roteiro:", e);
-        setProcessingState({ isLoading: false, error: e.message || "Erro desconhecido.", step: 'idle' }); 
-    }
+    } catch (e: any) { setProcessingState({ isLoading: false, error: e.message, step: 'idle' }); } finally { setProcessingState(p => ({...p, isLoading: false, step: 'idle'})); }
   };
 
   const addSourceToStudy = async () => {
@@ -169,15 +194,19 @@ export function App() {
   };
 
   const removeSource = (sid: string) => setStudies(p => p.map(s => s.id === activeStudyId ? {...s, sources: s.sources.filter(x => x.id !== sid)} : s));
+  const handleStartRenamingSource = (source: StudySource) => { setEditingSourceId(source.id); setEditSourceName(source.name); };
+  const handleSaveSourceRename = () => { if (!activeStudyId || !editingSourceId) return; setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: s.sources.map(src => src.id === editingSourceId ? { ...src, name: editSourceName } : src) }; return s; })); setEditingSourceId(null); setEditSourceName(''); };
   
-  const handleGenerateSlides = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'slides'}); try { const s = await generateSlides(activeStudy.guide); updateStudy(activeStudyId!, { slides: s }); } catch(e:any){ setProcessingState(p=>({...p, error: e.message})); } finally { setProcessingState(p=>({...p, isLoading:false})); } }};
-  const handleGenerateQuiz = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'quiz'}); try { const q = await generateQuiz(activeStudy.guide, activeStudy.mode); updateStudy(activeStudyId!, { quiz: q }); } catch(e:any){ setProcessingState(p=>({...p, error: e.message})); } finally { setProcessingState(p=>({...p, isLoading:false})); } }};
-  const handleGenerateFlashcards = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'flashcards'}); try { const f = await generateFlashcards(activeStudy.guide); updateStudy(activeStudyId!, { flashcards: f }); } catch(e:any){ setProcessingState(p=>({...p, error: e.message})); } finally { setProcessingState(p=>({...p, isLoading:false})); } }};
+  const handleGenerateSlides = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'slides'}); const s = await generateSlides(activeStudy.guide); updateStudy(activeStudyId!, { slides: s }); setProcessingState(p=>({...p, isLoading:false})); }};
+  const handleGenerateQuiz = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'quiz'}); const q = await generateQuiz(activeStudy.guide, activeStudy.mode); updateStudy(activeStudyId!, { quiz: q }); setProcessingState(p=>({...p, isLoading:false})); }};
+  const handleGenerateFlashcards = async () => { if(activeStudy?.guide) { setProcessingState({isLoading:true, error:null, step:'flashcards'}); const f = await generateFlashcards(activeStudy.guide); updateStudy(activeStudyId!, { flashcards: f }); setProcessingState(p=>({...p, isLoading:false})); }};
   
   // Helpers
   const handleParetoUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if(f) handleQuickStart(f, InputType.TEXT, StudyMode.PARETO, true, false); };
   const handleBookUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if(f) handleQuickStart(f, InputType.PDF, StudyMode.NORMAL, false, true); };
   const handleStartSession = () => { createStudy('root-neuro', `Novo Estudo`, selectedMode); };
+  const handleFolderExam = (fid: string) => {}; 
+  const renderSourceDescription = (t: InputType) => null;
 
   const renderMainContent = () => {
     if (!activeStudy) {
@@ -191,6 +220,7 @@ export function App() {
                </div>
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                   {/* Card Pareto */}
                    <div className="relative group">
                        <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*, .epub, .mobi"/>
                        <button onClick={() => paretoInputRef.current?.click()} className="w-full p-6 bg-white border-2 border-red-100 hover:border-red-200 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group-hover:-translate-y-1">
@@ -200,12 +230,14 @@ export function App() {
                        </button>
                    </div>
 
+                   {/* Card NeuroStudy (Padrão) */}
                    <button onClick={handleStartSession} className="w-full p-6 bg-white border-2 border-indigo-100 hover:border-indigo-200 rounded-2xl shadow-sm hover:shadow-md transition-all text-left hover:-translate-y-1">
                        <div className="bg-indigo-50 w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 mb-4"><Layers className="w-6 h-6"/></div>
                        <h3 className="text-lg font-bold text-gray-900">NeuroStudy</h3>
                        <p className="text-sm text-gray-500 mt-2">O método completo. Roteiro, Slides e Quiz para estudo profundo.</p>
                    </button>
 
+                   {/* Card Livros */}
                    <div className="relative group">
                        <input type="file" ref={bookInputRef} className="hidden" onChange={handleBookUpload} accept=".pdf,.epub,.mobi"/>
                        <button onClick={() => bookInputRef.current?.click()} className="w-full p-6 bg-white border-2 border-orange-100 hover:border-orange-200 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group-hover:-translate-y-1">
@@ -230,13 +262,6 @@ export function App() {
 
     return (
       <div className="max-w-5xl mx-auto space-y-6">
-          {processingState.error && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center gap-2"><span className="font-bold">⚠️ Erro:</span> {processingState.error}</div>
-                  <button onClick={() => setProcessingState(p => ({...p, error: null}))}><X className="w-4 h-4"/></button>
-              </div>
-          )}
-
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
               <button onClick={() => setActiveTab('sources')} className={`px-4 py-2 rounded-lg font-bold text-sm ${activeTab === 'sources' ? 'bg-white shadow text-indigo-600' : 'text-gray-500'}`}>Fontes</button>
               <button onClick={() => setActiveTab('guide')} disabled={!activeStudy.guide} className="px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50">Roteiro</button>
@@ -247,36 +272,26 @@ export function App() {
               <div className="space-y-6">
                   <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                       <div className="flex gap-2 mb-4">
-                          <button onClick={() => setInputType(InputType.TEXT)} className={`px-3 py-1 rounded text-sm ${inputType === InputType.TEXT ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100'}`}>Texto</button>
-                          <button onClick={() => setInputType(InputType.PDF)} className={`px-3 py-1 rounded text-sm ${inputType === InputType.PDF ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100'}`}>PDF</button>
+                          <button onClick={() => setInputType(InputType.TEXT)} className="px-3 py-1 bg-gray-100 rounded text-sm">Texto</button>
+                          <button onClick={() => setInputType(InputType.PDF)} className="px-3 py-1 bg-gray-100 rounded text-sm">PDF</button>
                       </div>
                       {inputType === InputType.TEXT ? (
-                          <textarea value={inputText} onChange={e => setInputText(e.target.value)} className="w-full h-32 border rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Cole seu texto..." />
+                          <textarea value={inputText} onChange={e => setInputText(e.target.value)} className="w-full h-32 border rounded p-2" placeholder="Cole seu texto..." />
                       ) : (
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors relative cursor-pointer">
-                              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
-                              <div className="flex flex-col items-center gap-2 text-gray-500">
-                                  {selectedFile ? <><FileText className="w-8 h-8 text-indigo-500"/><span className="font-bold text-gray-900">{selectedFile.name}</span></> : <><UploadCloud className="w-8 h-8"/><span className="font-medium">Clique ou arraste o arquivo aqui</span></>}
-                              </div>
-                          </div>
+                          <input type="file" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
                       )}
-                      <button onClick={addSourceToStudy} className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Adicionar</button>
+                      <button onClick={addSourceToStudy} className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded font-bold">Adicionar</button>
                   </div>
                   
                   {activeStudy.sources.map(s => (
-                      <div key={s.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center shadow-sm">
-                          <div className="flex items-center gap-3">
-                              <div className="bg-indigo-50 p-2 rounded text-indigo-600"><FileText className="w-5 h-5"/></div>
-                              <span className="font-medium text-gray-700">{s.name}</span>
-                          </div>
-                          <button onClick={() => removeSource(s.id)} className="text-gray-400 hover:text-red-500"><Trash className="w-5 h-5"/></button>
+                      <div key={s.id} className="bg-white p-4 rounded border flex justify-between">
+                          <span>{s.name}</span>
+                          <button onClick={() => removeSource(s.id)}><Trash className="w-4 h-4 text-red-500"/></button>
                       </div>
                   ))}
                   
                   {!activeStudy.isBook && activeStudy.sources.length > 0 && (
-                      <button onClick={() => handleGenerateGuideForStudy(activeStudy.id, activeStudy.sources[0], activeStudy.mode, false)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
-                          <GenerateIcon className="w-6 h-6"/> Gerar Roteiro
-                      </button>
+                      <button onClick={() => handleGenerateGuideForStudy(activeStudy.id, activeStudy.sources[0], activeStudy.mode, false)} className="w-full bg-green-600 text-white py-3 rounded font-bold mt-4">Gerar Roteiro</button>
                   )}
               </div>
           )}
@@ -287,12 +302,26 @@ export function App() {
     );
   };
 
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
+          <NeuroLogo size={60} className="mx-auto mb-6 text-indigo-600"/>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">NeuroStudy Architect</h1>
+          <input type="password" placeholder="Senha de acesso" className="w-full px-4 py-3 rounded-lg border border-gray-300 mb-4" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} autoFocus />
+          <button onClick={handleLogin} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700">Entrar</button>
+          <div className="mt-4 text-xs text-gray-400">Use 'convidado' para acesso Free</div>
+        </div>
+      </div>
+    );
+  }
+
   if (view === 'landing') {
       return (
         <div className="min-h-screen flex items-center justify-center bg-white">
             <div className="text-center">
                 <NeuroLogo size={100} className="mx-auto mb-6"/>
-                <h1 className="text-4xl font-bold text-slate-900 mb-4">Bem-vindo, {isPro ? 'Pro' : 'Visitante'}</h1>
+                <h1 className="text-4xl font-bold text-slate-900 mb-4">Bem-vindo, {isPro ? 'Pro' : 'Convidado'}</h1>
                 <button onClick={() => setView('app')} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold">Ir para o Painel</button>
             </div>
         </div>
@@ -307,7 +336,7 @@ export function App() {
         onCreateStudy={(fid, t) => createStudy(fid, t)} 
         onDeleteStudy={deleteStudy} onDeleteFolder={deleteFolder}
         onRenameFolder={renameFolder} onMoveFolder={moveFolder} onMoveStudy={moveStudy}
-        onOpenMethodology={() => setShowMethodologyModal(true)} onFolderExam={() => {}} onGoToHome={() => setView('landing')}
+        onOpenMethodology={() => setShowMethodologyModal(true)} onFolderExam={handleFolderExam} onGoToHome={() => setView('landing')}
       />
       
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
@@ -323,13 +352,14 @@ export function App() {
                )}
            </div>
            <div className="flex items-center gap-3">
-                {activeStudy && (
-                    <>
-                        <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" onClick={() => setShowNotifications(!showNotifications)}><Bell className="w-5 h-5"/>{dueReviewsCount > 0 && (<span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>)}</button>
-                        {showNotifications && (<><div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div><NotificationCenter studies={studies} onSelectStudy={setActiveStudyId} onClose={() => setShowNotifications(false)} /></>)}
-                        <button onClick={() => setShowReviewScheduler(true)} className="flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors"><Calendar className="w-4 h-4"/> Agendar Revisão</button>
-                    </>
-                )}
+               {activeStudy && (
+                   <>
+                      <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" onClick={() => setShowNotifications(!showNotifications)}><Bell className="w-5 h-5"/>{dueReviewsCount > 0 && (<span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>)}</button>
+                      {showNotifications && (<><div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div><NotificationCenter studies={studies} onSelectStudy={setActiveStudyId} onClose={() => setShowNotifications(false)} /></>)}
+                      <button onClick={() => setShowReviewScheduler(true)} className="flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors"><Calendar className="w-4 h-4"/> Agendar Revisão</button>
+                   </>
+               )}
+               <button onClick={handleLogout} className="text-xs text-red-500 hover:underline">Sair</button>
            </div>
         </header>
 
@@ -341,7 +371,7 @@ export function App() {
         <ChatWidget studyGuide={activeStudy?.guide || null} />
         {showMethodologyModal && <MethodologyModal onClose={() => setShowMethodologyModal(false)} />}
         
-        {/* MODAL DE REVISÃO CORRIGIDO */}
+        {/* COMPONENTE DE REVISÃO ADICIONADO AQUI */}
         {showReviewScheduler && activeStudy && (
             <ReviewSchedulerModal 
                 onClose={() => setShowReviewScheduler(false)} 
