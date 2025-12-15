@@ -560,7 +560,7 @@ export function App() {
                             <div className="bg-red-100 p-3 rounded-xl text-red-600 mb-4 group-hover:scale-110 transition-transform"><Target className="w-8 h-8" /></div>
                             <h3 className="text-lg font-bold text-gray-900">Método Pareto 80/20</h3>
                             <p className="text-sm text-gray-500 mt-2 text-left flex-1">
-                                Extração rápida. Apenas o essencial do arquivo. Sem pastas, sem login.
+                                Extração rápida. Apenas o essencial do arquivo.
                             </p>
                             <span className="mt-4 w-full bg-red-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-red-700 transition-colors">
                                 Iniciar <ChevronRight className="w-4 h-4" />
