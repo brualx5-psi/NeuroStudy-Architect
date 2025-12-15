@@ -1,5 +1,3 @@
-
-
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
@@ -10,16 +8,35 @@ export enum InputType {
 }
 
 export enum StudyMode {
-  HARD = 'HARD', // Antigo TURBO
+  HARD = 'HARD',
   NORMAL = 'NORMAL',
-  SURVIVAL = 'SURVIVAL', // Antigo ESSENTIAL
-  PARETO = 'PARETO' // Novo modo exclusivo para a Landing Page
+  SURVIVAL = 'SURVIVAL',
+  PARETO = 'PARETO'
 }
 
 export interface CoreConcept {
   concept: string;
   definition: string;
 }
+
+// --- NOVAS ESTRUTURAS PARA LIVROS ---
+export interface BookSection {
+  title: string;
+  coreConcepts: CoreConcept[];
+  supportConcepts?: CoreConcept[];
+  connections?: string;
+  checklist?: string[];
+}
+
+export interface BookChapter {
+  title: string;
+  summary: string;
+  coreConcepts: CoreConcept[];
+  supportConcepts?: CoreConcept[];
+  practicalApplication?: string;
+  sections?: BookSection[];
+}
+// ------------------------------------
 
 export interface Checkpoint {
   mission: string;
@@ -37,8 +54,10 @@ export interface Checkpoint {
 export interface StudyGuide {
   subject: string;
   overview: string;
+  globalApplication?: string; // Novo: Para o modo Sobrevivência de Livros
   coreConcepts: CoreConcept[];
   checkpoints: Checkpoint[];
+  chapters?: BookChapter[]; // Novo: Lista de capítulos
 }
 
 export interface Slide {
@@ -78,13 +97,14 @@ export interface StudySession {
   title: string;
   sources: StudySource[];
   mode: StudyMode;
+  isBook?: boolean; // Novo: Flag para saber se é modo Livro
   guide: StudyGuide | null;
   slides: Slide[] | null;
   quiz: QuizQuestion[] | null;
   flashcards: Flashcard[] | null;
   createdAt: number;
   updatedAt: number;
-  nextReviewDate?: number; // Timestamp for spaced repetition
+  nextReviewDate?: number;
 }
 
 export interface Folder {
