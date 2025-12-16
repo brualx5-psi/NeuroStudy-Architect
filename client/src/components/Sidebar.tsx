@@ -112,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     else if (type === 'STUDY' && targetFolderId) onMoveStudy(id, targetFolderId);
   };
 
-  // --- Render Tree ---
+ // --- Render Tree ---
   const renderFolderTree = (parentId: string, depth: number = 0, themeColor: string) => {
     const currentLevelFolders = folders.filter(f => f.parentId === parentId);
     const currentLevelStudies = studies.filter(s => s.folderId === parentId);
@@ -158,7 +158,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={(e) => { e.stopPropagation(); onFolderExam(folder.id); }} className="p-0.5 text-purple-600 hover:bg-purple-100 rounded" title="Provão"><GraduationCap className="w-3 h-3"/></button>
                             <button onClick={(e) => { e.stopPropagation(); startEditing(folder); }} className="p-0.5 text-gray-400 hover:text-indigo-600 rounded" title="Renomear"><Edit className="w-3 h-3"/></button>
-                            <button onClick={(e) => { e.stopPropagation(); setCreatingSubfolderIn(folder.id); setExpandedFolders(p => ({...p, [folder.id]: true})); }} className="p-0.5 text-gray-400 hover:text-green-600 rounded" title="Nova Subpasta"><Plus className="w-3 h-3"/></button>
+                            
+                            {/* BOTÃO CRIAR SUBPASTA (+): Fecha o modo de estudo se estiver aberto */}
+                            <button onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setCreatingStudyInFolder(null); // <--- FECHA O MODO ESTUDO PARA NÃO CONFLITAR
+                                setCreatingSubfolderIn(folder.id); 
+                                setExpandedFolders(p => ({...p, [folder.id]: true})); 
+                            }} className="p-0.5 text-gray-400 hover:text-green-600 rounded" title="Nova Subpasta"><Plus className="w-3 h-3"/></button>
+                            
                             <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="p-0.5 text-gray-400 hover:text-red-500 rounded" title="Excluir"><Trash className="w-3 h-3"/></button>
                         </div>
                     </>
@@ -167,27 +175,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {isOpen && (
                 <div>
+                   {/* INPUT PARA NOVA SUBPASTA */}
                    {creatingSubfolderIn === folder.id && (
-                      <div className="flex items-center gap-2 p-1 ml-4 my-1">
+                      <div className="flex items-center gap-2 p-1 ml-4 my-1 animate-in slide-in-from-left-2 duration-200">
                          <CornerDownRight className="w-3 h-3 text-gray-400"/>
-                         <input autoFocus placeholder="Nome..." className="text-xs p-1 border rounded w-full"
+                         <input autoFocus placeholder="Nome da subpasta..." className="text-xs p-1 border rounded w-full focus:ring-1 focus:ring-green-500 outline-none bg-green-50"
                             value={newSubfolderName} onChange={e => setNewSubfolderName(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleCreateFolder(folder.id)}
                          />
                          <button onClick={() => setCreatingSubfolderIn(null)}><X className="w-3 h-3 text-gray-400"/></button>
                       </div>
                    )}
+                   
                    {renderFolderTree(folder.id, depth + 1, themeColor)}
                    
-                   {/* Create Study Inside Folder */}
-                   <div className="ml-4 mt-1">
-                        {creatingStudyInFolder === folder.id ? (
-                            <div className="p-1 border rounded bg-white"><input autoFocus className="text-xs w-full" placeholder="Nome do estudo..." value={newStudyTitle} onChange={e => setNewStudyTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreateStudy(folder.id)} /></div>
-                        ) : (
-                            <button onClick={(e) => {e.stopPropagation(); setCreatingStudyInFolder(folder.id);}} className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 px-1"><Plus className="w-3 h-3"/> Novo Estudo</button>
-                        )}
-                   </div>
-
                    {/* Studies in this folder */}
                    {filteredStudies.map(study => (
                      <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`ml-4 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
@@ -195,6 +196,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                        <button onClick={(e) => { e.stopPropagation(); onDeleteStudy(study.id); }} className="text-gray-300 hover:text-red-500"><Trash className="w-3 h-3"/></button>
                      </div>
                    ))}
+
+                   {/* INPUT / BOTÃO PARA NOVO ESTUDO (SEMPRE NO FINAL DA LISTA) */}
+                   <div className="ml-4 mt-1">
+                        {creatingStudyInFolder === folder.id ? (
+                            <div className="flex items-center gap-1 p-1 border rounded bg-white animate-in slide-in-from-top-2 duration-200 shadow-sm">
+                                <FileText className="w-3 h-3 text-indigo-500" />
+                                <input autoFocus className="text-xs w-full outline-none" placeholder="Nome do estudo..." value={newStudyTitle} onChange={e => setNewStudyTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreateStudy(folder.id)} />
+                                <button onClick={() => setCreatingStudyInFolder(null)}><X className="w-3 h-3 text-gray-400"/></button>
+                            </div>
+                        ) : (
+                            <button onClick={(e) => {
+                                e.stopPropagation(); 
+                                setCreatingSubfolderIn(null); // <--- FECHA O MODO SUBPASTA PARA NÃO CONFLITAR
+                                setCreatingStudyInFolder(folder.id);
+                            }} className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 px-1 py-1 w-full text-left transition-colors hover:bg-indigo-50 rounded">
+                                <Plus className="w-3 h-3"/> Novo Estudo
+                            </button>
+                        )}
+                   </div>
                 </div>
               )}
             </div>
