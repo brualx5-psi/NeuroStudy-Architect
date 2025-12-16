@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards } from './services/geminiService';
+import { loadUserData, saveUserData, isCloudMode } from './services/storage'; // <-- NOVO IMPORT
 import { ResultsView } from './components/ResultsView';
 import { SlidesView } from './components/SlidesView';
 import { QuizView } from './components/QuizView';
@@ -66,6 +67,32 @@ export function App() {
   const completedCheckpoints = activeStudy?.guide?.checkpoints?.filter(c => c.completed).length || 0;
   const isGuideComplete = totalCheckpoints > 0 && totalCheckpoints === completedCheckpoints;
   const dueReviewsCount = studies.filter(s => s.nextReviewDate && s.nextReviewDate <= Date.now()).length;
+
+
+  // --- NOVO CÓDIGO DE ARMAZENAMENTO (CARREGAR E SALVAR) ---
+  useEffect(() => {
+    const load = async () => {
+      const data = await loadUserData();
+      if (data) {
+        if (data.studies) setStudies(data.studies || []);
+        if (data.folders) setFolders(data.folders || []);
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    // Debounce para não salvar a cada mudança no state
+    const timer = setTimeout(() => {
+       // Só salva se houver algo para salvar
+       if (studies.length > 0 || folders.length > 0) {
+          saveUserData(studies, folders);
+       }
+    }, 2000); 
+    return () => clearTimeout(timer);
+  }, [studies, folders]);
+  // --- FIM DO NOVO CÓDIGO DE ARMAZENAMENTO ---
+
 
   useEffect(() => {
       setIsEditingTitle(false);
@@ -254,13 +281,11 @@ export function App() {
       }));
   };
 
-  // --- FUNÇÃO PARA ABRIR O GOOGLE AGENDA AUTOMATICAMENTE ---
   const openGoogleCalendar = (title: string, date: Date) => {
-      // Formata as datas para o padrão do Google Calendar (YYYYMMDDTHHMMSSZ)
       const start = new Date(date);
-      start.setHours(9, 0, 0, 0); // Padrão: 9h da manhã
+      start.setHours(9, 0, 0, 0); 
       const end = new Date(date);
-      end.setHours(10, 0, 0, 0); // Duração de 1h
+      end.setHours(10, 0, 0, 0); 
 
       const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
       
@@ -276,9 +301,8 @@ export function App() {
       setStudies(prev => prev.map(s => {
           if (s.id === studyId) {
               const nextDate = new Date();
-              nextDate.setDate(nextDate.getDate() + 1); // Agenda para AMANHÃ (24h)
+              nextDate.setDate(nextDate.getDate() + 1); 
               
-              // ABRE O GOOGLE AGENDA
               openGoogleCalendar(s.title, nextDate);
 
               return { 
@@ -305,7 +329,6 @@ export function App() {
       if (activeStudyId) {
           setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, nextReviewDate: timestamp } : s));
           
-          // Também abre o Google Agenda se agendar manualmente
           const study = studies.find(s => s.id === activeStudyId);
           if (study) openGoogleCalendar(study.title, new Date(timestamp));
       }
@@ -332,6 +355,7 @@ export function App() {
             <div className="flex items-center gap-2">
                 <NeuroLogo size={40} className="text-indigo-600" />
                 <span className="font-extrabold text-slate-900 tracking-tight text-xl">NeuroStudy</span>
+                {isCloudMode() && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-600 border border-green-100 uppercase tracking-wider">Cloud Sync</span>}
             </div>
             <button onClick={() => setView('app')} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
         </header>
