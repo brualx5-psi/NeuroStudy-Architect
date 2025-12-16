@@ -54,10 +54,11 @@ export interface Checkpoint {
 export interface StudyGuide {
   subject: string;
   overview: string;
-  globalApplication?: string; // Novo: Para o modo Sobrevivência de Livros
+  globalApplication?: string;
   coreConcepts: CoreConcept[];
+  supportConcepts?: CoreConcept[]; // <--- NOVO CAMPO
   checkpoints: Checkpoint[];
-  chapters?: BookChapter[]; // Novo: Lista de capítulos
+  chapters?: BookChapter[];
 }
 
 export interface Slide {
