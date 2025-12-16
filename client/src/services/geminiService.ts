@@ -5,8 +5,7 @@ const getApiKey = (): string | undefined => {
   return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
 };
 
-// --- CONFIGURAÇÃO: BASEADA NA SUA LISTA ---
-// Sua chave tem acesso explícito ao 'gemini-2.0-flash', então vamos usá-lo.
+// --- CONFIGURAÇÃO ---
 const MODEL_NAME = 'gemini-2.0-flash'; 
 
 const RESPONSE_SCHEMA: Schema = {
@@ -16,6 +15,18 @@ const RESPONSE_SCHEMA: Schema = {
     overview: { type: Type.STRING },
     globalApplication: { type: Type.STRING },
     coreConcepts: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          concept: { type: Type.STRING },
+          definition: { type: Type.STRING },
+        },
+        required: ["concept", "definition"],
+      },
+    },
+    // --- NOVO: CONCEITOS DE SUPORTE ---
+    supportConcepts: {
       type: Type.ARRAY,
       items: {
         type: Type.OBJECT,
@@ -36,10 +47,11 @@ const RESPONSE_SCHEMA: Schema = {
           lookFor: { type: Type.STRING },
           noteExactly: { type: Type.STRING },
           drawExactly: { type: Type.STRING },
+          // --- REGRA DE DESENHO ATUALIZADA ---
           drawLabel: { type: Type.STRING, enum: ["essential", "suggestion", "none"] },
           question: { type: Type.STRING },
         },
-        required: ["mission", "timestamp", "lookFor", "noteExactly", "question"],
+        required: ["mission", "timestamp", "lookFor", "noteExactly", "question", "drawLabel"],
       },
     },
     chapters: {
@@ -105,67 +117,56 @@ export const generateStudyGuide = async (
       case StudyMode.SURVIVAL:
         modeInstructions = `
         MODO LIVRO: SOBREVIVÊNCIA (Pareto Global 80/20)
-        - LÓGICA: Analisar o livro INTEIRO como uma unidade.
-        - OBJETIVO: Extrair apenas o núcleo vital (20%) que entrega 80% do valor.
-        - ESTRUTURA:
-          * Visão Geral Global: Sinopse densa.
-          * Conceitos CORE: Os pilares fundamentais do livro todo.
-          * Aplicação Prática: Como usar a ideia central.
-          * Checkpoints: Crie 1 ou 2 apenas para os pontos cruciais (opcional).
-          * Chapters Array: Pode ser simplificado.
+        - OBJETIVO: Extrair apenas o núcleo vital (20%).
+        - CONCEITOS DE SUPORTE: NÃO GERE. Mantenha o array vazio.
+        - CHECKPOINTS: Mínimos.
         `;
         break;
       case StudyMode.HARD:
         modeInstructions = `
-        MODO LIVRO: HARD (Análise Profunda por Seção)
-        - LÓGICA: Resumo exaustivo e hierárquico.
-        - ESTRUTURA:
-          * Para CADA CAPÍTULO: Resumo detalhado + Conceitos Core + Conceitos Suporte.
-          * Para CADA SEÇÃO PRINCIPAL (dentro do array 'chapters' -> 'sections'): Extraia conceitos específicos.
-          * Checkpoints: Crie uma trilha de leitura detalhada.
+        MODO LIVRO: HARD (Análise Profunda)
+        - OBJETIVO: Resumo exaustivo.
+        - CONCEITOS DE SUPORTE: Gere uma lista robusta em 'supportConcepts' com definições contextuais, históricas ou teóricas que complementam os Core Concepts.
+        - CHECKPOINTS: Detalhados.
         `;
         break;
       case StudyMode.NORMAL:
       default:
         modeInstructions = `
-        MODO LIVRO: NORMAL (Pareto por Capítulo)
-        - LÓGICA: Aplicar Pareto individualmente em cada capítulo.
-        - ESTRUTURA:
-          * Para CADA CAPÍTULO (preencha o array 'chapters'):
-            - Nome
-            - Conceitos CORE (20% essenciais daquele capítulo)
-            - Aplicação Prática do Capítulo
-          * Checkpoints: Crie checkpoints focados nos "Grandes Insights" de cada capítulo principal.
+        MODO LIVRO: NORMAL
+        - OBJETIVO: Equilíbrio.
+        - CONCEITOS DE SUPORTE: Gere 'supportConcepts' para contextualizar os temas principais, mas sem excesso de detalhes.
         `;
         break;
     }
   } else {
+    // --- LÓGICA PADRÃO (AULAS/ARTIGOS) ---
     if (mode === StudyMode.HARD) {
       modeInstructions = `
-      MODO: TURBO 🚀 (Análise Completa e Detalhada)
-      OBJETIVO: Extração máxima de conhecimento. Pareto INVERTIDO (95-100% do conteúdo).
-      CHECKPOINTS: Alta granularidade (micro-checkpoints de 2-4 min).
-      PROFUNDIDADE: Definições completas, contexto, nuances.
+      MODO: TURBO 🚀 (Análise Completa)
+      - OBJETIVO: Extração máxima.
+      - CONCEITOS DE SUPORTE: OBRIGATÓRIO. Preencha 'supportConcepts' com teorias de base, exceções à regra e detalhes técnicos.
+      - DESENHOS: Use drawLabel='essential' para diagramas complexos.
       `;
     } else if (mode === StudyMode.SURVIVAL) {
       modeInstructions = `
-      MODO: SOBREVIVÊNCIA ⚡ (Pareto 80/20 Absoluto)
-      OBJETIVO: Apenas o essencial. Pareto RIGOROSO.
-      CHECKPOINTS: Macro-checkpoints (3-5 no total).
-      PROFUNDIDADE: Frases-chave, sem detalhes.
+      MODO: SOBREVIVÊNCIA ⚡ (Pareto Absoluto)
+      - OBJETIVO: Apenas o essencial.
+      - CONCEITOS DE SUPORTE: NÃO PREENCHA. Deixe o array vazio []. Foco total no Core.
+      - DESENHOS: Apenas se crítico (drawLabel='essential').
       `;
     } else if (mode === StudyMode.PARETO) {
       modeInstructions = `
-      MODO: PARETO 80/20 (Extração Rápida - Landing Page).
-      OBJETIVO: Leitura e resumo executivo.
-      CHECKPOINTS: Array vazio []. NÃO GERE CHECKPOINTS.
-      OVERVIEW: Um resumo denso e rico em Markdown.
+      MODO: PARETO 80/20.
+      - OBJETIVO: Resumo executivo.
+      - CONCEITOS DE SUPORTE: Não necessário.
+      - CHECKPOINTS: Array vazio [].
       `;
     } else {
       modeInstructions = `
-      MODO: NORMAL 📚 (Pareto + Contexto)
-      OBJETIVO: Equilíbrio (50% do conteúdo, 90% do valor).
-      CHECKPOINTS: Granularidade média (5-7 min).
+      MODO: NORMAL 📚
+      - OBJETIVO: Equilíbrio.
+      - CONCEITOS DE SUPORTE: OBRIGATÓRIO. Adicione conceitos que ajudem a entender o "porquê" e o "como" dos conceitos centrais.
       `;
     }
   }
@@ -177,7 +178,14 @@ export const generateStudyGuide = async (
   SUA MISSÃO:
   1. Ler e interpretar o conteúdo.
   2. Aplicar a estratégia: ${modeInstructions}
-  3. Gerar JSON estrito seguindo o schema.
+  3. REGRAS DE DESENHO (drawLabel):
+     - 'essential': O diagrama é indispensável para entender o ponto.
+     - 'suggestion': O diagrama ajuda, mas não é obrigatório.
+     - 'none': Não há necessidade de desenho.
+     - Se 'drawLabel' for 'essential' ou 'suggestion', preencha 'drawExactly' com instruções claras.
+  4. CONCEITOS DE SUPORTE (supportConcepts):
+     - Diferencie claramente dos 'coreConcepts'. Core = O que cai na prova/essencial. Support = Contexto, causas, exemplos adicionais.
+  5. Gerar JSON estrito seguindo o schema.
 
   IDIOMA: Português do Brasil (pt-BR).
   `;
@@ -191,8 +199,6 @@ export const generateStudyGuide = async (
   }
 
   try {
-    console.log(`[Gemini] Usando modelo: ${MODEL_NAME}`);
-    
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: { role: 'user', parts: parts },
@@ -203,8 +209,6 @@ export const generateStudyGuide = async (
         temperature: 0.3,
       },
     });
-
-    console.log("[Gemini] Sucesso!");
 
     let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
     if (!text) text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -218,17 +222,11 @@ export const generateStudyGuide = async (
     return guide;
   } catch (error: any) {
     console.error("[Gemini] Erro:", error);
-    let msg = error.message || "Erro desconhecido.";
-    
-    // Tratamento de erros comuns
-    if (msg.includes("404")) msg = `O modelo '${MODEL_NAME}' não foi encontrado.`;
-    if (msg.includes("400")) msg = "Formato de arquivo não suportado ou prompt inválido.";
-    
-    throw new Error(msg);
+    throw new Error(error.message || "Erro na API Gemini.");
   }
 };
 
-// Função auxiliar segura
+// ... (Mantenha as outras funções: generateSlides, generateQuiz, etc. iguais ao anterior) ...
 const safeGenerate = async (ai: GoogleGenAI, prompt: string, schemaMode = true): Promise<string> => {
     try {
         const config: any = {};
