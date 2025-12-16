@@ -13,6 +13,7 @@ import { PomodoroTimer } from './components/PomodoroTimer';
 import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
+import { SearchResourcesModal } from './components/SearchResourcesModal'; // <--- IMPORT NOVO
 import { NeuroLogo, Brain, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X } from './components/Icons';
 
 export function App() {
@@ -53,6 +54,7 @@ export function App() {
   const [showMethodologyModal, setShowMethodologyModal] = useState(false);
   const [showReviewScheduler, setShowReviewScheduler] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false); // <--- ESTADO NOVO
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
 
@@ -141,6 +143,23 @@ export function App() {
     setInputText(''); setSelectedFile(null);
   };
 
+  // --- NOVA FUNÇÃO: ADICIONAR FONTE DA PESQUISA ---
+  const handleAddSearchSource = (name: string, content: string, type: InputType) => {
+      if (!activeStudyId) return;
+      const newSource: StudySource = { 
+          id: Date.now().toString(), 
+          type, 
+          name, 
+          content, 
+          mimeType: 'text/plain', 
+          dateAdded: Date.now() 
+      };
+      setStudies(prev => prev.map(s => { 
+          if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource] }; 
+          return s; 
+      }));
+  };
+
   const removeSource = (sourceId: string) => { if (!activeStudyId) return; setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: s.sources.filter(src => src.id !== sourceId) }; return s; })); };
   const handleStartRenamingSource = (source: StudySource) => { setEditingSourceId(source.id); setEditSourceName(source.name); };
   const handleSaveSourceRename = () => { if (!activeStudyId || !editingSourceId) return; setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: s.sources.map(src => src.id === editingSourceId ? { ...src, name: editSourceName } : src) }; return s; })); setEditingSourceId(null); setEditSourceName(''); };
@@ -221,14 +240,12 @@ export function App() {
   const handleFolderExam = (fid: string) => { /* ... */ };
   
   const handleMarkReviewDone = (studyId: string) => {
-      // Reagendar para +7 dias (Regra simples de revisão)
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + 7);
       setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: nextDate.getTime() } : s));
   };
 
   const handleSnoozeReview = (studyId: string) => {
-      // Adiar 1 dia
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + 1);
       setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: nextDate.getTime() } : s));
@@ -238,7 +255,6 @@ export function App() {
       setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: undefined } : s));
   };
 
-  // --- LÓGICA DE AGENDAMENTO VIA MODAL ---
   const handleScheduleReview = (timestamp: number) => {
       if (activeStudyId) {
           setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, nextReviewDate: timestamp } : s));
@@ -463,6 +479,8 @@ export function App() {
                                         <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
                                         <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
                                         <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
+                                        {/* BOTÃO NOVO DE PESQUISA */}
+                                        <button onClick={() => setShowSearchModal(true)} className={`flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2`}><Globe className="w-4 h-4"/> Pesquisar Web</button>
                                     </div>
                                     <div className="space-y-4">
                                         {inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL ? (
@@ -561,6 +579,12 @@ export function App() {
                 studyTitle={activeStudy.title}
                 onClose={() => setShowReviewScheduler(false)}
                 onSchedule={handleScheduleReview} 
+            />
+        )}
+        {showSearchModal && (
+            <SearchResourcesModal 
+                onClose={() => setShowSearchModal(false)}
+                onAddSource={handleAddSearchSource} 
             />
         )}
       </div>
