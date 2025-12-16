@@ -14,10 +14,9 @@ import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
 import { SearchResourcesModal } from './components/SearchResourcesModal'; 
-import { NeuroLogo, Brain, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X } from './components/Icons';
+import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock } from './components/Icons';
 
 export function App() {
-  // ... (Mantenha estados de autenticação e outros estados iguais ao original) ...
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   
@@ -68,7 +67,6 @@ export function App() {
   const isGuideComplete = totalCheckpoints > 0 && totalCheckpoints === completedCheckpoints;
   const dueReviewsCount = studies.filter(s => s.nextReviewDate && s.nextReviewDate <= Date.now()).length;
 
-  // ... (Mantenha useEffects e funções auxiliares de pasta/estudo iguais) ...
   useEffect(() => {
       setIsEditingTitle(false);
       setEditTitleInput('');
@@ -106,7 +104,7 @@ export function App() {
     const newStudy: StudySession = {
       id: Date.now().toString(), folderId, title, sources: [], mode, isBook,
       guide: null, slides: null, quiz: null, flashcards: null, createdAt: Date.now(), updatedAt: Date.now(),
-      reviewStep: 0 // Começa no passo 0
+      reviewStep: 0
     };
     setStudies(prev => [...prev, newStudy]);
     setActiveStudyId(newStudy.id);
@@ -120,7 +118,6 @@ export function App() {
   const updateStudyMode = (studyId: string, mode: StudyMode) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, mode: mode } : s)); };
   const handleSaveTitle = () => { if (activeStudyId && editTitleInput.trim()) { setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, title: editTitleInput } : s)); } setIsEditingTitle(false); };
   
-  // ... (Funções de Sources e Upload mantidas iguais) ...
   const addSourceToStudy = async () => {
     if (!activeStudyId) return;
     let content = ''; let mimeType = ''; let name = ''; let finalType = inputType;
@@ -204,7 +201,6 @@ export function App() {
 
   const fileToBase64 = (file: File): Promise<string> => { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => { const result = reader.result as string; const base64 = result.split(',')[1]; resolve(base64); }; reader.onerror = (error) => reject(error); }); };
 
-  // ... (Geração de conteúdo mantida igual) ...
   const handleGenerateGuideForStudy = async (studyId: string, source: StudySource, mode: StudyMode, isBook: boolean) => {
     const isBinary = source.type === InputType.PDF || source.type === InputType.VIDEO || source.type === InputType.IMAGE || source.type === InputType.EPUB || source.type === InputType.MOBI;
     const isVideo = source.type === InputType.VIDEO;
@@ -234,18 +230,16 @@ export function App() {
   const handleStartSession = () => { createStudy('root-neuro', `Novo Estudo`, selectedMode); }; 
   const handleFolderExam = (fid: string) => { /* ... */ };
   
-  // --- LÓGICA DE REVISÃO ESPAÇADA INTELIGENTE (ATUALIZADA) ---
   const handleMarkReviewDone = (studyId: string) => {
       setStudies(prev => prev.map(s => {
           if (s.id === studyId) {
               const currentStep = s.reviewStep || 0;
               const nextStep = currentStep + 1;
               
-              // Algoritmo Simples da Curva do Esquecimento
-              let daysToAdd = 1; // Padrão: 1 dia
-              if (nextStep === 1) daysToAdd = 7; // Próxima em 1 semana
-              if (nextStep === 2) daysToAdd = 14; // Próxima em 2 semanas
-              if (nextStep >= 3) daysToAdd = 30; // Próxima em 1 mês (Manutenção)
+              let daysToAdd = 1; 
+              if (nextStep === 1) daysToAdd = 7;
+              if (nextStep === 2) daysToAdd = 14; 
+              if (nextStep >= 3) daysToAdd = 30;
 
               const nextDate = new Date();
               nextDate.setDate(nextDate.getDate() + daysToAdd);
@@ -260,12 +254,33 @@ export function App() {
       }));
   };
 
-  // Função chamada ao clicar no botão "Agendar 1ª Revisão" no final do estudo
+  // --- FUNÇÃO PARA ABRIR O GOOGLE AGENDA AUTOMATICAMENTE ---
+  const openGoogleCalendar = (title: string, date: Date) => {
+      // Formata as datas para o padrão do Google Calendar (YYYYMMDDTHHMMSSZ)
+      const start = new Date(date);
+      start.setHours(9, 0, 0, 0); // Padrão: 9h da manhã
+      const end = new Date(date);
+      end.setHours(10, 0, 0, 0); // Duração de 1h
+
+      const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+      
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Revisão: ${title}`)}&dates=${format(start)}/${format(end)}&details=${encodeURIComponent("Revisão espaçada recomendada pelo NeuroStudy Architect.")}&sf=true&output=xml`;
+      
+      window.open(url, '_blank');
+  };
+
   const handleInitialSchedule = (studyId: string) => {
+      const study = studies.find(s => s.id === studyId);
+      if (!study) return;
+
       setStudies(prev => prev.map(s => {
           if (s.id === studyId) {
               const nextDate = new Date();
               nextDate.setDate(nextDate.getDate() + 1); // Agenda para AMANHÃ (24h)
+              
+              // ABRE O GOOGLE AGENDA
+              openGoogleCalendar(s.title, nextDate);
+
               return { 
                   ...s, 
                   nextReviewDate: nextDate.getTime(),
@@ -274,8 +289,6 @@ export function App() {
           }
           return s;
       }));
-      // Opcional: Feedback visual ou som
-      alert('Revisão agendada para amanhã (24h)! O NeuroStudy te avisará.');
   };
 
   const handleSnoozeReview = (studyId: string) => {
@@ -291,20 +304,85 @@ export function App() {
   const handleScheduleReview = (timestamp: number) => {
       if (activeStudyId) {
           setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, nextReviewDate: timestamp } : s));
+          
+          // Também abre o Google Agenda se agendar manualmente
+          const study = studies.find(s => s.id === activeStudyId);
+          if (study) openGoogleCalendar(study.title, new Date(timestamp));
       }
   };
 
-  const renderSourceDescription = (t: InputType) => { return null; };
-
-  // ... (Verificações de auth e landing page iguais) ...
   if (!isAuthorized) {
-    // ... (Login)
-    return <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">...</div>; // Simplificado para economizar espaço na resposta
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-in fade-in zoom-in duration-300">
+          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6"><Lock className="w-8 h-8" /></div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
+          <p className="text-gray-500 mb-6">Esta plataforma está em fase de testes fechados. Por favor, insira a senha de acesso.</p>
+          <input type="password" placeholder="Senha de acesso" className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none mb-4" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} autoFocus />
+          <button onClick={handleLogin} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">Entrar</button>
+        </div>
+      </div>
+    );
   }
 
   if (view === 'landing') {
-    // ... (Landing)
-    return <div className="min-h-screen">...</div>; // Simplificado
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
+        <header className="px-8 py-6 flex justify-between items-center bg-white border-b border-gray-200">
+            <div className="flex items-center gap-2">
+                <NeuroLogo size={40} className="text-indigo-600" />
+                <span className="font-extrabold text-slate-900 tracking-tight text-xl">NeuroStudy</span>
+            </div>
+            <button onClick={() => setView('app')} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
+        </header>
+
+        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+            <div className="max-w-5xl mx-auto space-y-12">
+                <div className="space-y-4">
+                    <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-widest border border-indigo-100">Neurociência Aplicada</span>
+                    <div className="flex justify-center mb-8"><NeuroLogo size={130} className="drop-shadow-2xl" /></div>
+                    <h2 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">Pare de estudar.<br/><span className="text-indigo-600">Comece a aprender.</span></h2>
+                    <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed">Transforme PDFs, Vídeos e Anotações em guias de estudo ativo.</p>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+                    <button onClick={() => setView('app')} className="group relative flex flex-col items-start p-6 bg-white hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-200 rounded-2xl transition-all w-full md:w-80 shadow-sm hover:shadow-xl hover:-translate-y-1">
+                        <div className="bg-indigo-100 p-3 rounded-xl text-indigo-600 mb-4 group-hover:scale-110 transition-transform"><Layers className="w-8 h-8" /></div>
+                        <h3 className="text-lg font-bold text-gray-900">Método NeuroStudy</h3>
+                        <p className="text-sm text-gray-500 mt-2 text-left flex-1">Acesso completo. Pastas, roteiros, flashcards e professor virtual.</p>
+                        <span className="mt-4 w-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-indigo-700 transition-colors">Iniciar <ChevronRight className="w-4 h-4" /></span>
+                    </button>
+
+                    <div className="relative group w-full md:w-80">
+                        <input type="file" ref={bookInputRef} className="hidden" onChange={handleBookUpload} accept=".pdf,.epub,.mobi"/>
+                        <button onClick={() => bookInputRef.current?.click()} className="relative flex flex-col items-start p-6 bg-white hover:bg-orange-50 border-2 border-orange-100 hover:border-orange-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden">
+                             <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
+                            <div className="bg-orange-100 p-3 rounded-xl text-orange-600 mb-4 group-hover:scale-110 transition-transform"><BookOpen className="w-8 h-8" /></div>
+                            <h3 className="text-lg font-bold text-gray-900">Resumo de Livros</h3>
+                            <p className="text-sm text-gray-500 mt-2 text-left flex-1">Analise livros inteiros. Modos Sobrevivência, Normal e Hard.</p>
+                            <span className="mt-4 w-full bg-orange-500 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-orange-600 transition-colors">Iniciar <ChevronRight className="w-4 h-4" /></span>
+                        </button>
+                    </div>
+
+                    <div className="relative group w-full md:w-80">
+                        <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*, .epub, .mobi"/>
+                        <button onClick={() => paretoInputRef.current?.click()} className="relative flex flex-col items-start p-6 bg-white hover:bg-red-50 border-2 border-red-100 hover:border-red-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden">
+                             <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                            <div className="bg-red-100 p-3 rounded-xl text-red-600 mb-4 group-hover:scale-110 transition-transform"><Target className="w-8 h-8" /></div>
+                            <h3 className="text-lg font-bold text-gray-900">Método Pareto 80/20</h3>
+                            <p className="text-sm text-gray-500 mt-2 text-left flex-1">Extração rápida. Apenas o essencial do arquivo.</p>
+                            <span className="mt-4 w-full bg-red-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-red-700 transition-colors">Iniciar <ChevronRight className="w-4 h-4" /></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer className="py-6 text-center border-t border-gray-200 bg-white">
+            <p className="text-sm text-gray-500 font-medium">Desenvolvido por <span className="text-gray-900 font-bold">Bruno Alexandre</span></p>
+            <div className="mt-2"><span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wider">Versão Beta</span></div>
+        </footer>
+      </div>
+    );
   }
 
   return (
@@ -381,7 +459,43 @@ export function App() {
             ) : (
             activeStudy.isBook && !activeStudy.guide ? (
                <div className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in">
-                   {/* ... (Tela de setup do livro igual) ... */}
+                   <div className="text-center mb-8">
+                       <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-orange-200">
+                           <BookOpen className="w-10 h-10"/>
+                       </div>
+                       <h2 className="text-3xl font-bold text-gray-900 mb-2">Configurar Resumo do Livro</h2>
+                       <p className="text-gray-500 max-w-md mx-auto">Selecione o nível de profundidade que deseja para a análise desta obra.</p>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full px-4">
+                       <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.SURVIVAL)} className={`p-6 rounded-2xl border-2 text-left transition-all hover:-translate-y-1 ${activeStudy.mode === StudyMode.SURVIVAL ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                           <div className="flex items-center gap-3 mb-3">
+                               <div className="p-2 bg-white rounded-lg shadow-sm text-orange-500"><BatteryCharging className="w-6 h-6"/></div>
+                               <h3 className="font-bold text-gray-900">Sobrevivência</h3>
+                           </div>
+                           <p className="text-xs text-gray-600 leading-relaxed mb-2 font-semibold">Foco Absoluto (20/80)</p>
+                           <p className="text-xs text-gray-500 leading-relaxed">Analisa a obra inteira de uma vez para extrair apenas a tese central e os pilares globais.</p>
+                       </button>
+
+                       <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.NORMAL)} className={`p-6 rounded-2xl border-2 text-left transition-all hover:-translate-y-1 ${activeStudy.mode === StudyMode.NORMAL ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                           <div className="flex items-center gap-3 mb-3">
+                               <div className="p-2 bg-white rounded-lg shadow-sm text-orange-500"><Activity className="w-6 h-6"/></div>
+                               <h3 className="font-bold text-gray-900">Normal</h3>
+                           </div>
+                           <p className="text-xs text-gray-600 leading-relaxed mb-2 font-semibold">Capítulo a Capítulo</p>
+                           <p className="text-xs text-gray-500 leading-relaxed">Extrai os conceitos chave e a aplicação prática de cada parte.</p>
+                       </button>
+
+                       <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.HARD)} className={`p-6 rounded-2xl border-2 text-left transition-all hover:-translate-y-1 ${activeStudy.mode === StudyMode.HARD ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                           <div className="flex items-center gap-3 mb-3">
+                               <div className="p-2 bg-white rounded-lg shadow-sm text-orange-500"><Rocket className="w-6 h-6"/></div>
+                               <h3 className="font-bold text-gray-900">Hard</h3>
+                           </div>
+                           <p className="text-xs text-gray-600 leading-relaxed mb-2 font-semibold">Deep Dive (Profundo)</p>
+                           <p className="text-xs text-gray-500 leading-relaxed">Análise profunda e hierárquica.</p>
+                       </button>
+                   </div>
+
                    <button onClick={handleGenerateGuide} className="mt-8 bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-200 hover:bg-orange-600 hover:-translate-y-1 transition-all flex items-center gap-2">
                        <Play className="w-5 h-5 fill-current" />
                        Gerar Resumo do Livro
@@ -404,10 +518,8 @@ export function App() {
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                         {activeTab === 'sources' && (
                             <div className="space-y-6">
-                                {/* ... (Conteúdo da aba Sources igual) ... */}
                                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                                     <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500"/> Adicionar Conteúdo</h2>
-                                    {/* ... Inputs de texto/arquivo ... */}
                                     <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-1.5 rounded-xl w-full">
                                         <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
                                         <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF / E-book</button>
@@ -476,7 +588,6 @@ export function App() {
                             </div>
                         )}
 
-                        {/* AQUI ESTÁ A INTEGRAÇÃO COM O RESULTS VIEW E O AGENDAMENTO */}
                         {activeTab === 'guide' && !processingState.isLoading && activeStudy.guide && (
                             <ResultsView 
                                 guide={activeStudy.guide} 
@@ -490,7 +601,6 @@ export function App() {
                             />
                         )}
                         
-                        {/* ... (Outras abas mantidas iguais) ... */}
                         {activeTab === 'slides' && !processingState.isLoading && (<div className="space-y-6">{activeStudy.slides ? (<SlidesView slides={activeStudy.slides} />) : (<div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed"><Monitor className="w-16 h-16 text-gray-300 mx-auto mb-4"/><h3 className="text-xl font-bold text-gray-700 mb-2">Slides de Aula</h3><p className="text-gray-500 mb-6 max-w-md mx-auto">Transforme o roteiro em uma apresentação estruturada.</p><button onClick={handleGenerateSlides} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Gerar Slides com IA</button></div>)}</div>)}
                         {activeTab === 'quiz' && !processingState.isLoading && (<div className="space-y-6">{activeStudy.quiz ? (<QuizView questions={activeStudy.quiz} onGenerate={handleGenerateQuiz} onClear={handleClearQuiz}/>) : (<div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed"><CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4"/><h3 className="text-xl font-bold text-gray-700 mb-2">Quiz de Recuperação Ativa</h3><p className="text-gray-500 mb-6 max-w-md mx-auto">Teste seu conhecimento para fortalecer as conexões neurais.</p>{isGuideComplete ? (<button onClick={() => handleGenerateQuiz()} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Gerar Quiz</button>) : (<div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-200"><Lock className="w-4 h-4"/> Complete todos os checkpoints para liberar</div>)}</div>)}</div>)}
                         {activeTab === 'flashcards' && !processingState.isLoading && (<div className="space-y-6">{activeStudy.flashcards ? (<FlashcardsView cards={activeStudy.flashcards} onGenerate={handleGenerateFlashcards}/>) : (<div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed"><Layers className="w-16 h-16 text-gray-300 mx-auto mb-4"/><h3 className="text-xl font-bold text-gray-700 mb-2">Flashcards</h3><p className="text-gray-500 mb-6 max-w-md mx-auto">Pratique a recuperação ativa com cartões.</p>{isGuideComplete ? (<button onClick={handleGenerateFlashcards} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Gerar Flashcards</button>) : (<div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-200"><Lock className="w-4 h-4"/> Complete todos os checkpoints para liberar</div>)}</div>)}</div>)}
@@ -499,7 +609,6 @@ export function App() {
             ))
           ) : (
              <div className="flex flex-col h-full bg-slate-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4">
-                 {/* ... (Tela de novo estudo mantida igual) ... */}
                  <div className="max-w-4xl mx-auto w-full p-6 space-y-8">
                     <div className="text-center pt-8">
                         <NeuroLogo size={60} className="mx-auto mb-4 text-indigo-600" />
