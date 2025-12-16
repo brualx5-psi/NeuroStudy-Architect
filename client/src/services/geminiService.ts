@@ -8,7 +8,7 @@ const getApiKey = (): string | undefined => {
 // --- CONFIGURAÇÃO ---
 const MODEL_NAME = 'gemini-2.0-flash'; 
 
-// Schemas
+// 1. PROPRIEDADES COMUNS (Usadas em todos os roteiros)
 const COMMON_PROPERTIES = {
   subject: { type: Type.STRING },
   overview: { type: Type.STRING },
@@ -53,6 +53,7 @@ const COMMON_PROPERTIES = {
   }
 };
 
+// 2. PROPRIEDADE DE CAPÍTULOS (Apenas para Livros)
 const CHAPTERS_PROPERTY = {
   chapters: {
     type: Type.ARRAY,
@@ -94,11 +95,13 @@ const CHAPTERS_PROPERTY = {
   }
 };
 
-// Helpers
+// --- FUNÇÃO AUXILIAR: UPLOAD DE ARQUIVO (FILE API) ---
+// Resolve erro 400 em livros grandes e permite vídeos longos
 async function uploadFileToGemini(base64Data: string, mimeType: string): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key missing");
 
+  // Converter Base64 para Blob
   const byteCharacters = atob(base64Data);
   const byteNumbers = new Array(byteCharacters.length);
   for (let i = 0; i < byteCharacters.length; i++) {
@@ -107,6 +110,7 @@ async function uploadFileToGemini(base64Data: string, mimeType: string): Promise
   const byteArray = new Uint8Array(byteNumbers);
   const blob = new Blob([byteArray], { type: mimeType });
 
+  // Upload para Google AI
   const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
   const initialResponse = await fetch(uploadUrl, {
     method: 'POST',
@@ -138,6 +142,7 @@ async function uploadFileToGemini(base64Data: string, mimeType: string): Promise
   return uploadResult.file.uri;
 }
 
+// --- RETRY LOGIC (Para evitar erro 429 de limite) ---
 async function fetchWithRetry<T>(operation: () => Promise<T>, retries = 3, delay = 5000): Promise<T> {
   try {
     return await operation();
@@ -163,6 +168,7 @@ export const generateStudyGuide = async (
 
   const ai = new GoogleGenAI({ apiKey });
 
+  // SCHEMA DINÂMICO: Se for livro, inclui capítulos. Se não, bloqueia capítulos.
   const schemaProperties = isBook ? { ...COMMON_PROPERTIES, ...CHAPTERS_PROPERTY } : { ...COMMON_PROPERTIES };
   const finalSchema: Schema = {
     type: Type.OBJECT,
@@ -172,19 +178,42 @@ export const generateStudyGuide = async (
 
   let modeInstructions = "";
   if (isBook) {
+    // --- LÓGICA NOVA: Todos os modos de livro geram CAPÍTULOS, mudando apenas a densidade ---
     switch (mode) {
       case StudyMode.SURVIVAL:
-        modeInstructions = `MODO: SOBREVIVÊNCIA LIVRO. Liste TODOS os capítulos. Resumo de 1 frase. 1 conceito. SUPORTE: NÃO GERE.`; break;
+        modeInstructions = `
+        MODO LIVRO: SOBREVIVÊNCIA (Estrutura Completa, Densidade Mínima)
+        - ESTRUTURA: Liste TODOS os capítulos do livro original no array 'chapters'.
+        - DENSIDADE: Para cada capítulo, escreva um resumo de apenas 1 FRASE (a ideia central).
+        - CONCEITOS DO CAPÍTULO: Apenas 1 conceito chave por capítulo.
+        - SUPORTE: NÃO GERE 'supportConcepts'.
+        `;
+        break;
       case StudyMode.HARD:
-        modeInstructions = `MODO: HARD LIVRO. Liste TODOS os capítulos e seções. Detalhado. SUPORTE: Gere lista robusta.`; break;
+        modeInstructions = `
+        MODO LIVRO: HARD (Estrutura Completa, Densidade Máxima)
+        - ESTRUTURA: Liste TODOS os capítulos e suas seções.
+        - DENSIDADE: Resumo detalhado de cada capítulo, cobrindo nuances e exemplos.
+        - CONCEITOS: Extraia todos os conceitos relevantes.
+        - SUPORTE: Gere uma lista robusta em 'supportConcepts' para contextualização global.
+        `;
+        break;
       case StudyMode.NORMAL:
       default:
-        modeInstructions = `MODO: NORMAL LIVRO. Liste TODOS os capítulos. Pareto (20% essencial). SUPORTE: Contextualize.`; break;
+        modeInstructions = `
+        MODO LIVRO: NORMAL (Estrutura Completa, Densidade Pareto)
+        - ESTRUTURA: Liste TODOS os capítulos.
+        - DENSIDADE: Aplique Pareto (20% essencial) em CADA capítulo individualmente.
+        - RESUMO DO CAPÍTULO: 1 parágrafo conciso.
+        - SUPORTE: Gere 'supportConcepts' para contextualizar.
+        `;
+        break;
     }
   } else {
-    const noChaptersInstruction = "NÃO GERE 'chapters'.";
+    // --- LÓGICA PADRÃO (AULAS/ARTIGOS) ---
+    const noChaptersInstruction = "NÃO GERE 'chapters'. O conteúdo não é um livro.";
     if (mode === StudyMode.HARD) {
-      modeInstructions = `MODO: TURBO 🚀. ${noChaptersInstruction} SUPORTE: OBRIGATÓRIO.`;
+      modeInstructions = `MODO: TURBO 🚀 (Completo). ${noChaptersInstruction} SUPORTE: OBRIGATÓRIO.`;
     } else if (mode === StudyMode.SURVIVAL) {
       modeInstructions = `MODO: SOBREVIVÊNCIA ⚡. ${noChaptersInstruction} SUPORTE: NÃO PREENCHA.`;
     } else {
@@ -198,21 +227,24 @@ export const generateStudyGuide = async (
   MISSÃO:
   1. Analisar.
   2. Estratégia: ${modeInstructions}
-  3. JSON estrito.
+  3. REGRAS DE DESENHO: Se necessário, use 'drawLabel' ('essential'/'suggestion') e descreva em 'drawExactly'.
+  4. JSON estrito.
   `;
 
   const parts: any[] = [];
   if (isBinary) {
      const isVideoOrAudio = mimeType.startsWith('video/') || mimeType.startsWith('audio/');
-     const isLargeFile = content.length > 15 * 1024 * 1024;
+     const isLargeFile = content.length > 15 * 1024 * 1024; // Check > ~11MB
 
      if (isVideoOrAudio || isLargeFile) {
          try {
+             console.log("Arquivo grande ou mídia detectada. Usando File API...");
              const fileUri = await uploadFileToGemini(content, mimeType);
              parts.push({ fileData: { mimeType: mimeType, fileUri: fileUri } });
-             if (isVideoOrAudio) parts.push({ text: "Analise este arquivo de mídia completo." });
+             if (isVideoOrAudio) parts.push({ text: "Analise este arquivo de mídia completo. Transcreva mentalmente." });
          } catch (e) {
-             throw new Error("Falha ao processar arquivo grande.");
+             console.error("Erro upload:", e);
+             throw new Error("Falha ao processar arquivo grande. Tente comprimir.");
          }
      } else {
          parts.push({ inlineData: { mimeType: mimeType, data: content } });
@@ -261,24 +293,22 @@ const safeGenerate = async (ai: GoogleGenAI, prompt: string, schemaMode = true):
     });
 };
 
-// --- IMPLEMENTAÇÃO DO DIAGRAMA SIMPLES ---
+// --- GERAÇÃO DE DIAGRAMA ATIVADA ---
 export const generateDiagram = async (desc: string): Promise<string> => { 
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("Erro de API.");
     const ai = new GoogleGenAI({ apiKey });
 
     try {
-        // Pedimos para a IA gerar código Mermaid (que vira diagrama com setas)
         const response = await ai.models.generateContent({
             model: MODEL_NAME,
-            contents: { parts: [{ text: `Crie um diagrama Mermaid.js (graph TD) extremamente simples para: "${desc}". Use apenas nós e setas. Retorne SOMENTE o código.` }] }
+            contents: { parts: [{ text: `Crie um diagrama Mermaid.js (graph TD) simples para: "${desc}". Use nós e setas. Retorne SOMENTE o código.` }] }
         });
         
         let code = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
         code = code.replace(/```mermaid/g, '').replace(/```/g, '').trim();
         
-        // Convertemos o código em uma URL de imagem usando o serviço Mermaid.ink
-        // (Isso é rápido e gera um PNG transparente perfeito para o app)
+        // Gera URL da imagem via Mermaid.ink
         const encoded = btoa(unescape(encodeURIComponent(code)));
         return `https://mermaid.ink/img/${encoded}?bgColor=FFFFFF`;
     } catch (e) {
