@@ -13,7 +13,7 @@ import { PomodoroTimer } from './components/PomodoroTimer';
 import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
-import { NeuroLogo, Brain, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Settings, Play } from './components/Icons';
+import { NeuroLogo, Brain, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X } from './components/Icons';
 
 export function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -209,7 +209,9 @@ export function App() {
         setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide } : s));
         setProcessingState({ isLoading: false, error: null, step: 'idle' });
         setActiveTab('guide');
-    } catch (err: any) { setProcessingState({ isLoading: false, error: err.message, step: 'idle' }); }
+    } catch (err: any) { 
+        setProcessingState({ isLoading: false, error: err.message, step: 'idle' }); 
+    }
   };
 
   const handleGenerateGuide = async () => {
@@ -225,11 +227,10 @@ export function App() {
   const handleClearQuiz = () => { if (!activeStudyId) return; setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz: null } : s)); };
   const handleStartSession = () => { createStudy('root-neuro', `Novo Estudo`, selectedMode); }; // Default to neuro root
   const handleFolderExam = (fid: string) => { /* ... */ };
-  const renderSourceDescription = (t: InputType) => { /* ... */ return null; };
-
+  
   // --- NOVAS FUNÇÕES PARA NOTIFICATION CENTER ---
   const handleMarkReviewDone = (studyId: string) => {
-      // Reagendar para 7 dias no futuro (lógica simples)
+      // Reagendar para 7 dias no futuro
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + 7);
       setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: nextDate.getTime() } : s));
@@ -246,6 +247,8 @@ export function App() {
       // Remover agendamento
       setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: undefined } : s));
   };
+
+  const renderSourceDescription = (t: InputType) => { /* ... */ return null; };
 
   if (!isAuthorized) {
     return (
@@ -282,7 +285,6 @@ export function App() {
                 </div>
 
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-                    {/* BUTTON 1: NEUROSTUDY (AZUL) */}
                     <button onClick={() => setView('app')} className="group relative flex flex-col items-start p-6 bg-white hover:bg-indigo-50 border-2 border-gray-200 hover:border-indigo-200 rounded-2xl transition-all w-full md:w-80 shadow-sm hover:shadow-xl hover:-translate-y-1">
                         <div className="bg-indigo-100 p-3 rounded-xl text-indigo-600 mb-4 group-hover:scale-110 transition-transform"><Layers className="w-8 h-8" /></div>
                         <h3 className="text-lg font-bold text-gray-900">Método NeuroStudy</h3>
@@ -290,7 +292,6 @@ export function App() {
                         <span className="mt-4 w-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-indigo-700 transition-colors">Iniciar <ChevronRight className="w-4 h-4" /></span>
                     </button>
 
-                    {/* BUTTON 2: RESUMO DE LIVROS (LARANJA - MEIO) */}
                     <div className="relative group w-full md:w-80">
                         <input type="file" ref={bookInputRef} className="hidden" onChange={handleBookUpload} accept=".pdf,.epub,.mobi"/>
                         <button onClick={() => bookInputRef.current?.click()} className="relative flex flex-col items-start p-6 bg-white hover:bg-orange-50 border-2 border-orange-100 hover:border-orange-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden">
@@ -302,7 +303,6 @@ export function App() {
                         </button>
                     </div>
 
-                    {/* BUTTON 3: PARETO FAST TRACK (VERMELHO) */}
                     <div className="relative group w-full md:w-80">
                         <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*, .epub, .mobi"/>
                         <button onClick={() => paretoInputRef.current?.click()} className="relative flex flex-col items-start p-6 bg-white hover:bg-red-50 border-2 border-red-100 hover:border-red-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden">
@@ -352,7 +352,6 @@ export function App() {
             ) : ( <h1 className="text-xl font-bold text-gray-400 flex items-center gap-2"><NeuroLogo size={24} className="grayscale opacity-50"/> Criar Novo Estudo</h1> )}
           </div>
           <div className="flex items-center gap-3">
-             {/* SINO FORA DO IF activeStudy PARA APARECER NA HOME TAMBÉM */}
              <div className="relative">
                 <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" onClick={() => setShowNotifications(!showNotifications)}>
                     <Bell className="w-5 h-5"/>
@@ -380,6 +379,18 @@ export function App() {
         </header>
 
         <div className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8 scroll-smooth">
+          
+          {/* ALERTA DE ERRO - NOVO */}
+          {processingState.error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 mx-auto max-w-4xl" role="alert">
+              <strong className="font-bold">Ocorreu um erro: </strong>
+              <span className="block sm:inline">{processingState.error}</span>
+              <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setProcessingState(prev => ({...prev, error: null}))}>
+                <X className="w-5 h-5 text-red-500" />
+              </button>
+            </div>
+          )}
+
           {activeStudy ? (
             processingState.isLoading ? (
                 <div className="flex items-center justify-center h-full min-h-[500px]">
@@ -403,7 +414,7 @@ export function App() {
                                <h3 className="font-bold text-gray-900">Sobrevivência</h3>
                            </div>
                            <p className="text-xs text-gray-600 leading-relaxed mb-2 font-semibold">Foco Absoluto (20/80)</p>
-                           <p className="text-xs text-gray-500 leading-relaxed">Analisa a obra inteira de uma vez para extrair apenas a tese central e os pilares globais. Ideal para ter uma visão geral em 5 minutos.</p>
+                           <p className="text-xs text-gray-500 leading-relaxed">Analisa a obra inteira de uma vez para extrair apenas a tese central e os pilares globais.</p>
                        </button>
 
                        <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.NORMAL)} className={`p-6 rounded-2xl border-2 text-left transition-all hover:-translate-y-1 ${activeStudy.mode === StudyMode.NORMAL ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
@@ -412,7 +423,7 @@ export function App() {
                                <h3 className="font-bold text-gray-900">Normal</h3>
                            </div>
                            <p className="text-xs text-gray-600 leading-relaxed mb-2 font-semibold">Capítulo a Capítulo</p>
-                           <p className="text-xs text-gray-500 leading-relaxed">Aplica o princípio de Pareto individualmente em cada capítulo. Extrai os conceitos chave e a aplicação prática de cada parte.</p>
+                           <p className="text-xs text-gray-500 leading-relaxed">Extrai os conceitos chave e a aplicação prática de cada parte.</p>
                        </button>
 
                        <button onClick={() => updateStudyMode(activeStudy.id, StudyMode.HARD)} className={`p-6 rounded-2xl border-2 text-left transition-all hover:-translate-y-1 ${activeStudy.mode === StudyMode.HARD ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
@@ -421,7 +432,7 @@ export function App() {
                                <h3 className="font-bold text-gray-900">Hard</h3>
                            </div>
                            <p className="text-xs text-gray-600 leading-relaxed mb-2 font-semibold">Deep Dive (Profundo)</p>
-                           <p className="text-xs text-gray-500 leading-relaxed">Resumo detalhado e hierárquico, analisando seção por seção. Inclui mapa de conexões, checklists e análise profunda.</p>
+                           <p className="text-xs text-gray-500 leading-relaxed">Análise profunda e hierárquica.</p>
                        </button>
                    </div>
 
@@ -457,7 +468,6 @@ export function App() {
                                         <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
                                         <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
                                     </div>
-                                    <div className="mb-4 animate-in fade-in duration-200">{renderSourceDescription(inputType)}</div>
                                     <div className="space-y-4">
                                         {inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL ? (
                                             <textarea value={inputText} onChange={(e) => setInputText(e.target.value)} className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-sans text-sm" placeholder={inputType === InputType.URL ? "Cole o link aqui..." : inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2649-2" : "Cole suas anotações ou texto aqui..."} />
