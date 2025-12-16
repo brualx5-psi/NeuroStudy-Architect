@@ -21,10 +21,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const now = Date.now();
   
-  // Filter for due reviews (nextReviewDate exists and is in the past or today)
+  // Filtra revisões vencidas ou para hoje
   const dueReviews = studies.filter(s => s.nextReviewDate && s.nextReviewDate <= now).sort((a, b) => (a.nextReviewDate || 0) - (b.nextReviewDate || 0));
   
-  // Upcoming reviews (next 3 days)
+  // Próximas revisões (3 dias)
   const upcomingReviews = studies.filter(s => s.nextReviewDate && s.nextReviewDate > now && s.nextReviewDate <= now + (3 * 24 * 60 * 60 * 1000)).sort((a, b) => (a.nextReviewDate || 0) - (b.nextReviewDate || 0));
 
   const getTypeInfo = (study: StudySession) => {
@@ -37,7 +37,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     <div className="absolute top-16 right-4 md:right-8 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 animate-in slide-in-from-top-2 fade-in">
         <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
             <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><Clock className="w-4 h-4"/> Central de Revisão</h3>
-            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">{dueReviews.length} Pendentes</span>
+            <div className="flex items-center gap-2">
+                <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">{dueReviews.length}</span>
+                <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4"/></button>
+            </div>
         </div>
 
         <div className="max-h-[400px] overflow-y-auto">
@@ -68,14 +71,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                                         
                                         {/* ACTION BAR */}
                                         <div className="flex border-t border-gray-100 divide-x divide-gray-100 bg-gray-50">
-                                            <button onClick={() => onMarkDone(study.id)} className="flex-1 py-2 text-xs font-bold text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-1" title="Marcar como feito (+7 dias)">
-                                                <CheckCircle className="w-3 h-3"/> Concluído
+                                            <button onClick={(e) => { e.stopPropagation(); onMarkDone(study.id); }} className="flex-1 py-2 text-xs font-bold text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-1" title="Marcar como feito (+7 dias)">
+                                                <CheckCircle className="w-3 h-3"/> Feito
                                             </button>
-                                            <button onClick={() => onSnooze(study.id)} className="flex-1 py-2 text-xs font-bold text-yellow-600 hover:bg-yellow-50 transition-colors flex items-center justify-center gap-1" title="Postergar 1 dia">
+                                            <button onClick={(e) => { e.stopPropagation(); onSnooze(study.id); }} className="flex-1 py-2 text-xs font-bold text-yellow-600 hover:bg-yellow-50 transition-colors flex items-center justify-center gap-1" title="Postergar 1 dia">
                                                 <Clock className="w-3 h-3"/> +1 Dia
                                             </button>
-                                            <button onClick={() => onDeleteReview(study.id)} className="flex-1 py-2 text-xs font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-1" title="Remover agendamento">
-                                                <Trash className="w-3 h-3"/> Excluir
+                                            <button onClick={(e) => { e.stopPropagation(); onDeleteReview(study.id); }} className="flex-1 py-2 text-xs font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-1" title="Remover agendamento">
+                                                <Trash className="w-3 h-3"/>
                                             </button>
                                         </div>
                                     </div>
@@ -85,7 +88,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     )}
 
                     {upcomingReviews.length > 0 && (
-                        <div className="p-2 border-t border-gray-100 bg-slate-50/50">
+                        <div className="p-2 border-t border-gray-100 bg-slate-50/50 mt-2">
                              <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 px-2 mt-2">Em Breve</p>
                              <div className="space-y-1">
                                 {upcomingReviews.map(study => {
