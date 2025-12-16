@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, Link as LinkIcon } from './Icons';
+import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, Link as LinkIcon, Star, Shield } from './Icons';
 import { InputType } from '../types';
 
 interface SearchResult {
@@ -10,6 +10,10 @@ interface SearchResult {
   url: string;
   type: InputType;
   thumbnail?: string;
+  // Novos campos para a pirâmide
+  reliabilityScore?: number; // 0 a 5
+  reliabilityLabel?: string;
+  isGuideline?: boolean;
 }
 
 interface SearchResourcesModalProps {
@@ -24,6 +28,44 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // --- LÓGICA DA PIRÂMIDE DE EVIDÊNCIA (Heurística) ---
+  const calculateReliability = (title: string, abstract: string = ''): { score: number, label: string, isGuideline: boolean } => {
+    const text = (title + ' ' + abstract).toLowerCase();
+
+    // 1. GUIDELINES (TOPO SUPREMO)
+    if (text.includes('guideline') || text.includes('diretriz') || text.includes('consensus') || text.includes('consensos') || text.includes('position statement')) {
+        return { score: 5, label: 'Diretriz Clínica (Guideline)', isGuideline: true };
+    }
+
+    // 2. NÍVEL 1: Revisões Sistemáticas e Meta-análises
+    if (text.includes('meta-analysis') || text.includes('meta-análise') || text.includes('systematic review') || text.includes('revisão sistemática')) {
+        return { score: 5, label: 'Nível 1: Meta-análise/Rev. Sistemática', isGuideline: false };
+    }
+
+    // 3. NÍVEL 2: Ensaios Clínicos Randomizados (RCT)
+    if (text.includes('randomized') || text.includes('randomizado') || text.includes('clinical trial') || text.includes('ensaio clínico')) {
+        return { score: 4, label: 'Nível 2: Ensaio Clínico Randomizado', isGuideline: false };
+    }
+
+    // 4. NÍVEL 3: Estudos de Coorte
+    if (text.includes('cohort') || text.includes('coorte') || text.includes('longitudinal') || text.includes('prospective') || text.includes('prospectivo')) {
+        return { score: 3, label: 'Nível 3: Estudo de Coorte', isGuideline: false };
+    }
+
+    // 5. NÍVEL 4: Caso-Controle
+    if (text.includes('case-control') || text.includes('caso-controle') || text.includes('retrospective') || text.includes('retrospectivo')) {
+        return { score: 2, label: 'Nível 4: Estudo Caso-Controle', isGuideline: false };
+    }
+
+    // 6. NÍVEL 5: Série de Casos / Relatos / Opinião
+    if (text.includes('case report') || text.includes('relato de caso') || text.includes('case series') || text.includes('série de casos')) {
+        return { score: 1, label: 'Nível 5: Relato de Caso/Série', isGuideline: false };
+    }
+
+    // Padrão (Estudos primários não especificados ou artigos gerais)
+    return { score: 2, label: 'Artigo Científico / Estudo Primário', isGuideline: false };
+  };
+
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
@@ -32,7 +74,6 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
 
     try {
       if (activeTab === 'book') {
-        // --- API 1: GOOGLE BOOKS (Livros Reais) ---
         const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=9&langRestrict=pt`);
         const data = await response.json();
         
@@ -41,36 +82,49 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
             id: item.id,
             title: item.volumeInfo.title,
             author: item.volumeInfo.authors?.join(', ') || 'Autor Desconhecido',
-            description: item.volumeInfo.description?.slice(0, 200) + '...' || 'Sem descrição disponível.',
+            description: item.volumeInfo.description?.slice(0, 200) + '...' || 'Sem descrição.',
             url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
-            type: InputType.URL, // Salva como Link para o livro
+            type: InputType.URL, 
             thumbnail: item.volumeInfo.imageLinks?.thumbnail
           }));
           setResults(formatted);
         }
 
       } else if (activeTab === 'article') {
-        // --- API 2: OPENALEX (Ciência/DOI Real) ---
-        // Busca trabalhos científicos reais, filtrando por relevância
-        const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=9`);
+        // Busca na OpenAlex
+        const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=12`);
         const data = await response.json();
 
         if (data.results) {
-           const formatted: SearchResult[] = data.results.map((item: any) => ({
-             id: item.id,
-             title: item.display_name || item.title,
-             author: item.authorships?.[0]?.author?.display_name || 'Pesquisador Acadêmico',
-             description: `Publicado em: ${item.publication_year}. Citado por: ${item.cited_by_count}. Revista: ${item.primary_location?.source?.display_name || 'N/A'}`,
-             url: item.doi || item.primary_location?.landing_page_url || `https://openalex.org/${item.id}`,
-             type: InputType.DOI,
-             thumbnail: undefined 
-           }));
-           setResults(formatted);
+           const formatted: SearchResult[] = data.results.map((item: any) => {
+             // Calculamos a confiabilidade baseada no título e tipo
+             const reliability = calculateReliability(item.display_name || item.title, item.abstract_inverted_index ? 'abstract available' : '');
+             
+             return {
+                id: item.id,
+                title: item.display_name || item.title,
+                author: item.authorships?.[0]?.author?.display_name || 'Pesquisador Acadêmico',
+                description: `Publicado em: ${item.publication_year}. Citado por: ${item.cited_by_count}. Revista: ${item.primary_location?.source?.display_name || 'Fonte Acadêmica'}`,
+                url: item.doi || item.primary_location?.landing_page_url || `https://openalex.org/${item.id}`,
+                type: InputType.DOI,
+                thumbnail: undefined,
+                reliabilityScore: reliability.score,
+                reliabilityLabel: reliability.label,
+                isGuideline: reliability.isGuideline
+             };
+           });
+           
+           // ORDENAÇÃO INTELIGENTE: Guidelines primeiro, depois maior Score
+           const sorted = formatted.sort((a, b) => {
+               if (a.isGuideline && !b.isGuideline) return -1;
+               if (!a.isGuideline && b.isGuideline) return 1;
+               return (b.reliabilityScore || 0) - (a.reliabilityScore || 0);
+           });
+
+           setResults(sorted);
         }
 
       } else {
-        // --- API 3: WIKIPEDIA (Web/Conceitos Reais) ---
-        // Ótima para trazer definições e links de estudo rápido
         const response = await fetch(`https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=9`);
         const data = await response.json();
 
@@ -79,7 +133,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 id: item.pageid.toString(),
                 title: item.title,
                 author: 'Wikipedia / Web',
-                description: item.snippet.replace(/<[^>]*>?/gm, '') + '...', // Remove tags HTML do snippet
+                description: item.snippet.replace(/<[^>]*>?/gm, '') + '...',
                 url: `https://pt.wikipedia.org/?curid=${item.pageid}`,
                 type: InputType.URL,
                 thumbnail: undefined
@@ -120,7 +174,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 <input 
                     autoFocus
                     type="text" 
-                    placeholder={`Pesquisar sobre ${activeTab === 'book' ? 'livros' : activeTab === 'article' ? 'ciência' : 'conceitos'}...`} 
+                    placeholder={`Pesquisar ${activeTab === 'book' ? 'livros' : activeTab === 'article' ? 'ciência (ex: ansiedade treatment systematic review)' : 'conceitos'}...`} 
                     className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-lg shadow-sm transition-all"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -142,7 +196,15 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
             {results.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {results.map((item) => (
-                        <div key={item.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col h-full group">
+                        <div key={item.id} className={`bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-all flex flex-col h-full group relative ${item.isGuideline ? 'border-yellow-400 ring-1 ring-yellow-200 bg-yellow-50/30' : 'border-gray-200'}`}>
+                            
+                            {/* SELO DE GUIDELINE */}
+                            {item.isGuideline && (
+                                <div className="absolute -top-3 -right-2 bg-yellow-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                    <Shield className="w-3 h-3 fill-white" /> GUIDELINE
+                                </div>
+                            )}
+
                             <div className="flex items-start gap-4 mb-3">
                                 {item.thumbnail ? (
                                     <img src={item.thumbnail} alt={item.title} className="w-16 h-24 object-cover rounded shadow-sm shrink-0" />
@@ -151,9 +213,27 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                                         {activeTab === 'book' ? <BookOpen className="w-8 h-8"/> : activeTab === 'article' ? <FileText className="w-8 h-8"/> : <Globe className="w-8 h-8"/>}
                                     </div>
                                 )}
-                                <div>
-                                    <h4 className="font-bold text-gray-900 line-clamp-2 leading-tight mb-1 text-sm">{item.title}</h4>
+                                <div className="min-w-0">
+                                    <h4 className="font-bold text-gray-900 line-clamp-2 leading-tight mb-1 text-sm" title={item.title}>{item.title}</h4>
                                     <p className="text-xs text-gray-500 font-medium line-clamp-1">{item.author}</p>
+                                    
+                                    {/* CLASSIFICAÇÃO DA PIRÂMIDE (Só aparece em Artigos) */}
+                                    {activeTab === 'article' && item.reliabilityScore !== undefined && (
+                                        <div className="mt-2">
+                                            <div className="flex items-center gap-0.5 mb-1">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star 
+                                                        key={i} 
+                                                        className={`w-3 h-3 ${i < (item.reliabilityScore || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} 
+                                                        fill={i < (item.reliabilityScore || 0)}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${item.isGuideline ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : item.reliabilityScore && item.reliabilityScore >= 4 ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                {item.reliabilityLabel}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
@@ -161,9 +241,9 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                             
                             <button 
                                 onClick={() => { onAddSource(item.title, item.url, item.type); onClose(); }}
-                                className="w-full mt-auto flex items-center justify-center gap-2 py-2.5 bg-gray-50 hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200 rounded-lg font-bold text-xs transition-all"
+                                className={`w-full mt-auto flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-xs transition-all ${item.isGuideline ? 'bg-yellow-500 hover:bg-yellow-600 text-white shadow-sm' : 'bg-gray-50 hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200'}`}
                             >
-                                <Plus className="w-4 h-4"/> Adicionar Recomendação
+                                <Plus className="w-4 h-4"/> {item.isGuideline ? 'Adicionar Guideline' : 'Adicionar Fonte'}
                             </button>
                         </div>
                     ))}
@@ -173,18 +253,19 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                     {loading ? (
                         <div className="text-center animate-pulse">
                             <Globe className="w-12 h-12 mx-auto mb-4 text-indigo-200"/>
-                            <p className="text-indigo-500 font-bold mb-2">Conectando ao conhecimento...</p>
-                            <p className="text-xs">Buscando em fontes reais.</p>
+                            <p className="text-indigo-500 font-bold mb-2">Analisando evidências...</p>
+                            <p className="text-xs">Classificando por nível de confiabilidade (0-5).</p>
                         </div>
                     ) : hasSearched ? (
                         <div className="text-center">
                             <Search className="w-16 h-16 mx-auto mb-4 opacity-20"/>
                             <p>Nenhum resultado encontrado para "{query}".</p>
+                            <p className="text-xs mt-2">Tente termos em inglês para mais artigos científicos (ex: "Anxiety guidelines").</p>
                         </div>
                     ) : (
                         <div className="text-center">
                             <Globe className="w-16 h-16 mx-auto mb-4 opacity-20"/>
-                            <p>Digite um tema para buscar livros, artigos ou conceitos.</p>
+                            <p>Digite um tema para buscar conhecimento.</p>
                         </div>
                     )}
                 </div>
