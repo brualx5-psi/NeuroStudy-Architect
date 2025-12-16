@@ -13,7 +13,8 @@ import { PomodoroTimer } from './components/PomodoroTimer';
 import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
-import { SearchResourcesModal } from './components/SearchResourcesModal'; // <--- IMPORT NOVO
+// IMPORTANTE: Certifique-se de que este arquivo existe (criei ele no passo anterior)
+import { SearchResourcesModal } from './components/SearchResourcesModal'; 
 import { NeuroLogo, Brain, UploadCloud, FileText, Video, Search, BookOpen, Monitor, HelpCircle, Plus, Trash, Zap, Link, Rocket, BatteryCharging, Activity, GraduationCap, Globe, Edit, CheckCircle, Layers, Camera, Target, ChevronRight, Menu, Lock, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X } from './components/Icons';
 
 export function App() {
@@ -54,7 +55,7 @@ export function App() {
   const [showMethodologyModal, setShowMethodologyModal] = useState(false);
   const [showReviewScheduler, setShowReviewScheduler] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false); // <--- ESTADO NOVO
+  const [showSearchModal, setShowSearchModal] = useState(false); // <--- ESTADO DO MODAL DE PESQUISA
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
 
@@ -143,7 +144,7 @@ export function App() {
     setInputText(''); setSelectedFile(null);
   };
 
-  // --- NOVA FUNÇÃO: ADICIONAR FONTE DA PESQUISA ---
+  // --- FUNÇÃO PARA O MODAL DE PESQUISA ADICIONAR A FONTE ---
   const handleAddSearchSource = (name: string, content: string, type: InputType) => {
       if (!activeStudyId) return;
       const newSource: StudySource = { 
@@ -479,7 +480,7 @@ export function App() {
                                         <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
                                         <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
                                         <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
-                                        {/* BOTÃO NOVO DE PESQUISA */}
+                                        {/* BOTÃO NOVO: PESQUISAR WEB */}
                                         <button onClick={() => setShowSearchModal(true)} className={`flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2`}><Globe className="w-4 h-4"/> Pesquisar Web</button>
                                     </div>
                                     <div className="space-y-4">
