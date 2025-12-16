@@ -313,4 +313,12 @@ export const refineContent = async (text: string, task: string): Promise<string>
           model: MODEL_NAME, 
           contents: { parts: [{ text: `Melhore este texto (${task}): "${text}"` }] } 
       });
-      const raw = typeof (response as any).text === 'function' ? (response as any).text() : (response as
+      const raw = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
+      return raw || "";
+    } catch (e) {
+      console.error("[Gemini] Erro ao refinar conteúdo:", e);
+      return "";
+    }
+};
+
+export const generateDiagram = async (desc: string): Promise<string> => { return ""; };
