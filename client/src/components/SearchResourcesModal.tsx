@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, BookOpen, Video, FileText, Plus, X, Globe, Loader2, Link as LinkIcon } from './Icons';
+import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, Link as LinkIcon } from './Icons';
 import { InputType } from '../types';
 
 interface SearchResult {
@@ -19,7 +19,7 @@ interface SearchResourcesModalProps {
 
 export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onClose, onAddSource }) => {
   const [query, setQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'book' | 'video' | 'article'>('book');
+  const [activeTab, setActiveTab] = useState<'book' | 'article' | 'web'>('book');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -32,7 +32,8 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
 
     try {
       if (activeTab === 'book') {
-        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=6&langRestrict=pt`);
+        // --- API 1: GOOGLE BOOKS (Livros Reais) ---
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=9&langRestrict=pt`);
         const data = await response.json();
         
         if (data.items) {
@@ -40,26 +41,51 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
             id: item.id,
             title: item.volumeInfo.title,
             author: item.volumeInfo.authors?.join(', ') || 'Autor Desconhecido',
-            description: item.volumeInfo.description?.slice(0, 150) + '...' || 'Sem descrição.',
+            description: item.volumeInfo.description?.slice(0, 200) + '...' || 'Sem descrição disponível.',
             url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
-            type: InputType.URL,
+            type: InputType.URL, // Salva como Link para o livro
             thumbnail: item.volumeInfo.imageLinks?.thumbnail
           }));
           setResults(formatted);
         }
-      } else if (activeTab === 'video') {
-        await new Promise(r => setTimeout(r, 800));
-        setResults([
-            { id: 'v1', title: `Aula Completa: ${query}`, author: 'Canal Educação', description: 'Uma visão aprofundada sobre o tema com exemplos práticos.', url: 'https://youtube.com/watch?v=exemplo', type: InputType.VIDEO },
-            { id: 'v2', title: `Resumo Rápido: ${query}`, author: 'NeuroStudy Oficial', description: 'Os pontos chaves em 5 minutos.', url: 'https://youtube.com/watch?v=exemplo2', type: InputType.VIDEO },
-            { id: 'v3', title: `Documentário: ${query}`, author: 'Ciência Todo Dia', description: 'História e evolução do conceito.', url: 'https://youtube.com/watch?v=exemplo3', type: InputType.VIDEO },
-        ]);
+
+      } else if (activeTab === 'article') {
+        // --- API 2: OPENALEX (Ciência/DOI Real) ---
+        // Busca trabalhos científicos reais, filtrando por relevância
+        const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=9`);
+        const data = await response.json();
+
+        if (data.results) {
+           const formatted: SearchResult[] = data.results.map((item: any) => ({
+             id: item.id,
+             title: item.display_name || item.title,
+             author: item.authorships?.[0]?.author?.display_name || 'Pesquisador Acadêmico',
+             description: `Publicado em: ${item.publication_year}. Citado por: ${item.cited_by_count}. Revista: ${item.primary_location?.source?.display_name || 'N/A'}`,
+             url: item.doi || item.primary_location?.landing_page_url || `https://openalex.org/${item.id}`,
+             type: InputType.DOI,
+             thumbnail: undefined 
+           }));
+           setResults(formatted);
+        }
+
       } else {
-        await new Promise(r => setTimeout(r, 800));
-        setResults([
-            { id: 'a1', title: `Estudo de Caso: ${query}`, author: 'Dr. Silva et al.', description: 'Análise clínica publicada na Scielo.', url: `https://doi.org/10.1038/${Math.random().toString().slice(2,8)}`, type: InputType.DOI },
-            { id: 'a2', title: `Revisão Sistemática sobre ${query}`, author: 'Journal of Science', description: 'Compilado dos últimos 10 anos de pesquisa.', url: `https://doi.org/10.1016/${Math.random().toString().slice(2,8)}`, type: InputType.DOI },
-        ]);
+        // --- API 3: WIKIPEDIA (Web/Conceitos Reais) ---
+        // Ótima para trazer definições e links de estudo rápido
+        const response = await fetch(`https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=9`);
+        const data = await response.json();
+
+        if (data.query?.search) {
+            const formatted: SearchResult[] = data.query.search.map((item: any) => ({
+                id: item.pageid.toString(),
+                title: item.title,
+                author: 'Wikipedia / Web',
+                description: item.snippet.replace(/<[^>]*>?/gm, '') + '...', // Remove tags HTML do snippet
+                url: `https://pt.wikipedia.org/?curid=${item.pageid}`,
+                type: InputType.URL,
+                thumbnail: undefined
+            }));
+            setResults(formatted);
+        }
       }
     } catch (error) {
       console.error("Erro na busca:", error);
@@ -78,23 +104,23 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
         
         {/* Header */}
         <div className="bg-white border-b border-gray-100 p-4 flex justify-between items-center shrink-0">
-            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Globe className="w-5 h-5 text-indigo-600"/> Pesquisar Conteúdo</h3>
+            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Globe className="w-5 h-5 text-indigo-600"/> Pesquisar Fontes</h3>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500"/></button>
         </div>
 
         {/* Tabs & Search */}
         <div className="p-6 bg-gray-50 border-b border-gray-200 shrink-0 space-y-4">
             <div className="flex gap-2 justify-center">
-                <button onClick={() => setActiveTab('book')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'book' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><BookOpen className="w-4 h-4"/> Livros</button>
-                <button onClick={() => setActiveTab('video')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'video' ? 'bg-red-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Video className="w-4 h-4"/> Vídeos</button>
-                <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4"/> Artigos</button>
+                <button onClick={() => setActiveTab('book')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'book' ? 'bg-orange-500 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><BookOpen className="w-4 h-4"/> Livros</button>
+                <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4"/> Artigos (DOI)</button>
+                <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4"/> Web / Wiki</button>
             </div>
             
             <div className="relative max-w-2xl mx-auto">
                 <input 
                     autoFocus
                     type="text" 
-                    placeholder={`Pesquisar ${activeTab === 'book' ? 'livros' : activeTab === 'video' ? 'vídeos' : 'artigos'}...`} 
+                    placeholder={`Pesquisar sobre ${activeTab === 'book' ? 'livros' : activeTab === 'article' ? 'ciência' : 'conceitos'}...`} 
                     className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-lg shadow-sm transition-all"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -104,7 +130,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 <button 
                     onClick={handleSearch}
                     disabled={loading || !query.trim()}
-                    className="absolute right-2 top-2 bottom-2 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="absolute right-2 top-2 bottom-2 px-6 bg-gray-900 hover:bg-black text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? <Loader2 className="w-5 h-5 animate-spin"/> : 'Buscar'}
                 </button>
@@ -121,23 +147,23 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                                 {item.thumbnail ? (
                                     <img src={item.thumbnail} alt={item.title} className="w-16 h-24 object-cover rounded shadow-sm shrink-0" />
                                 ) : (
-                                    <div className={`w-16 h-24 flex items-center justify-center rounded shrink-0 ${activeTab === 'book' ? 'bg-orange-100 text-orange-500' : activeTab === 'video' ? 'bg-red-100 text-red-500' : 'bg-blue-100 text-blue-500'}`}>
-                                        {activeTab === 'book' ? <BookOpen className="w-8 h-8"/> : activeTab === 'video' ? <Video className="w-8 h-8"/> : <FileText className="w-8 h-8"/>}
+                                    <div className={`w-16 h-24 flex items-center justify-center rounded shrink-0 ${activeTab === 'book' ? 'bg-orange-100 text-orange-500' : activeTab === 'article' ? 'bg-blue-100 text-blue-500' : 'bg-indigo-100 text-indigo-500'}`}>
+                                        {activeTab === 'book' ? <BookOpen className="w-8 h-8"/> : activeTab === 'article' ? <FileText className="w-8 h-8"/> : <Globe className="w-8 h-8"/>}
                                     </div>
                                 )}
                                 <div>
-                                    <h4 className="font-bold text-gray-900 line-clamp-2 leading-tight mb-1">{item.title}</h4>
-                                    <p className="text-xs text-gray-500 font-medium">{item.author}</p>
+                                    <h4 className="font-bold text-gray-900 line-clamp-2 leading-tight mb-1 text-sm">{item.title}</h4>
+                                    <p className="text-xs text-gray-500 font-medium line-clamp-1">{item.author}</p>
                                 </div>
                             </div>
                             
-                            <p className="text-sm text-gray-600 line-clamp-3 mb-4 flex-1">{item.description}</p>
+                            <p className="text-xs text-gray-600 line-clamp-4 mb-4 flex-1 leading-relaxed">{item.description}</p>
                             
                             <button 
                                 onClick={() => { onAddSource(item.title, item.url, item.type); onClose(); }}
-                                className="w-full mt-auto flex items-center justify-center gap-2 py-2.5 bg-gray-900 hover:bg-indigo-600 text-white rounded-lg font-bold text-sm transition-all group-hover:scale-[1.02]"
+                                className="w-full mt-auto flex items-center justify-center gap-2 py-2.5 bg-gray-50 hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200 rounded-lg font-bold text-xs transition-all"
                             >
-                                <Plus className="w-4 h-4"/> Adicionar ao Estudo
+                                <Plus className="w-4 h-4"/> Adicionar Recomendação
                             </button>
                         </div>
                     ))}
@@ -145,9 +171,10 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
             ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400">
                     {loading ? (
-                        <div className="text-center">
-                            <p className="text-indigo-500 font-bold mb-2">Carregando...</p>
-                            <p>Buscando conhecimento...</p>
+                        <div className="text-center animate-pulse">
+                            <Globe className="w-12 h-12 mx-auto mb-4 text-indigo-200"/>
+                            <p className="text-indigo-500 font-bold mb-2">Conectando ao conhecimento...</p>
+                            <p className="text-xs">Buscando em fontes reais.</p>
                         </div>
                     ) : hasSearched ? (
                         <div className="text-center">
@@ -157,7 +184,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                     ) : (
                         <div className="text-center">
                             <Globe className="w-16 h-16 mx-auto mb-4 opacity-20"/>
-                            <p>Digite um tema acima para começar a pesquisar.</p>
+                            <p>Digite um tema para buscar livros, artigos ou conceitos.</p>
                         </div>
                     )}
                 </div>
