@@ -5,6 +5,10 @@ const getApiKey = (): string | undefined => {
   return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
 };
 
+// --- MODELO DEFINIDO AQUI (Fácil de trocar se der erro) ---
+// Se o 2.0 falhar, troque esta linha para 'gemini-1.5-flash'
+const MODEL_NAME = 'gemini-2.0-flash'; 
+
 // Schema expandido para suportar capítulos e seções
 const RESPONSE_SCHEMA: Schema = {
   type: Type.OBJECT,
@@ -86,18 +90,19 @@ export const generateStudyGuide = async (
   mimeType: string,
   mode: StudyMode = StudyMode.NORMAL,
   isBinary: boolean = false,
-  isBook: boolean = false // Novo parâmetro
+  isBook: boolean = false 
 ): Promise<StudyGuide> => {
   const apiKey = getApiKey();
-  if (!apiKey) throw new Error("Chave de API não encontrada (VITE_GEMINI_API_KEY).");
+  if (!apiKey) {
+    console.error("CRITICAL: API Key is missing");
+    throw new Error("Chave de API não encontrada (VITE_GEMINI_API_KEY).");
+  }
 
   const ai = new GoogleGenAI({ apiKey });
-  const modelName = 'gemini-2.0-flash';
 
   let modeInstructions = "";
 
   if (isBook) {
-    // --- LÓGICA EXCLUSIVA PARA LIVROS ---
     switch (mode) {
       case StudyMode.SURVIVAL:
         modeInstructions = `
@@ -137,7 +142,6 @@ export const generateStudyGuide = async (
         break;
     }
   } else {
-    // --- LÓGICA PADRÃO (AULAS/ARTIGOS) ---
     if (mode === StudyMode.HARD) {
       modeInstructions = `
       MODO: TURBO 🚀 (Análise Completa e Detalhada)
@@ -189,8 +193,10 @@ export const generateStudyGuide = async (
   }
 
   try {
+    console.log(`[Gemini] Iniciando geração com modelo: ${MODEL_NAME}`);
+    
     const response = await ai.models.generateContent({
-      model: modelName,
+      model: MODEL_NAME,
       contents: { role: 'user', parts: parts },
       config: {
         systemInstruction: MASTER_PROMPT,
@@ -200,37 +206,41 @@ export const generateStudyGuide = async (
       },
     });
 
+    console.log("[Gemini] Resposta recebida com sucesso!");
+
     let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
     if (!text) text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const guide = JSON.parse(cleanText) as StudyGuide;
     
-    // Garantir que checkpoints tenham status
     if (guide.checkpoints) {
         guide.checkpoints = guide.checkpoints.map(cp => ({ ...cp, completed: false }));
     }
     return guide;
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("[Gemini] Erro Crítico:", error);
     throw error;
   }
 };
 
-// ... Mantenha as outras funções (generateSlides, etc.) inalteradas abaixo ...
 export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
     
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: { parts: [{ text: `Crie Slides JSON sobre: "${guide.subject}".` }] },
-        config: { responseMimeType: "application/json" }
-    });
-    
-    let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text || "[]");
+    try {
+      const response = await ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: { parts: [{ text: `Crie Slides JSON sobre: "${guide.subject}".` }] },
+          config: { responseMimeType: "application/json" }
+      });
+      let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(text || "[]");
+    } catch (e) {
+      console.error("[Gemini] Erro ao gerar slides:", e);
+      return [];
+    }
 };
 
 export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: any): Promise<QuizQuestion[]> => {
@@ -238,29 +248,39 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
     
-    const prompt = `Crie um Quiz JSON com ${config?.quantity || 6} perguntas sobre ${guide.subject}.`;
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: { parts: [{ text: prompt }] },
-        config: { responseMimeType: "application/json" }
-    });
-    let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text || "[]");
+    try {
+      const prompt = `Crie um Quiz JSON com ${config?.quantity || 6} perguntas sobre ${guide.subject}.`;
+      const response = await ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: { parts: [{ text: prompt }] },
+          config: { responseMimeType: "application/json" }
+      });
+      let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(text || "[]");
+    } catch (e) {
+      console.error("[Gemini] Erro ao gerar quiz:", e);
+      return [];
+    }
 };
 
 export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]> => {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: { parts: [{ text: `Crie Flashcards JSON sobre: ${guide.subject}.` }] },
-        config: { responseMimeType: "application/json" }
-    });
-    let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text || "[]");
+    try {
+      const response = await ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: { parts: [{ text: `Crie Flashcards JSON sobre: ${guide.subject}.` }] },
+          config: { responseMimeType: "application/json" }
+      });
+      let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(text || "[]");
+    } catch (e) {
+      console.error("[Gemini] Erro ao gerar flashcards:", e);
+      return [];
+    }
 };
 
 export const sendChatMessage = async (history: ChatMessage[], msg: string, studyGuide: StudyGuide | null = null): Promise<string> => {
@@ -269,25 +289,28 @@ export const sendChatMessage = async (history: ChatMessage[], msg: string, study
     const ai = new GoogleGenAI({ apiKey });
     let systemInstruction = "Você é um Mentor de Aprendizado.";
     if (studyGuide) systemInstruction += ` O usuário estuda: ${studyGuide.subject}.`;
-    const chat = ai.chats.create({ 
-        model: 'gemini-2.0-flash', 
-        history: history.slice(-5).map(m=>({role:m.role, parts:[{text:m.text}]})),
-        config: { systemInstruction }
-    });
-    const res = await chat.sendMessage({ message: msg });
-    return res.text || "";
+    
+    try {
+      const chat = ai.chats.create({ 
+          model: MODEL_NAME, 
+          history: history.slice(-5).map(m=>({role:m.role, parts:[{text:m.text}]})),
+          config: { systemInstruction }
+      });
+      const res = await chat.sendMessage({ message: msg });
+      return res.text || "";
+    } catch (e) {
+      console.error("[Gemini] Erro no chat:", e);
+      return "Erro ao conectar com o professor virtual.";
+    }
 };
 
 export const refineContent = async (text: string, task: string): Promise<string> => { 
     const apiKey = getApiKey();
     if (!apiKey) return "Erro.";
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({ 
-        model: 'gemini-2.0-flash', 
-        contents: { parts: [{ text: `Melhore este texto (${task}): "${text}"` }] } 
-    });
-    const raw = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-    return raw || "";
-};
-
-export const generateDiagram = async (desc: string): Promise<string> => { return ""; };
+    try {
+      const response = await ai.models.generateContent({ 
+          model: MODEL_NAME, 
+          contents: { parts: [{ text: `Melhore este texto (${task}): "${text}"` }] } 
+      });
+      const raw = typeof (response as any).text === 'function' ? (response as any).text() : (response as
