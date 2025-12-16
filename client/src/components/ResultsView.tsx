@@ -23,15 +23,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const [expandedSection, setExpandedSection] = useState<string | null>('main_concepts');
   
   // Estado para controlar se o Feynman está Aberto ou Fechado
-  // Inicia aberto se acabou de ser gerado, ou fechado se carregou a página agora
   const [isFeynmanOpen, setIsFeynmanOpen] = useState(false);
 
   // Efeito para abrir automaticamente quando o conteúdo é gerado
   useEffect(() => {
     if (guide.tools?.explainLikeIm5 && !isFeynmanOpen) {
-       // Se tem conteúdo, mas está fechado, não forçamos abrir (respeita o usuário).
-       // Mas se acabamos de gerar (loading mudou), poderíamos abrir. 
-       // Para simplificar: o botão de "Gerar" já seta o estado abaixo.
+       // Opcional: logica para abrir auto
     }
   }, [guide.tools]);
 
@@ -43,7 +40,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
     try {
       const content = await generateTool(toolType, topic, JSON.stringify(guide.mainConcepts));
-      const newTools = { ...guide.tools, [toolType]: content };
+      
+      const currentTools = guide.tools || {};
+      const newTools = { ...currentTools, [toolType]: content };
+      
       onUpdateGuide({ ...guide, tools: newTools });
     } catch (error) {
       alert('Erro ao gerar ferramenta. Tente novamente.');
@@ -138,12 +138,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* CARD 1: MÉTODO FEYNMAN (Lógica de Abrir/Fechar) */}
+                {/* CARD 1: MÉTODO FEYNMAN */}
                 <div className={`p-6 rounded-2xl border transition-all duration-300 ${guide.tools?.explainLikeIm5 ? 'bg-white border-green-200 shadow-md' : 'bg-white border-gray-200 hover:border-indigo-300 hover:shadow-lg'}`}>
                     <div 
                         className="flex justify-between items-start mb-4 cursor-pointer"
                         onClick={() => {
-                            // Se já existe conteúdo, clicar no card alterna entre abrir/fechar
                             if (guide.tools?.explainLikeIm5) setIsFeynmanOpen(!isFeynmanOpen);
                         }}
                     >
@@ -156,7 +155,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                 <p className="text-xs text-gray-500">Simplificação e Analogias</p>
                             </div>
                         </div>
-                        {/* Ícone de Toggle se já tiver conteúdo */}
                         {guide.tools?.explainLikeIm5 && (
                             <button className="text-gray-400">
                                 {isFeynmanOpen ? <ChevronDown className="w-5 h-5"/> : <ChevronRight className="w-5 h-5"/>}
@@ -165,7 +163,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     </div>
 
                     {guide.tools?.explainLikeIm5 ? (
-                        // SE JÁ EXISTE CONTEÚDO:
                         <>
                             {isFeynmanOpen ? (
                                 <div className="animate-in fade-in slide-in-from-top-2">
@@ -173,11 +170,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         {guide.tools.explainLikeIm5}
                                     </div>
                                     
-                                    {/* Botão Exemplo Real dentro do card expandido */}
                                     {!guide.tools.realWorldApplication ? (
                                         <button 
                                             onClick={(e) => {
-                                                e.stopPropagation(); // Evita fechar o card ao clicar
+                                                e.stopPropagation();
                                                 handleGenerateTool('realWorldApplication', guide.title);
                                             }}
                                             disabled={loadingTool === 'realWorldApplication'}
@@ -202,7 +198,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     </button>
                                 </div>
                             ) : (
-                                // SE ESTÁ FECHADO:
                                 <button 
                                     onClick={() => setIsFeynmanOpen(true)}
                                     className="w-full py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg font-bold hover:bg-green-100 transition-colors text-sm flex items-center justify-center gap-2"
@@ -212,7 +207,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             )}
                         </>
                     ) : (
-                        // SE AINDA NÃO EXISTE (Botão Gerar Inicial)
                         <div>
                             <p className="text-sm text-gray-500 mb-4 leading-relaxed">"Se você não consegue explicar de forma simples, você não entendeu bem o suficiente."</p>
                             <button 
@@ -322,10 +316,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
              {expandedSection === 'main_concepts' && (
                  <div className="p-8">
                      {guide.bookChapters ? (
-                         // RENDERIZAÇÃO DE LIVROS
                          <div>{guide.bookChapters.map((chapter, i) => renderChapter(chapter, i))}</div>
                      ) : (
-                         // RENDERIZAÇÃO DE ESTUDO NORMAL/PARETO
                          <div className="space-y-6">
                             {guide.mainConcepts?.map((concept, idx) => (
                                 <div key={idx} className="group">
@@ -347,7 +339,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           </div>
       </section>
 
-      {/* CHECKPOINTS (Plano de Ação) */}
+      {/* CHECKPOINTS */}
       {guide.checkpoints && guide.checkpoints.length > 0 && (
           <section>
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
