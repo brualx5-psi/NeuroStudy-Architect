@@ -5,8 +5,8 @@ const getApiKey = (): string | undefined => {
   return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
 };
 
-// --- CONFIGURATION ---
-// Switched to 1.5-flash for better stability with free keys
+// --- CONFIGURAÇÃO ---
+// Use 'gemini-1.5-flash' para estabilidade total. O 2.0 é experimental e falha frequentemente.
 const MODEL_NAME = 'gemini-1.5-flash'; 
 
 const RESPONSE_SCHEMA: Schema = {
@@ -93,7 +93,6 @@ export const generateStudyGuide = async (
 ): Promise<StudyGuide> => {
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.error("CRITICAL: API Key is missing. Check your .env file.");
     throw new Error("Chave de API não encontrada (VITE_GEMINI_API_KEY).");
   }
 
@@ -192,7 +191,7 @@ export const generateStudyGuide = async (
   }
 
   try {
-    console.log(`[Gemini] Requesting generation with model: ${MODEL_NAME}`);
+    console.log(`[Gemini] Iniciando geração com modelo: ${MODEL_NAME}`);
     
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
@@ -205,7 +204,7 @@ export const generateStudyGuide = async (
       },
     });
 
-    console.log("[Gemini] Response received");
+    console.log("[Gemini] Resposta recebida!");
 
     let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
     if (!text) text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -217,9 +216,10 @@ export const generateStudyGuide = async (
         guide.checkpoints = guide.checkpoints.map(cp => ({ ...cp, completed: false }));
     }
     return guide;
-  } catch (error) {
-    console.error("[Gemini] Error generating study guide:", error);
-    throw error;
+  } catch (error: any) {
+    console.error("[Gemini] Erro Crítico:", error);
+    // Repassa o erro para o App mostrar na tela
+    throw new Error(error.message || "Erro ao gerar conteúdo com IA.");
   }
 };
 
@@ -234,12 +234,11 @@ export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
           contents: { parts: [{ text: `Crie Slides JSON sobre: "${guide.subject}".` }] },
           config: { responseMimeType: "application/json" }
       });
-      
       let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
       return JSON.parse(text || "[]");
-    } catch (error) {
-      console.error("[Gemini] Error generating slides:", error);
+    } catch (e) {
+      console.error("[Gemini] Erro ao gerar slides:", e);
       return [];
     }
 };
@@ -259,8 +258,8 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
       let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
       return JSON.parse(text || "[]");
-    } catch (error) {
-      console.error("[Gemini] Error generating quiz:", error);
+    } catch (e) {
+      console.error("[Gemini] Erro ao gerar quiz:", e);
       return [];
     }
 };
@@ -269,7 +268,6 @@ export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
-    
     try {
       const response = await ai.models.generateContent({
           model: MODEL_NAME,
@@ -279,8 +277,8 @@ export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]
       let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
       return JSON.parse(text || "[]");
-    } catch (error) {
-      console.error("[Gemini] Error generating flashcards:", error);
+    } catch (e) {
+      console.error("[Gemini] Erro ao gerar flashcards:", e);
       return [];
     }
 };
@@ -300,8 +298,8 @@ export const sendChatMessage = async (history: ChatMessage[], msg: string, study
       });
       const res = await chat.sendMessage({ message: msg });
       return res.text || "";
-    } catch (error) {
-      console.error("[Gemini] Chat error:", error);
+    } catch (e) {
+      console.error("[Gemini] Erro no chat:", e);
       return "Erro ao conectar com o professor virtual.";
     }
 };
@@ -310,7 +308,6 @@ export const refineContent = async (text: string, task: string): Promise<string>
     const apiKey = getApiKey();
     if (!apiKey) return "Erro.";
     const ai = new GoogleGenAI({ apiKey });
-    
     try {
       const response = await ai.models.generateContent({ 
           model: MODEL_NAME, 
@@ -318,9 +315,9 @@ export const refineContent = async (text: string, task: string): Promise<string>
       });
       const raw = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
       return raw || "";
-    } catch (error) {
-      console.error("[Gemini] Refine content error:", error);
-      return text;
+    } catch (e) {
+      console.error("[Gemini] Erro ao refinar conteúdo:", e);
+      return "";
     }
 };
 
