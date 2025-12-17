@@ -1,7 +1,8 @@
 // Force rebuild: ChevronRight import fix
 import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
-import { FolderIcon, Plus, FileText, ChevronRight, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target } from './Icons';
+import { FolderIcon, Plus, FileText, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target } from './Icons';
+import { ChevronRight } from './Icons';
 
 interface SidebarProps {
   folders: Folder[];
