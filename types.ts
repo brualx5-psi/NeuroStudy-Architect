@@ -10,16 +10,16 @@ export enum InputType {
 }
 
 export enum StudyMode {
-  SURVIVAL = 'SURVIVAL', // Resumo extremo (1 frase/capítulo)
-  NORMAL = 'NORMAL',     // Pareto 80/20
-  HARD = 'HARD',         // Completo e Profundo
-  PARETO = 'PARETO'      // Modo focado apenas no essencial
+  SURVIVAL = 'SURVIVAL',
+  NORMAL = 'NORMAL',
+  HARD = 'HARD',
+  PARETO = 'PARETO'
 }
 
 export interface CoreConcept {
   concept: string;
   definition: string;
-  // Adicionamos isto para guardar o Feynman/Exemplo dentro do conceito
+  // Ferramentas individuais por conceito
   tools?: {
     feynman?: string;
     example?: string;
@@ -38,29 +38,28 @@ export interface Checkpoint {
 
 export interface StudyGuide {
   subject: string;
-  title: string; // Título gerado ou extraído
+  title: string;
   overview: string;
-  globalApplication?: string; // Aplicação prática global
-  mainConcepts: CoreConcept[]; // Para artigos/vídeos
-  bookChapters?: {             // Para livros
+  globalApplication?: string;
+  coreConcepts: CoreConcept[]; // <--- CORRIGIDO: Voltou a ser coreConcepts
+  bookChapters?: {
       title: string;
       summary: string;
       keyPoints: string[];
       actionableStep?: string;
-      coreConcepts?: CoreConcept[]; // Conceitos específicos do capítulo
+      coreConcepts?: CoreConcept[];
   }[]; 
-  supportConcepts?: CoreConcept[]; // Conceitos de base (glossário)
+  supportConcepts?: CoreConcept[];
   checkpoints?: Checkpoint[];
   quiz?: QuizQuestion[];
   flashcards?: Flashcard[];
   
-  // Ferramentas Globais
   diagramUrl?: string;
   tools?: {
       mnemonics?: string;
       interdisciplinary?: string;
-      realWorldApplication?: string; // Aplicação global
-      explainLikeIm5?: string;       // Explicação global
+      realWorldApplication?: string;
+      explainLikeIm5?: string;
   };
 }
 
@@ -80,7 +79,7 @@ export interface StudySession {
   createdAt: number;
   updatedAt: number;
   nextReviewDate?: number;
-  reviewStep?: number; // 0, 1, 2, 3...
+  reviewStep?: number;
 }
 
 export interface Folder {
@@ -93,7 +92,7 @@ export interface StudySource {
   id: string;
   type: InputType;
   name: string;
-  content: string; // Texto ou Base64
+  content: string;
   mimeType?: string;
   dateAdded: number;
 }
