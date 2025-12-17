@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { StudyGuide, ChatMessage, Slide, QuizQuestion, Flashcard, StudyMode } from "../types";
+import { StudyGuide, ChatMessage, SlideContent as Slide, QuizQuestion, Flashcard, StudyMode } from "../types";
 
 const getApiKey = (): string | undefined => {
   return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
@@ -8,7 +8,7 @@ const getApiKey = (): string | undefined => {
 // --- CONFIGURAÇÃO ---
 const MODEL_NAME = 'gemini-2.0-flash'; 
 
-// Schemas
+// Schemas (mantidos como estavam)
 const COMMON_PROPERTIES = {
   subject: { type: Type.STRING },
   overview: { type: Type.STRING },
@@ -152,6 +152,20 @@ async function fetchWithRetry<T>(operation: () => Promise<T>, retries = 3, delay
   }
 }
 
+const safeGenerate = async (ai: GoogleGenAI, prompt: string, schemaMode = true): Promise<string> => {
+    return fetchWithRetry(async () => {
+        const config: any = {};
+        if (schemaMode) config.responseMimeType = "application/json";
+        const response = await ai.models.generateContent({
+            model: MODEL_NAME,
+            contents: { parts: [{ text: prompt }] },
+            config
+        });
+        let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
+        return text || "";
+    });
+};
+
 export const generateStudyGuide = async (
   content: string,
   mimeType: string,
@@ -272,19 +286,70 @@ export const generateStudyGuide = async (
   });
 };
 
-const safeGenerate = async (ai: GoogleGenAI, prompt: string, schemaMode = true): Promise<string> => {
-    return fetchWithRetry(async () => {
-        const config: any = {};
-        if (schemaMode) config.responseMimeType = "application/json";
-        const response = await ai.models.generateContent({
-            model: MODEL_NAME,
-            contents: { parts: [{ text: prompt }] },
-            config
-        });
-        let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-        return text || "";
-    });
+// --- FUNÇÃO FALTANTE: generateTool (CORREÇÃO DO ERRO) ---
+export const generateTool = async (
+  toolType: 'explainLikeIm5' | 'analogy' | 'realWorldApplication' | 'mnemonics' | 'interdisciplinary',
+  topic: string,
+  context: string
+): Promise<string> => {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("Chave de API não encontrada.");
+  const ai = new GoogleGenAI({ apiKey });
+  const model = MODEL_NAME;
+
+  let prompt = '';
+
+  switch (toolType) {
+    case 'explainLikeIm5':
+      prompt = `
+        Atue como um professor especialista no MÉTODO FEYNMAN.
+        O aluno quer aprender sobre: "${topic}".
+        Contexto do estudo: "${context.slice(0, 500)}...".
+
+        Siga rigorosamente os passos do Método Feynman:
+        1. **Explicação Simples:** Explique o conceito em linguagem plana, evitando jargões técnicos. Imagine que está explicando para uma pessoa inteligente de 12 anos.
+        2. **Identifique Lacunas (O "Porquê"):** Antecipe uma dúvida comum e responda brevemente.
+        3. **Analogia Poderosa:** Crie uma analogia do mundo real para consolidar o entendimento.
+
+        Formate a resposta com marcadores claros e emojis para tornar a leitura leve.
+      `;
+      break;
+
+    case 'realWorldApplication':
+      prompt = `
+        Com base no conceito "${topic}", forneça um **Exemplo Real e Prático**.
+        Contexto: "${context.slice(0, 500)}...".
+
+        Não explique a teoria novamente. Vá direto para a prática.
+        - Descreva um cenário onde isso é usado hoje.
+        - Ou conte uma breve história/estudo de caso real.
+        - Mostre o impacto disso na vida cotidiana ou profissional.
+        
+        Seja inspirador e concreto.
+      `;
+      break;
+
+    case 'analogy':
+      prompt = `Crie uma analogia criativa e memorável para explicar "${topic}" (Contexto: ${context.slice(0, 300)}). Use algo do cotidiano (como culinária, esportes, trânsito) para que o conceito grude na mente.`;
+      break;
+
+    case 'mnemonics':
+      prompt = `Crie um mnemônico (sigla, rima ou frase associativa) para ajudar a memorizar os pontos chaves de: "${topic}". Explique como usar o mnemônico.`;
+      break;
+
+    case 'interdisciplinary':
+      prompt = `Conecte o conceito "${topic}" com outra área do conhecimento totalmente diferente (ex: Arte, História, Biologia, Economia) para mostrar sua versatilidade. Explique a conexão.`;
+      break;
+      
+    default:
+        throw new Error("Tipo de ferramenta inválido.");
+  }
+
+  // safeGenerate aqui retorna o texto puro (schemaMode: false)
+  return safeGenerate(ai, prompt, false);
 };
+// --- FIM DA FUNÇÃO FALTANTE ---
+
 
 export const generateDiagram = async (desc: string): Promise<string> => { 
     const apiKey = getApiKey();
@@ -300,6 +365,7 @@ export const generateDiagram = async (desc: string): Promise<string> => {
         let code = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
         code = code.replace(/```mermaid/g, '').replace(/```/g, '').trim();
         
+        // Uso de btoa (base64 encoding) para URL do Mermaid.ink
         const encoded = btoa(unescape(encodeURIComponent(code)));
         return `https://mermaid.ink/img/${encoded}?bgColor=FFFFFF`;
     } catch (e) {
@@ -315,6 +381,7 @@ export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
     try {
         const text = await safeGenerate(ai, `Crie Slides JSON sobre: "${guide.subject}".`);
         if (!text) return [];
+        // Certifique-se que o tipo SlideContent é mapeado corretamente
         return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim() || "[]");
     } catch { return []; }
 };
