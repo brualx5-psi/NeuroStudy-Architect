@@ -1,11 +1,10 @@
 export enum InputType {
   TEXT = 'TEXT',
   PDF = 'PDF',
-  YOUTUBE = 'YOUTUBE', // Mantendo compatibilidade
-  VIDEO = 'VIDEO',
   URL = 'URL',
-  DOI = 'DOI',
+  VIDEO = 'VIDEO',
   IMAGE = 'IMAGE',
+  DOI = 'DOI',
   EPUB = 'EPUB',
   MOBI = 'MOBI'
 }
@@ -17,68 +16,55 @@ export enum StudyMode {
   PARETO = 'PARETO'
 }
 
+export interface CoreConcept {
+  concept: string;
+  definition: string;
+  tools?: {
+    feynman?: string;
+    example?: string;
+  };
+}
+
+// CHECKPOINT COMPLETO RESTAURADO
 export interface Checkpoint {
   id: string;
-  task: string;
-  completed: boolean;
-}
-
-export interface StudySource {
-  id: string;
-  type: InputType;
-  name: string;
-  content: string; // Text content or base64
-  mimeType?: string;
-  dateAdded: number;
-}
-
-export interface BookChapter {
-    title: string;
-    summary: string;
-    keyPoints: string[];
-    actionableStep?: string;
-    supportConcepts?: { concept: string; explanation: string }[];
+  mission: string;
+  timestamp: string;
+  lookFor: string;      // "O que procurar"
+  noteExactly: string;  // "Escreva exatamente isso"
+  drawExactly: string;  // "Desenhe exatamente isso"
+  drawLabel?: 'essential' | 'suggestion' | 'none'; 
+  question: string;
+  imageUrl?: string;    // Para guardar o diagrama gerado
+  completed?: boolean;
 }
 
 export interface StudyGuide {
+  subject: string;
   title: string;
-  summary: string;
-  mainConcepts: { concept: string; explanation: string }[];
-  bookChapters?: BookChapter[]; 
+  overview: string;
+  globalApplication?: string;
+  coreConcepts: CoreConcept[]; 
+  
+  bookChapters?: {
+      title: string;
+      summary: string;
+      keyPoints: string[];
+      actionableStep?: string;
+      coreConcepts?: CoreConcept[];
+  }[]; 
+  supportConcepts?: CoreConcept[];
   checkpoints?: Checkpoint[];
-  tools?: {
-    explainLikeIm5?: string;
-    analogy?: string;
-    realWorldApplication?: string;
-    mnemonics?: string;
-    interdisciplinary?: string;
-  };
-  quiz?: any;
+  quiz?: QuizQuestion[];
+  flashcards?: Flashcard[];
+  
   diagramUrl?: string;
-}
-
-export interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-  userAnswer?: number;
-}
-
-export interface Flashcard {
-  id: string;
-  front: string;
-  back: string;
-  status: 'new' | 'learning' | 'review' | 'mastered';
-  nextReview?: number;
-}
-
-export interface SlideContent {
-  id: string;
-  title: string;
-  bullets: string[];
-  notes?: string;
+  tools?: {
+      mnemonics?: string;
+      interdisciplinary?: string;
+      realWorldApplication?: string;
+      explainLikeIm5?: string;
+  };
 }
 
 export interface StudySession {
@@ -88,14 +74,16 @@ export interface StudySession {
   sources: StudySource[];
   mode: StudyMode;
   isBook?: boolean;
+  
   guide: StudyGuide | null;
   slides: SlideContent[] | null;
   quiz: QuizQuestion[] | null;
   flashcards: Flashcard[] | null;
+  
   createdAt: number;
   updatedAt: number;
   nextReviewDate?: number;
-  reviewStep?: number; // 0 = Nunca revisou, 1 = Revisou 1 vez (24h), etc.
+  reviewStep?: number;
 }
 
 export interface Folder {
@@ -104,8 +92,40 @@ export interface Folder {
   parentId?: string;
 }
 
+export interface StudySource {
+  id: string;
+  type: InputType;
+  name: string;
+  content: string;
+  mimeType?: string;
+  dateAdded: number;
+}
+
 export interface ProcessingState {
   isLoading: boolean;
   error: string | null;
-  step: 'idle' | 'uploading' | 'analyzing' | 'generating' | 'slides' | 'quiz' | 'flashcards' | 'transcribing';
+  step: 'idle' | 'transcribing' | 'analyzing' | 'generating' | 'slides' | 'quiz' | 'flashcards';
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
+export interface SlideContent {
+  title: string;
+  bullets: string[];
+  speakerNotes: string;
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+}
+
+export interface Flashcard {
+  front: string;
+  back: string;
 }
