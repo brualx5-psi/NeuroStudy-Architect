@@ -1,285 +1,276 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { StudyGuide } from '../types';
+import { generateTool, generateDiagram } from '../services/geminiService';
+import { 
+  CheckCircle, BookOpen, Brain, Zap, Target, 
+  Smile, Layers, ChevronDown, ChevronRight,
+  Lightbulb, RefreshCw, PenTool, Globe, Calendar, Clock
+} from './Icons';
 
-export const UploadCloud = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-);
+interface ResultsViewProps {
+  guide: StudyGuide;
+  onReset: () => void;
+  onGenerateQuiz: () => void;
+  onGoToFlashcards: () => void;
+  onUpdateGuide: (updatedGuide: StudyGuide) => void;
+  isParetoOnly?: boolean;
+  onScheduleReview?: (studyId: string) => void; 
+  isReviewScheduled?: boolean;   
+}
 
-export const FileText = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-);
+export const ResultsView: React.FC<ResultsViewProps> = ({ // <-- EXPORTAÇÃO CORRETA
+  guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled
+}) => {
+  const [loadingTool, setLoadingTool] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>('main_concepts');
+  
+  const [isFeynmanOpen, setIsFeynmanOpen] = useState(false);
 
-export const Video = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
-);
+  useEffect(() => {
+    if (guide.tools?.explainLikeIm5 && !isFeynmanOpen) {
+       // Lógica opcional
+    }
+  }, [guide.tools]);
 
-export const Search = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-);
+  const handleGenerateTool = async (toolType: 'explainLikeIm5' | 'analogy' | 'realWorldApplication' | 'mnemonics' | 'interdisciplinary', topic: string) => {
+    setLoadingTool(toolType);
+    if (toolType === 'explainLikeIm5') setIsFeynmanOpen(true);
 
-export const GenerateIcon = ({ className }: { className?: string }) => (
-  <img 
-    src="https://i.ibb.co/NdcR7d9R/logo-sem-fundo.png" 
-    alt="Gerar" 
-    className={`${className} object-contain`}
-    onError={(e) => {
-        e.currentTarget.style.display = 'none';
-    }}
-  />
-);
+    try {
+      const content = await generateTool(toolType, topic, JSON.stringify(guide.mainConcepts));
+      const currentTools = guide.tools || {};
+      const newTools = { ...currentTools, [toolType]: content };
+      onUpdateGuide({ ...guide, tools: newTools });
+    } catch (error) {
+      alert('Erro ao gerar ferramenta. Tente novamente.');
+    } finally {
+      setLoadingTool(null);
+    }
+  };
 
-export const BrainCircuit = ({ className }: { className?: string }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        <g stroke="currentColor" strokeWidth="1.5">
-            <path d="M12 3 L21 12 L12 21 L3 12 Z" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 5 C8 5, 5 8, 5 12 C5 16, 8 19, 12 19" fill="none" strokeLinecap="round"/>
-            <path d="M12 5 C16 5, 19 8, 19 12 C19 16, 16 19, 12 19" fill="none" strokeLinecap="round"/>
-            <path d="M12 5 V 19" />
-            <path d="M9.5 7.5 C8.5 8, 8.5 9.5, 9.5 10.5" fill="none" strokeLinecap="round"/>
-            <path d="M10 13 C8 13.5, 7.5 15.5, 9 17" fill="none" strokeLinecap="round"/>
-            <path d="M7 9.5 C6.5 10.5, 6.5 12, 7.5 13" fill="none" strokeLinecap="round"/>
-            <path d="M14.5 7.5 C15.5 8, 15.5 9.5, 14.5 10.5" fill="none" strokeLinecap="round"/>
-            <path d="M14 13 C16 13.5, 16.5 15.5, 15 17" fill="none" strokeLinecap="round"/>
-            <path d="M17 9.5 C17.5 10.5, 17.5 12, 16.5 13" fill="none" strokeLinecap="round"/>
-            <path d="M18 18 L 18 20" strokeLinecap="round"/>
-        </g>
-    </svg>
-);
+  const handleGenerateDiagram = async () => {
+      setLoadingTool('diagram');
+      try {
+          const url = await generateDiagram(guide.title, JSON.stringify(guide.mainConcepts));
+          onUpdateGuide({ ...guide, diagramUrl: url });
+      } catch (error) {
+          console.error(error);
+      } finally {
+          setLoadingTool(null);
+      }
+  };
 
-export const Brain = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3 2.5 2.5 0 0 1 2.5-2.5Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3 2.5 2.5 0 0 0-2.5-2.5Z"/></svg>
-);
+  const toggleCheckpoint = (id: string) => {
+    const newCheckpoints = guide.checkpoints?.map(c => 
+      c.id === id ? { ...c, completed: !c.completed } : c
+    );
+    onUpdateGuide({ ...guide, checkpoints: newCheckpoints });
+  };
 
-export const PenTool = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-);
+  const renderChapter = (chapter: any, index: number) => (
+      <div key={index} className="mb-8 border-l-4 border-orange-200 pl-6 py-2">
+          <h3 className="text-xl font-bold text-gray-800 mb-2">{chapter.title}</h3>
+          <p className="text-gray-600 mb-4 italic">{chapter.summary}</p>
+          <div className="space-y-4">
+              {chapter.keyPoints.map((point: string, idx: number) => (
+                  <div key={idx} className="flex items-start gap-3 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold shrink-0">{idx + 1}</div>
+                      <p className="text-gray-700 text-sm">{point}</p>
+                  </div>
+              ))}
+          </div>
+          {chapter.actionableStep && (
+               <div className="mt-4 bg-green-50 p-4 rounded-xl border border-green-100 flex items-start gap-3">
+                   <Target className="w-5 h-5 text-green-600 mt-0.5 shrink-0"/>
+                   <div>
+                       <span className="block font-bold text-green-800 text-sm mb-1">Aplicação Prática</span>
+                       <p className="text-green-700 text-sm">{chapter.actionableStep}</p>
+                   </div>
+               </div>
+          )}
+      </div>
+  );
 
-export const Target = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-);
+  // Variável local simulada para o ID do estudo (já que o App.tsx que tem o ID real)
+  const studyIdPlaceholder = 'study-id-placeholder'; 
 
-export const Eye = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-);
+  return (
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      
+      {/* HEADER */}
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full blur-3xl -z-10 opacity-50"></div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+                <span className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-2">
+                    {isParetoOnly ? 'Modo Pareto 80/20' : 'Roteiro de Estudo'}
+                </span>
+                <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{guide.title}</h1>
+            </div>
+            <div className="flex gap-2">
+                 {!isParetoOnly && (
+                    <button onClick={onGoToFlashcards} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-bold transition-colors text-sm">
+                        <Layers className="w-4 h-4"/> Flashcards
+                    </button>
+                 )}
+                 <button onClick={onReset} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-bold transition-colors text-sm">
+                    <RefreshCw className="w-4 h-4"/> Novo
+                </button>
+            </div>
+        </div>
+        {guide.summary && (
+            <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 text-slate-700 leading-relaxed text-lg">
+                {guide.summary}
+            </div>
+        )}
+      </div>
 
-export const CheckCircle = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-);
+      {/* FERRAMENTAS COGNITIVAS */}
+      {!isParetoOnly && (
+        <section>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Brain className="w-6 h-6 text-indigo-500"/> 
+                Ferramentas Cognitivas
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* CARD 1: FEYNMAN */}
+                <div className={`p-6 rounded-2xl border transition-all duration-300 ${guide.tools?.explainLikeIm5 ? 'bg-white border-green-200 shadow-md' : 'bg-white border-gray-200 hover:border-indigo-300 hover:shadow-lg'}`}>
+                    <div className="flex justify-between items-start mb-4 cursor-pointer" onClick={() => { if (guide.tools?.explainLikeIm5) setIsFeynmanOpen(!isFeynmanOpen); }}>
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${guide.tools?.explainLikeIm5 ? 'bg-green-100 text-green-600' : 'bg-indigo-100 text-indigo-600'}`}><Smile className="w-6 h-6" /></div>
+                            <div><h3 className="font-bold text-gray-900">Método Feynman</h3><p className="text-xs text-gray-500">Simplificação e Analogias</p></div>
+                        </div>
+                        {guide.tools?.explainLikeIm5 && (<button className="text-gray-400">{isFeynmanOpen ? <ChevronDown className="w-5 h-5"/> : <ChevronRight className="w-5 h-5"/>}</button>)}
+                    </div>
+                    {guide.tools?.explainLikeIm5 ? (
+                        <>
+                            {isFeynmanOpen ? (
+                                <div className="animate-in fade-in slide-in-from-top-2">
+                                    <div className="prose prose-sm prose-indigo mb-4 bg-green-50/50 p-4 rounded-xl text-gray-700 whitespace-pre-line border border-green-100">{guide.tools.explainLikeIm5}</div>
+                                    {!guide.tools.realWorldApplication ? (
+                                        <button onClick={(e) => { e.stopPropagation(); handleGenerateTool('realWorldApplication', guide.title); }} disabled={loadingTool === 'realWorldApplication'} className="w-full py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm">{loadingTool === 'realWorldApplication' ? 'Criando...' : <><Target className="w-4 h-4"/> Gerar Exemplo Real</>}</button>
+                                    ) : (
+                                        <div className="mt-4 pt-4 border-t border-green-100 animate-in slide-in-from-top-2"><div className="flex items-center gap-2 mb-2 text-green-800 font-bold text-sm"><Target className="w-4 h-4"/> Aplicação no Mundo Real:</div><p className="text-sm text-gray-700 italic bg-white p-3 rounded-lg border border-gray-100">{guide.tools.realWorldApplication}</p></div>
+                                    )}
+                                    <button onClick={(e) => { e.stopPropagation(); setIsFeynmanOpen(false); }} className="w-full mt-4 text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1"><ChevronDown className="w-3 h-3 rotate-180"/> Recolher Explicação</button>
+                                </div>
+                            ) : (
+                                <button onClick={() => setIsFeynmanOpen(true)} className="w-full py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg font-bold hover:bg-green-100 transition-colors text-sm flex items-center justify-center gap-2"><BookOpen className="w-4 h-4"/> Ver Explicação Gerada</button>
+                            )}
+                        </>
+                    ) : (
+                        <div><p className="text-sm text-gray-500 mb-4 leading-relaxed">"Se você não consegue explicar de forma simples, você não entendeu bem o suficiente."</p><button onClick={() => handleGenerateTool('explainLikeIm5', guide.title)} disabled={loadingTool === 'explainLikeIm5'} className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors text-sm shadow-sm hover:shadow-md">{loadingTool === 'explainLikeIm5' ? 'Gerando...' : 'Aplicar Feynman'}</button></div>
+                    )}
+                </div>
+                {/* Outros Cards mantidos... */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all">
+                    <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-purple-100 text-purple-600"><Zap className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Mapa Mental</h3><p className="text-xs text-gray-500">Estrutura Visual</p></div></div>
+                    {guide.diagramUrl ? (<div className="mt-2 animate-in zoom-in"><img src={guide.diagramUrl} alt="Diagrama" className="w-full rounded-lg border border-gray-100 shadow-sm hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(guide.diagramUrl, '_blank')} /><p className="text-center text-xs text-gray-400 mt-2">Clique para ampliar</p></div>) : (<div className="h-32 flex items-center justify-center bg-gray-50 rounded-xl border border-dashed border-gray-200"><button onClick={handleGenerateDiagram} disabled={loadingTool === 'diagram'} className="px-4 py-2 bg-white border border-gray-200 shadow-sm text-gray-600 rounded-lg font-bold hover:text-purple-600 hover:border-purple-200 transition-colors text-sm flex items-center gap-2">{loadingTool === 'diagram' ? 'Desenhando...' : <><PenTool className="w-4 h-4"/> Gerar Mapa Mental</>}</button></div>)}
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-orange-300 hover:shadow-lg transition-all">
+                    <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-orange-100 text-orange-600"><Lightbulb className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Mnemônicos</h3><p className="text-xs text-gray-500">Hacks de Memória</p></div></div>
+                    {guide.tools?.mnemonics ? (<div className="p-3 bg-orange-50 rounded-lg text-sm text-gray-700 font-medium">{guide.tools.mnemonics}</div>) : (<button onClick={() => handleGenerateTool('mnemonics', guide.title)} disabled={loadingTool === 'mnemonics'} className="w-full py-2 bg-white border border-gray-200 text-gray-600 rounded-lg font-bold hover:bg-orange-50 hover:text-orange-600 transition-colors text-sm">Criar Mnemônico</button>)}
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all">
+                    <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-blue-100 text-blue-600"><Globe className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Conexões</h3><p className="text-xs text-gray-500">Visão Interdisciplinar</p></div></div>
+                    {guide.tools?.interdisciplinary ? (<div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-700">{guide.tools.interdisciplinary}</div>) : (<button onClick={() => handleGenerateTool('interdisciplinary', guide.title)} disabled={loadingTool === 'interdisciplinary'} className="w-full py-2 bg-white border border-gray-200 text-gray-600 rounded-lg font-bold hover:bg-blue-50 hover:text-blue-600 transition-colors text-sm">Expandir Visão</button>)}
+                </div>
+            </div>
+        </section>
+      )}
 
-export const Download = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-);
+      {/* CONTEÚDO PRINCIPAL */}
+      <section>
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+             <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center cursor-pointer" onClick={() => setExpandedSection(expandedSection === 'main_concepts' ? null : 'main_concepts')}>
+                 <h2 className="font-bold text-gray-800 flex items-center gap-2"><BookOpen className="w-5 h-5 text-gray-500"/> {guide.bookChapters ? 'Análise por Capítulos' : 'Conceitos Fundamentais'}</h2>
+                 {expandedSection === 'main_concepts' ? <ChevronDown className="w-5 h-5 text-gray-400"/> : <ChevronRight className="w-5 h-5 text-gray-400"/>}
+             </div>
+             {expandedSection === 'main_concepts' && (
+                 <div className="p-8">
+                     {guide.bookChapters ? (<div>{guide.bookChapters.map((chapter, i) => renderChapter(chapter, i))}</div>) : (
+                         <div className="space-y-6">
+                            {guide.mainConcepts?.map((concept, idx) => (
+                                <div key={idx} className="group">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shrink-0 group-hover:scale-110 transition-transform">{idx + 1}</div>
+                                        <div className="flex-1"><h3 className="text-lg font-bold text-gray-900 mb-2">{concept.concept}</h3><p className="text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">{concept.explanation}</p></div>
+                                    </div>
+                                </div>
+                            ))}
+                         </div>
+                     )}
+                 </div>
+             )}
+          </div>
+      </section>
 
-export const Printer = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-);
+      {/* CHECKPOINTS e ÁREA DE FINALIZAÇÃO */}
+      {guide.checkpoints && guide.checkpoints.length > 0 && (
+          <section>
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="bg-gray-50 p-4 border-b border-gray-200">
+                    <h2 className="font-bold text-gray-800 flex items-center gap-2"><Target className="w-5 h-5 text-red-500"/> Plano de Ação (Checkpoints)</h2>
+                </div>
+                <div className="p-4">
+                    <div className="space-y-3">
+                        {guide.checkpoints.map((checkpoint) => (
+                            <div key={checkpoint.id} 
+                                 className={`flex items-center p-4 rounded-xl border transition-all cursor-pointer ${checkpoint.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-indigo-200'}`}
+                                 onClick={() => toggleCheckpoint(checkpoint.id)}
+                            >
+                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 transition-colors ${checkpoint.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
+                                    {checkpoint.completed && <CheckCircle className="w-4 h-4 text-white" />}
+                                </div>
+                                <span className={`flex-1 font-medium ${checkpoint.completed ? 'text-green-800 line-through decoration-green-500' : 'text-gray-700'}`}>{checkpoint.task}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+          </section>
+      )}
 
-export const FileCode = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m9 13-2 2 2 2"/><path d="m15 13 2 2-2 2"/></svg>
-);
+      {/* TELA DE PARABÉNS + AGENDAMENTO */}
+      {!isParetoOnly && !guide.quiz && guide.checkpoints && guide.checkpoints.every(c => c.completed) && (
+          <div className="text-center py-10 bg-gradient-to-b from-indigo-50 to-white rounded-3xl border border-indigo-100 shadow-xl animate-in zoom-in duration-500 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-blue-500"></div>
+              
+              <div className="inline-block p-4 bg-white rounded-full shadow-lg mb-4">
+                  <CheckCircle className="w-12 h-12 text-green-500"/>
+              </div>
+              
+              <h3 className="text-3xl font-extrabold text-gray-900 mb-2">Sessão Concluída!</h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">Você completou o roteiro de hoje. Para garantir a memorização de longo prazo, recomendamos agendar sua primeira revisão.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <button onClick={onGenerateQuiz} className="bg-white text-indigo-600 border-2 border-indigo-100 px-8 py-3 rounded-xl font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-colors shadow-sm w-full sm:w-auto">
+                      Gerar Quiz Final
+                  </button>
 
-export const MessageCircle = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-);
+                  {/* BOTÃO DE AGENDAMENTO AUTOMÁTICO */}
+                  {onScheduleReview && (
+                      <button 
+                        onClick={() => onScheduleReview(studyIdPlaceholder)} 
+                        disabled={isReviewScheduled}
+                        className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto ${isReviewScheduled ? 'bg-green-100 text-green-700 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-1'}`}
+                      >
+                          {isReviewScheduled ? (
+                              <><Calendar className="w-5 h-5"/> Revisão Agendada</>
+                          ) : (
+                              <><Clock className="w-5 h-5"/> Agendar Revisão (24h)</>
+                          )}
+                      </button>
+                  )}
+              </div>
 
-export const X = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-);
-
-export const Send = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-);
-
-export const Bot = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
-);
-
-export const FolderIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
-);
-
-export const Plus = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-);
-
-export const Trash = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-);
-
-export const Monitor = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
-);
-
-export const HelpCircle = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-);
-
-export const ChevronRight = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>
-);
-
-export const ChevronDown = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
-);
-
-export const Play = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="5 3 19 12 5 21 5 3"/></svg>
-);
-
-export const Pause = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-);
-
-export const BookOpen = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-);
-
-export const Zap = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-);
-
-export const Link = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-);
-
-export const Sparkles = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>
-);
-
-export const Edit = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-);
-
-export const Image = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-);
-
-export const CornerDownRight = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
-);
-
-export const Rocket = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
-);
-
-export const BatteryCharging = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><line x1="23" x2="23" y1="13" y2="11"/><polyline points="11 6 7 12 13 12 9 18"/></svg>
-);
-
-export const Activity = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-);
-
-export const Globe = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-);
-
-export const GraduationCap = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
-);
-
-export const RefreshCw = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-);
-
-export const Mic = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-);
-
-export const Settings = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-);
-
-export const Layers = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
-);
-
-export const Camera = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-);
-
-export const Menu = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-);
-
-export const Lock = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-);
-
-export const Smile = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
-);
-
-export const Tomato = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" className={className}>
-    <ellipse cx="12" cy="21" rx="8" ry="1.5" fill="#000" fillOpacity="0.2" filter="blur(2px)"/>
-    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 7.05 18.5 3 12 3C5.5 3 2 7.05 2 12C2 17.5228 6.47715 22 12 22Z" fill="url(#tomatoGradient)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5"/>
-    <circle cx="12" cy="12" r="9" fill="url(#innerGlow)" style={{mixBlendMode: 'overlay'}} />
-    <path d="M7 7C8.5 5 11 4.5 13 5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8"/>
-    <ellipse cx="9" cy="8" rx="2" ry="1" fill="white" fillOpacity="0.4" transform="rotate(-45 9 8)"/>
-    <path d="M12 2V5" stroke="#166534" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M12 5L10 3" stroke="#166534" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M12 5L14 3" stroke="#166534" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M12 5L9 6" stroke="#166534" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M12 5L15 6" stroke="#166534" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M12 18V19" stroke="white" strokeOpacity="0.5" strokeWidth="1" strokeLinecap="round"/>
-    <path d="M18 12H19" stroke="white" strokeOpacity="0.5" strokeWidth="1" strokeLinecap="round"/>
-    <path d="M6 12H5" stroke="white" strokeOpacity="0.5" strokeWidth="1" strokeLinecap="round"/>
-    <path d="M12 12L14 14L10 14L12 12Z" fill="white" fillOpacity="0.9"/>
-    <defs>
-      <linearGradient id="tomatoGradient" x1="6" y1="4" x2="18" y2="20" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#ef4444" />
-        <stop offset="50%" stopColor="#dc2626" />
-        <stop offset="100%" stopColor="#991b1b" />
-      </linearGradient>
-      <radialGradient id="innerGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(10 9) rotate(90) scale(10)">
-        <stop stopColor="white" stopOpacity="0.4"/>
-        <stop offset="1" stopColor="white" stopOpacity="0"/>
-      </radialGradient>
-    </defs>
-  </svg>
-);
-
-export const NeuroLogo = ({ className, size = 40 }: { className?: string, size?: number }) => (
-  <div className={className} style={{ height: size, width: size, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-      <img
-        src="https://i.ibb.co/rRD7bqP3/logogrande.png"
-        alt="NeuroStudy Architect"
-        style={{
-            height: '100%',
-            width: '100%',
-            objectFit: 'contain'
-        }}
-        onError={(e) => {
-             e.currentTarget.style.display = 'none';
-        }}
-      />
-  </div>
-);
-
-export const Bell = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-);
-
-export const Calendar = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-);
-
-export const Clock = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.1" />
-    <polyline points="12 6 12 12 16 14" />
-    <path d="M16 4.5a9 9 0 0 0-8 0" strokeOpacity="0.3" strokeWidth="1"/>
-  </svg>
-);
-
-export const Loader2 = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-);
-
-export const Star = ({ className, fill }: { className?: string, fill?: boolean }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={fill ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-);
-
-export const Shield = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-);
+              {!isReviewScheduled && (
+                  <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400 bg-gray-50 inline-block px-4 py-2 rounded-full border border-gray-100">
+                      <Brain className="w-3 h-3"/> Baseado na Curva do Esquecimento de Ebbinghaus
+                  </div>
+              )}
+          </div>
+      )}
+    </div>
+  );
+};
