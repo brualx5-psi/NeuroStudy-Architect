@@ -4,7 +4,7 @@ import { generateTool, generateDiagram } from '../services/geminiService';
 import { 
   CheckCircle, BookOpen, Brain, Zap, Target, 
   Smile, Layers, ChevronDown, ChevronRight,
-  Lightbulb, RefreshCw, PenTool, Globe, Calendar, Clock
+  RefreshCw, PenTool, Globe, Calendar, Clock
 } from './Icons';
 
 interface ResultsViewProps {
@@ -18,7 +18,7 @@ interface ResultsViewProps {
   isReviewScheduled?: boolean;   
 }
 
-export const ResultsView: React.FC<ResultsViewProps> = ({ // <-- EXPORTAÇÃO CORRETA
+export const ResultsView: React.FC<ResultsViewProps> = ({
   guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled
 }) => {
   const [loadingTool, setLoadingTool] = useState<string | null>(null);
@@ -32,7 +32,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ // <-- EXPORTAÇÃO CO
     }
   }, [guide.tools]);
 
-  const handleGenerateTool = async (toolType: 'explainLikeIm5' | 'analogy' | 'realWorldApplication' | 'mnemonics' | 'interdisciplinary', topic: string) => {
+  // Removi 'mnemonics' da tipagem aqui
+  const handleGenerateTool = async (toolType: 'explainLikeIm5' | 'analogy' | 'realWorldApplication' | 'interdisciplinary', topic: string) => {
     setLoadingTool(toolType);
     if (toolType === 'explainLikeIm5') setIsFeynmanOpen(true);
 
@@ -91,7 +92,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ // <-- EXPORTAÇÃO CO
       </div>
   );
 
-  // Variável local simulada para o ID do estudo (já que o App.tsx que tem o ID real)
   const studyIdPlaceholder = 'study-id-placeholder'; 
 
   return (
@@ -125,14 +125,14 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ // <-- EXPORTAÇÃO CO
         )}
       </div>
 
-      {/* FERRAMENTAS COGNITIVAS */}
+      {/* FERRAMENTAS COGNITIVAS (Sem Mnemônicos) */}
       {!isParetoOnly && (
         <section>
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Brain className="w-6 h-6 text-indigo-500"/> 
                 Ferramentas Cognitivas
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* CARD 1: FEYNMAN */}
                 <div className={`p-6 rounded-2xl border transition-all duration-300 ${guide.tools?.explainLikeIm5 ? 'bg-white border-green-200 shadow-md' : 'bg-white border-gray-200 hover:border-indigo-300 hover:shadow-lg'}`}>
                     <div className="flex justify-between items-start mb-4 cursor-pointer" onClick={() => { if (guide.tools?.explainLikeIm5) setIsFeynmanOpen(!isFeynmanOpen); }}>
@@ -162,15 +162,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ // <-- EXPORTAÇÃO CO
                         <div><p className="text-sm text-gray-500 mb-4 leading-relaxed">"Se você não consegue explicar de forma simples, você não entendeu bem o suficiente."</p><button onClick={() => handleGenerateTool('explainLikeIm5', guide.title)} disabled={loadingTool === 'explainLikeIm5'} className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors text-sm shadow-sm hover:shadow-md">{loadingTool === 'explainLikeIm5' ? 'Gerando...' : 'Aplicar Feynman'}</button></div>
                     )}
                 </div>
-                {/* Outros Cards mantidos... */}
+                {/* CARD 2: DIAGRAMA */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all">
                     <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-purple-100 text-purple-600"><Zap className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Mapa Mental</h3><p className="text-xs text-gray-500">Estrutura Visual</p></div></div>
                     {guide.diagramUrl ? (<div className="mt-2 animate-in zoom-in"><img src={guide.diagramUrl} alt="Diagrama" className="w-full rounded-lg border border-gray-100 shadow-sm hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(guide.diagramUrl, '_blank')} /><p className="text-center text-xs text-gray-400 mt-2">Clique para ampliar</p></div>) : (<div className="h-32 flex items-center justify-center bg-gray-50 rounded-xl border border-dashed border-gray-200"><button onClick={handleGenerateDiagram} disabled={loadingTool === 'diagram'} className="px-4 py-2 bg-white border border-gray-200 shadow-sm text-gray-600 rounded-lg font-bold hover:text-purple-600 hover:border-purple-200 transition-colors text-sm flex items-center gap-2">{loadingTool === 'diagram' ? 'Desenhando...' : <><PenTool className="w-4 h-4"/> Gerar Mapa Mental</>}</button></div>)}
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-orange-300 hover:shadow-lg transition-all">
-                    <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-orange-100 text-orange-600"><Lightbulb className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Mnemônicos</h3><p className="text-xs text-gray-500">Hacks de Memória</p></div></div>
-                    {guide.tools?.mnemonics ? (<div className="p-3 bg-orange-50 rounded-lg text-sm text-gray-700 font-medium">{guide.tools.mnemonics}</div>) : (<button onClick={() => handleGenerateTool('mnemonics', guide.title)} disabled={loadingTool === 'mnemonics'} className="w-full py-2 bg-white border border-gray-200 text-gray-600 rounded-lg font-bold hover:bg-orange-50 hover:text-orange-600 transition-colors text-sm">Criar Mnemônico</button>)}
-                </div>
+                {/* CARD 3: CONEXÕES (Agora é o terceiro, pois Mnemônicos saiu) */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all">
                     <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-blue-100 text-blue-600"><Globe className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Conexões</h3><p className="text-xs text-gray-500">Visão Interdisciplinar</p></div></div>
                     {guide.tools?.interdisciplinary ? (<div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-700">{guide.tools.interdisciplinary}</div>) : (<button onClick={() => handleGenerateTool('interdisciplinary', guide.title)} disabled={loadingTool === 'interdisciplinary'} className="w-full py-2 bg-white border border-gray-200 text-gray-600 rounded-lg font-bold hover:bg-blue-50 hover:text-blue-600 transition-colors text-sm">Expandir Visão</button>)}
@@ -248,7 +245,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ // <-- EXPORTAÇÃO CO
                       Gerar Quiz Final
                   </button>
 
-                  {/* BOTÃO DE AGENDAMENTO AUTOMÁTICO */}
                   {onScheduleReview && (
                       <button 
                         onClick={() => onScheduleReview(studyIdPlaceholder)} 
