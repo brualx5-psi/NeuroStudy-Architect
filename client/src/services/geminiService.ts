@@ -167,10 +167,19 @@ export const generateStudyGuide = async (content: string, mimeType: string, mode
   Estratégia Adicional: ${modeInstructions} 
   
   INSTRUÇÕES ESPECÍFICAS PARA CAMPO 'overview' (Advance Organizer):
+  ${mode === StudyMode.PARETO ? `
+  - ESTILO: ARTIGO "BOTTOM LINE UP FRONT" (Jornalístico/Executivo).
+  - Escreva um texto corrido, denso e direto.
+  - OMITA analogias, metáforas ou introduções suaves.
+  - Comece IMEDIATAMENTE entregando o valor central (os 20%).
+  - Use parágrafos curtos e objetivos.
+  - Tom: Profissional, eficiente e acelerado.
+  ` : `
   - Seu objetivo é PREPARAR O TERRENO (Schema Theory).
   - Crie uma "Ponte Cognitiva": Comece com uma analogia ou cenário familiar.
   - Conecte o novo conhecimento com algo que quase todo mundo já sabe.
   - Termine explicando a relevância prática.
+  `}
   
   JSON estrito e válido.
   `;

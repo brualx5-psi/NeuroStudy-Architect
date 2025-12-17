@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, HelpCircle, Shield, CheckCircle } from './Icons';
+import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, HelpCircle, Shield } from './Icons';
 import { InputType } from '../types';
 
 interface SearchResult {
@@ -26,11 +26,11 @@ const EvidenceLevelBar = ({ score, isGuideline }: { score: number, isGuideline?:
     let width = '20%';
 
     if (isGuideline) { color = 'bg-purple-600'; width = '100%'; }
-    else if (score === 5) { color = 'bg-emerald-600'; width = '100%'; } // Meta-análise
-    else if (score === 4) { color = 'bg-green-500'; width = '80%'; } // RCT
-    else if (score === 3) { color = 'bg-yellow-500'; width = '60%'; } // Coorte
-    else if (score === 2) { color = 'bg-orange-400'; width = '40%'; } // Caso-controle
-    else { color = 'bg-red-400'; width = '20%'; } // Outros
+    else if (score === 5) { color = 'bg-emerald-600'; width = '100%'; } // Meta-análise (Verde Escuro)
+    else if (score === 4) { color = 'bg-green-500'; width = '80%'; }   // RCT (Verde Claro)
+    else if (score === 3) { color = 'bg-yellow-400'; width = '60%'; }  // Coorte (Amarelo)
+    else if (score === 2) { color = 'bg-orange-500'; width = '40%'; }  // Caso-controle (Laranja)
+    else { color = 'bg-red-500'; width = '20%'; }                      // Outros (Vermelho)
 
     return (
         <div className="flex flex-col gap-1 w-full max-w-[120px]">
@@ -46,8 +46,9 @@ const EvidenceLevelBar = ({ score, isGuideline }: { score: number, isGuideline?:
 
 export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onClose, onAddSource }) => {
     const [query, setQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'book' | 'article' | 'web'>('article'); // Começa em Artigos que é o foco
+    const [activeTab, setActiveTab] = useState<'book' | 'article' | 'web'>('article');
     const [results, setResults] = useState<SearchResult[]>([]);
+    const [filter, setFilter] = useState<'ALL' | 'GUIDELINE' | 'META' | 'RCT'>('ALL'); // Filtro de Tipo de Estudo
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
@@ -60,6 +61,13 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
             setShowTutorial(true);
         }
     }, []);
+
+    // AUTO-BUSCA AO TROCAR DE ABA
+    useEffect(() => {
+        if (query.trim() && hasSearched) {
+            handleSearch();
+        }
+    }, [activeTab]);
 
     const handleCloseTutorial = (dontShowAgain: boolean) => {
         setShowTutorial(false);
@@ -101,10 +109,11 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
         setLoading(true);
         setHasSearched(true);
         setResults([]);
+        setFilter('ALL'); // Reseta filtro ao buscar
 
         try {
             if (activeTab === 'book') {
-                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=9&langRestrict=pt`);
+                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40&langRestrict=pt`);
                 const data = await response.json();
 
                 if (data.items) {
@@ -121,8 +130,8 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 }
 
             } else if (activeTab === 'article') {
-                // Ordena por relevância e citações na API para tentar pegar os maiores primeiro
-                const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=15&sort=cited_by_count:desc`);
+                // AUMENTADO PARA 40 RESULTADOS
+                const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=40&sort=cited_by_count:desc`);
                 const data = await response.json();
 
                 if (data.results) {
@@ -142,12 +151,10 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                         };
                     });
 
-                    // ORDENAÇÃO FORÇADA: Guidelines > Score 5 > Score 4 ... > Score 1
+                    // ORDENAÇÃO FORÇADA: Guidelines > Score > Citações
                     const sorted = formatted.sort((a, b) => {
-                        // 1. Guidelines primeiro
                         if (a.isGuideline && !b.isGuideline) return -1;
                         if (!a.isGuideline && b.isGuideline) return 1;
-                        // 2. Depois pelo Score (5 a 1)
                         return (b.reliabilityScore || 0) - (a.reliabilityScore || 0);
                     });
 
@@ -155,7 +162,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 }
 
             } else {
-                const response = await fetch(`https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=9`);
+                const response = await fetch(`https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=40`);
                 const data = await response.json();
                 if (data.query?.search) {
                     const formatted: SearchResult[] = data.query.search.map((item: any) => ({
@@ -175,6 +182,16 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
             setLoading(false);
         }
     };
+
+    // Lógica de Filtragem Visual
+    const filteredResults = results.filter(r => {
+        if (activeTab !== 'article') return true;
+        if (filter === 'ALL') return true;
+        if (filter === 'GUIDELINE') return r.isGuideline;
+        if (filter === 'META') return r.reliabilityScore === 5 && !r.isGuideline;
+        if (filter === 'RCT') return r.reliabilityScore === 4;
+        return true;
+    });
 
     return (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -229,9 +246,22 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 <div className="bg-white border-b border-gray-100 p-4 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-3">
                         <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Globe className="w-5 h-5 text-indigo-600" /> Pesquisar Fontes</h3>
-                        <button onClick={() => setShowTutorial(true)} className="text-gray-400 hover:text-indigo-600 transition-colors" title="Como pesquisar?"><HelpCircle className="w-5 h-5" /></button>
+
+                        {/* FILTROS (CHIPS) */}
+                        {activeTab === 'article' && results.length > 0 && (
+                            <div className="hidden md:flex items-center gap-2 ml-4 animate-in fade-in slide-in-from-left-4">
+                                <span className="text-xs font-bold text-gray-400 uppercase mr-1">Filtrar:</span>
+                                <button onClick={() => setFilter('ALL')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${filter === 'ALL' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Todos</button>
+                                <button onClick={() => setFilter('GUIDELINE')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${filter === 'GUIDELINE' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-100'}`}><Shield className="w-3 h-3" /> Diretrizes</button>
+                                <button onClick={() => setFilter('META')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${filter === 'META' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>Meta-Review</button>
+                                <button onClick={() => setFilter('RCT')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${filter === 'RCT' ? 'bg-green-500 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>RCTs</button>
+                            </div>
+                        )}
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setShowTutorial(true)} className="text-gray-400 hover:text-indigo-600 transition-colors" title="Como pesquisar?"><HelpCircle className="w-5 h-5" /></button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
+                    </div>
                 </div>
 
                 {/* Tabs & Search */}
@@ -270,9 +300,9 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
 
                 {/* Results */}
                 <div className="flex-1 overflow-y-auto p-6 bg-slate-100/50">
-                    {results.length > 0 ? (
+                    {filteredResults.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {results.map((item) => (
+                            {filteredResults.map((item) => (
                                 <div key={item.id} className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full group relative ${item.isGuideline ? 'border-purple-300 ring-1 ring-purple-100 bg-purple-50/20' : 'border-gray-200'}`}>
 
                                     {/* SELO DE GUIDELINE */}
@@ -323,8 +353,10 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                             ) : hasSearched ? (
                                 <div className="text-center max-w-md mx-auto">
                                     <Search className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                                    <p className="font-bold text-gray-600 mb-2">Nenhum resultado relevante encontrado.</p>
-                                    <p className="text-sm">Tente termos mais específicos ou em inglês (ex: <i>"Anxiety treatment guidelines"</i>).</p>
+                                    <p className="font-bold text-gray-600 mb-2">
+                                        {filter !== 'ALL' ? 'Nenhum resultado com este filtro.' : 'Nenhum resultado relevante encontrado.'}
+                                    </p>
+                                    <p className="text-sm">Tente remover os filtros ou usar termos mais amplos.</p>
                                 </div>
                             ) : (
                                 <div className="text-center max-w-md mx-auto opacity-60">
