@@ -32,7 +32,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     }
   }, [guide.tools]);
 
-  // Removi 'mnemonics' da tipagem aqui
   const handleGenerateTool = async (toolType: 'explainLikeIm5' | 'analogy' | 'realWorldApplication' | 'interdisciplinary', topic: string) => {
     setLoadingTool(toolType);
     if (toolType === 'explainLikeIm5') setIsFeynmanOpen(true);
@@ -167,7 +166,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-purple-100 text-purple-600"><Zap className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Mapa Mental</h3><p className="text-xs text-gray-500">Estrutura Visual</p></div></div>
                     {guide.diagramUrl ? (<div className="mt-2 animate-in zoom-in"><img src={guide.diagramUrl} alt="Diagrama" className="w-full rounded-lg border border-gray-100 shadow-sm hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(guide.diagramUrl, '_blank')} /><p className="text-center text-xs text-gray-400 mt-2">Clique para ampliar</p></div>) : (<div className="h-32 flex items-center justify-center bg-gray-50 rounded-xl border border-dashed border-gray-200"><button onClick={handleGenerateDiagram} disabled={loadingTool === 'diagram'} className="px-4 py-2 bg-white border border-gray-200 shadow-sm text-gray-600 rounded-lg font-bold hover:text-purple-600 hover:border-purple-200 transition-colors text-sm flex items-center gap-2">{loadingTool === 'diagram' ? 'Desenhando...' : <><PenTool className="w-4 h-4"/> Gerar Mapa Mental</>}</button></div>)}
                 </div>
-                {/* CARD 3: CONEXÕES (Agora é o terceiro, pois Mnemônicos saiu) */}
+                {/* CARD 3: CONEXÕES */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all">
                     <div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-lg bg-blue-100 text-blue-600"><Globe className="w-6 h-6" /></div><div><h3 className="font-bold text-gray-900">Conexões</h3><p className="text-xs text-gray-500">Visão Interdisciplinar</p></div></div>
                     {guide.tools?.interdisciplinary ? (<div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-700">{guide.tools.interdisciplinary}</div>) : (<button onClick={() => handleGenerateTool('interdisciplinary', guide.title)} disabled={loadingTool === 'interdisciplinary'} className="w-full py-2 bg-white border border-gray-200 text-gray-600 rounded-lg font-bold hover:bg-blue-50 hover:text-blue-600 transition-colors text-sm">Expandir Visão</button>)}
