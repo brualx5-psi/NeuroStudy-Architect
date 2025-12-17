@@ -142,7 +142,6 @@ export const generateStudyGuide = async (content: string, mimeType: string, mode
   });
 };
 
-// --- FUNÇÃO RESTAURADA E LIMPA ---
 export const generateTool = async (
   toolType: 'explainLikeIm5' | 'analogy' | 'realWorldApplication' | 'interdisciplinary',
   topic: string,
