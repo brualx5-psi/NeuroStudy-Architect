@@ -59,12 +59,9 @@ const CHAPTERS_PROPERTY = {
       type: Type.OBJECT,
       properties: {
         title: { type: Type.STRING },
-        summary: { type: Type.STRING },
-        practicalApplication: { type: Type.STRING },
-        coreConcepts: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { concept: { type: Type.STRING }, definition: { type: Type.STRING } }, required: ["concept", "definition"] } },
-        sections: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, coreConcepts: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { concept: { type: Type.STRING }, definition: { type: Type.STRING } }, required: ["concept", "definition"] } } }, required: ["title", "coreConcepts"] } }
+        paretoChunk: { type: Type.STRING }
       },
-      required: ["title", "summary", "coreConcepts"]
+      required: ["title", "paretoChunk"]
     }
   }
 };
@@ -133,19 +130,27 @@ export const generateStudyGuide = async (content: string, mimeType: string, mode
   MISSÃO: Analisar e criar um guia prático baseado em Neurociência.
 
   ${isBook ? `
-  ⚠️ ESTRUTURA DE LIVRO DETECTADA (PARETO DUPLO):
-  1. PARETO DO LIVRO (Global): No campo 'coreConcepts', extraia a essência de todo o livro (a "Big Picture").
-  2. PARETO DOS CAPÍTULOS (Local): Em cada capítulo, filtre apenas o que é acionável e relevante.
+  📚 MODO LIVRO vs NEUROSTUDY (ESTRUTURA AVANÇADA):
+  1. ADVANCE ORGANIZER ('overview'):
+     - O QUE É: Preparação cognitiva (Schema Theory).
+     - COMO FAZER: Diga o que esperar, ative conhecimentos prévios e crie curiosidade. Tom inspirador e claro.
+  2. GLOBAL PARETO ('coreConcepts'):
+     - O QUE É: A "Big Picture". Os 80/20 de TODO o livro.
+     - COMO FAZER: Liste os conceitos que sustentam a obra.
+  3. LOCAL PARETO ('chapters'):
+     - O QUE É: A essência de cada capítulo.
+     - REGRAS RÍGIDAS: Use 'paretoChunk'. Texto denso, direto e revelador.
+     - PROIBIDO: Listas genéricas ("Neste capítulo o autor fala de..."). Diga O QUE ELE FALA. Vá direto ao insight.
   ` : ''}
   
-  ${mode === StudyMode.PARETO ? `
+  ${mode === StudyMode.PARETO && !isBook ? `
   🔥 MODO PARETO 80/20 (EXTREMO):
   - Foco: VELOCIDADE e ESSÊNCIA.
   - O QUE FAZER: Identifique os 20% de informação que dão 80% do resultado.
   - Core Concepts: Máximo 3-5 conceitos CRUCIAIS.
   - Elimine: Histórias, introduções longas, "palha".
   - Estilo: Direto ao ponto, sem rodeios.
-  ` : mode === StudyMode.HARD ? `
+  ` : mode === StudyMode.PARETO && isBook ? '' : mode === StudyMode.HARD ? `
   🚀 MODO HARD (PROFUNDO):
   - Foco: DETALHE e DOMÍNIO TÉCNICO.
   - O QUE FAZER: Explique os porquês, com nuances e exceções.
@@ -223,8 +228,8 @@ export const generateTool = async (
   const ai = new GoogleGenAI({ apiKey });
   let prompt = '';
   switch (toolType) {
-    case 'explainLikeIm5': prompt = `Explique "${topic}" (Contexto: ${context.slice(0, 500)}) usando o Método Feynman: Explicação simples, lacunas e analogia.`; break;
-    case 'realWorldApplication': prompt = `Dê um exemplo prático real de "${topic}" (Contexto: ${context.slice(0, 500)}).`; break;
+    case 'explainLikeIm5': prompt = `Explique "${topic}" (Contexto: ${context.slice(0, 500)}) usando o Método Feynman. O tom deve ser fascinante e revelador. Use uma metáfora brilhante se possível. Mantenha curto (max 3 frases), mas impactante.`; break;
+    case 'realWorldApplication': prompt = `Como "${topic}" (Contexto: ${context.slice(0, 500)}) é usado no mundo real? Dê um exemplo prático, surpreendente e útil. Nada genérico. Direto e acionável.`; break;
     case 'analogy': prompt = `Crie uma analogia para "${topic}".`; break;
     case 'interdisciplinary': prompt = `Conecte "${topic}" com outra área do conhecimento.`; break;
     default: throw new Error("Ferramenta inválida.");
@@ -249,12 +254,12 @@ export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
 
 export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: any): Promise<QuizQuestion[]> => {
   const apiKey = getApiKey(); if (!apiKey) throw new Error("API Key missing"); const ai = new GoogleGenAI({ apiKey });
-  try { return JSON.parse((await safeGenerate(ai, `Crie Quiz JSON com ${config?.quantity || 6} perguntas sobre ${guide.subject}.`)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
+  try { return JSON.parse((await safeGenerate(ai, `Crie um Quiz DE ALTO NÍVEL (Neuroscience-based) com ${config?.quantity || 6} perguntas sobre: ${guide.subject}. Foco: Testar compreensão profunda e aplicação, não apenas memorização. JSON estrito.`)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
 };
 
 export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]> => {
   const apiKey = getApiKey(); if (!apiKey) throw new Error("API Key missing"); const ai = new GoogleGenAI({ apiKey });
-  try { return JSON.parse((await safeGenerate(ai, `Crie Flashcards JSON sobre: ${guide.subject}.`)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
+  try { return JSON.parse((await safeGenerate(ai, `Crie Flashcards OTIMIZADOS PARA MEMORIZAÇÃO (Spaced Repetition) sobre: ${guide.subject}. Foco: Pergunta gatilho -> Resposta direta e clara. JSON estrito.`)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
 };
 
 export const sendChatMessage = async (history: ChatMessage[], msg: string, studyGuide: StudyGuide | null = null): Promise<string> => {

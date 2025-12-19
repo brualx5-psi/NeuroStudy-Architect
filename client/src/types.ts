@@ -33,7 +33,7 @@ export interface Checkpoint {
   lookFor: string;      // "O que procurar"
   noteExactly: string;  // "Escreva exatamente isso"
   drawExactly: string;  // "Desenhe exatamente isso"
-  drawLabel?: 'essential' | 'suggestion' | 'none'; 
+  drawLabel?: 'essential' | 'suggestion' | 'none';
   question: string;
   imageUrl?: string;    // Para guardar o diagrama gerado
   completed?: boolean;
@@ -44,26 +44,24 @@ export interface StudyGuide {
   title: string;
   overview: string;
   globalApplication?: string;
-  coreConcepts: CoreConcept[]; 
-  
+  coreConcepts: CoreConcept[];
+
   bookChapters?: {
-      title: string;
-      summary: string;
-      keyPoints: string[];
-      actionableStep?: string;
-      coreConcepts?: CoreConcept[];
-  }[]; 
+    title: string;
+    paretoChunk: string; // Resumo Pareto do capítulo (80/20)
+    completed?: boolean; // Controle de leitura
+  }[];
   supportConcepts?: CoreConcept[];
   checkpoints?: Checkpoint[];
   quiz?: QuizQuestion[];
   flashcards?: Flashcard[];
-  
+
   diagramUrl?: string;
   tools?: {
-      mnemonics?: string;
-      interdisciplinary?: string;
-      realWorldApplication?: string;
-      explainLikeIm5?: string;
+    mnemonics?: string;
+    interdisciplinary?: string;
+    realWorldApplication?: string;
+    explainLikeIm5?: string;
   };
 }
 
@@ -74,12 +72,12 @@ export interface StudySession {
   sources: StudySource[];
   mode: StudyMode;
   isBook?: boolean;
-  
+
   guide: StudyGuide | null;
   slides: SlideContent[] | null;
   quiz: QuizQuestion[] | null;
   flashcards: Flashcard[] | null;
-  
+
   createdAt: number;
   updatedAt: number;
   nextReviewDate?: number;

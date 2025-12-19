@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Brain, Sparkles, Activity, Search, FileText, Layers, CheckCircle } from './Icons';
+import { InputType, StudyMode } from '../types';
+import { Brain, Sparkles, Activity, Search, FileText, Layers, CheckCircle, BookOpen } from './Icons';
 
 interface ProcessingStatusProps {
   step: 'idle' | 'analyzing' | 'transcribing' | 'generating' | 'slides' | 'quiz' | 'flashcards' | 'diagram' | 'complete';
   type?: 'guide' | 'slides' | 'quiz' | 'flashcards';
   size?: 'normal' | 'large'; // Novo: Permite controlar o tamanho
+  mode?: StudyMode;
+  isBook?: boolean;
 }
 
 // DICAS BASEADAS EM EVIDÊNCIA (PBE)
@@ -20,7 +23,7 @@ const TIPS = [
   "🔄 Repetição Espaçada: Revisar conteúdo prestes a ser esquecido é o momento mais eficiente para garantir a memória de longo prazo."
 ];
 
-export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type = 'guide', size = 'normal' }) => {
+export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type = 'guide', size = 'normal', mode, isBook }) => {
   const [progress, setProgress] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
 
@@ -54,10 +57,23 @@ export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type =
   }, [step]);
 
   const getStepInfo = () => {
+    const isPareto = mode === StudyMode.PARETO;
+
     switch (step) {
-      case 'analyzing': return { icon: <Search className={size === 'large' ? "w-16 h-16 text-indigo-500 animate-bounce" : "w-8 h-8 text-indigo-500 animate-bounce"} />, title: "Analisando Estrutura Cognitiva...", desc: "Identificando conceitos chave e padrões hierárquicos." };
+      case 'analyzing':
+        if (isBook) return { icon: <BookOpen className={size === 'large' ? "w-16 h-16 text-orange-500 animate-bounce" : "w-8 h-8 text-orange-500 animate-bounce"} />, title: "Analisando Obra Literária...", desc: "Identificando estrutura de capítulos e tese central." };
+        return isPareto
+          ? { icon: <Search className={size === 'large' ? "w-16 h-16 text-red-500 animate-bounce" : "w-8 h-8 text-red-500 animate-bounce"} />, title: "Extraindo a Essência (80/20)...", desc: "Identificando o cerne vital e filtrando o ruído trivial." }
+          : { icon: <Search className={size === 'large' ? "w-16 h-16 text-indigo-500 animate-bounce" : "w-8 h-8 text-indigo-500 animate-bounce"} />, title: "Analisando Estrutura Cognitiva...", desc: "Identificando conceitos chave e padrões hierárquicos." };
+
       case 'transcribing': return { icon: <FileText className={size === 'large' ? "w-16 h-16 text-blue-500 animate-pulse" : "w-8 h-8 text-blue-500 animate-pulse"} />, title: "Processando Mídia...", desc: "Convertendo conteúdo em texto processável." };
-      case 'generating': return { icon: <Brain className={size === 'large' ? "w-16 h-16 text-purple-500 animate-pulse" : "w-8 h-8 text-purple-500 animate-pulse"} />, title: "Sintetizando Conhecimento...", desc: "Aplicando filtros de Pareto (80/20) e criando checkpoints de aprendizado." };
+
+      case 'generating':
+        if (isBook) return { icon: <Brain className={size === 'large' ? "w-16 h-16 text-orange-500 animate-pulse" : "w-8 h-8 text-orange-500 animate-pulse"} />, title: "Sintetizando Capítulos...", desc: "Criando resumos detalhados e extraindo lições práticas." };
+        return isPareto
+          ? { icon: <Brain className={size === 'large' ? "w-16 h-16 text-red-500 animate-pulse" : "w-8 h-8 text-red-500 animate-pulse"} />, title: "Sintetizando Resumo Executivo...", desc: "Focando estritamente nos 20% do conteúdo que geram 80% do valor." }
+          : { icon: <Brain className={size === 'large' ? "w-16 h-16 text-purple-500 animate-pulse" : "w-8 h-8 text-purple-500 animate-pulse"} />, title: "Sintetizando Conhecimento...", desc: "Aplicando filtros de Pareto (80/20) e criando checkpoints de aprendizado." };
+
       case 'slides': return { icon: <Activity className={size === 'large' ? "w-16 h-16 text-orange-500 animate-spin" : "w-8 h-8 text-orange-500 animate-spin"} />, title: "Diagramando Slides...", desc: "Estruturando apresentação visual e notas do orador." };
       case 'quiz': return { icon: <CheckCircle className={size === 'large' ? "w-16 h-16 text-green-500 animate-bounce" : "w-8 h-8 text-green-500 animate-bounce"} />, title: "Formulando Questões...", desc: "Criando desafios de recuperação ativa baseados no conteúdo." };
       case 'flashcards': return { icon: <Layers className={size === 'large' ? "w-16 h-16 text-pink-500 animate-pulse" : "w-8 h-8 text-pink-500 animate-pulse"} />, title: "Criando Flashcards...", desc: "Gerando pares de memorização frente/verso para espaçamento." };
@@ -70,7 +86,7 @@ export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type =
 
   return (
     <div className={`flex flex-col items-center justify-center p-8 w-full mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 animate-in fade-in zoom-in duration-500 ${isLarge ? 'max-w-2xl py-20' : 'max-w-lg'}`}>
-      
+
       {/* Icon Wrapper */}
       <div className={`relative ${isLarge ? 'mb-10' : 'mb-6'}`}>
         <div className="absolute inset-0 bg-indigo-100 rounded-full scale-150 opacity-20 animate-ping"></div>
@@ -85,7 +101,7 @@ export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type =
 
       {/* Progress Bar */}
       <div className={`w-full bg-gray-100 rounded-full overflow-hidden relative ${isLarge ? 'h-4 mb-10' : 'h-3 mb-6'}`}>
-        <div 
+        <div
           className={`bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-full transition-all duration-300 ease-out animate-shimmer bg-[length:200%_100%] ${isLarge ? 'h-4' : 'h-3'}`}
           style={{ width: `${progress}%` }}
         ></div>
@@ -94,7 +110,7 @@ export const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ step, type =
       {/* Neuro Tip (PBE) */}
       <div className={`bg-indigo-50/50 border border-indigo-100 rounded-xl w-full text-center flex flex-col items-center justify-center ${isLarge ? 'p-6 min-h-[120px]' : 'p-3'}`}>
         <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-            <Sparkles className="w-3 h-3"/> Ciência do Aprendizado
+          <Sparkles className="w-3 h-3" /> Ciência do Aprendizado
         </span>
         <p className={`${isLarge ? 'text-base' : 'text-xs'} text-indigo-900 font-medium italic leading-relaxed`}>
           "{TIPS[tipIndex]}"

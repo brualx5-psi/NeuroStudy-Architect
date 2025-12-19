@@ -43,6 +43,13 @@ export function App() {
     const [folders, setFolders] = useState<Folder[]>([]);
     const [studies, setStudies] = useState<StudySession[]>([]);
     const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
+    const [targetFolderId, setTargetFolderId] = useState<string>('root-neuro');
+
+    const handleRequestNewStudy = (folderId: string) => {
+        setActiveStudyId(null);
+        setTargetFolderId(folderId);
+        setView('app');
+    };
 
     // ATUALIZADO: Adicionadas as abas 'map' e 'connections'
     const [activeTab, setActiveTab] = useState<'sources' | 'guide' | 'slides' | 'quiz' | 'flashcards' | 'map' | 'connections'>('sources');
@@ -101,6 +108,8 @@ export function App() {
         setIsMobileMenuOpen(false);
         setEditingSourceId(null);
     }, [activeStudyId]);
+
+
 
     const handleGoToHome = () => { setIsMobileMenuOpen(false); setActiveStudyId(null); setView('landing'); };
 
@@ -255,7 +264,22 @@ export function App() {
     const handleGenerateQuiz = async (config?: any) => { if (!activeStudy?.guide) return; setProcessingState({ isLoading: true, error: null, step: 'quiz' }); try { const quiz = await generateQuiz(activeStudy.guide, activeStudy.mode || StudyMode.NORMAL, config); setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz } : s)); } catch (err: any) { setProcessingState(prev => ({ ...prev, error: err.message })); } finally { setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' })); } };
     const handleGenerateFlashcards = async () => { if (!activeStudy?.guide) return; setProcessingState({ isLoading: true, error: null, step: 'flashcards' }); try { const flashcards = await generateFlashcards(activeStudy.guide); setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, flashcards } : s)); } catch (err: any) { setProcessingState(prev => ({ ...prev, error: err.message })); } finally { setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' })); } };
     const handleClearQuiz = () => { if (!activeStudyId) return; setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz: null } : s)); };
-    const handleStartSession = () => { createStudy('root-neuro', `Novo Estudo`, selectedMode); };
+    const handleStartSession = () => {
+        // Verifica se já existe um "Novo Estudo" (ou nome padrão) VAZIO nesta pasta, para reutilizar
+        // Isso evita criar duplicatas infinitas se a pessoa ficar clicando em "Novo Estudo" sem renomear
+        const existingEmptyStudy = studies.find(s =>
+            s.folderId === targetFolderId &&
+            s.title === 'Novo Estudo' &&
+            s.sources.length === 0
+        );
+
+        if (existingEmptyStudy) {
+            setActiveStudyId(existingEmptyStudy.id);
+            updateStudyMode(existingEmptyStudy.id, selectedMode);
+        } else {
+            createStudy(targetFolderId, `Novo Estudo`, selectedMode);
+        }
+    };
     const handleFolderExam = (fid: string) => { /* ... */ };
 
     const handleMarkReviewDone = (studyId: string) => {
@@ -401,7 +425,18 @@ export function App() {
 
     return (
         <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden animate-in fade-in duration-500">
-            <Sidebar folders={folders} studies={studies} activeStudyId={activeStudyId} onSelectStudy={setActiveStudyId} onCreateFolder={createFolder} onRenameFolder={renameFolder} onCreateStudy={createStudy} onDeleteStudy={deleteStudy} onDeleteFolder={deleteFolder} onMoveFolder={moveFolder} onMoveStudy={moveStudy} onOpenMethodology={() => setShowMethodologyModal(true)} onFolderExam={handleFolderExam} onGoToHome={handleGoToHome} />
+            <Sidebar
+                folders={folders} studies={studies} activeStudyId={activeStudyId}
+                onSelectStudy={setActiveStudyId} onCreateFolder={createFolder}
+                onRenameFolder={renameFolder} onCreateStudy={createStudy}
+                onDeleteStudy={deleteStudy} onDeleteFolder={deleteFolder}
+                onMoveFolder={moveFolder} onMoveStudy={moveStudy}
+                onOpenMethodology={() => setShowMethodologyModal(true)}
+                onFolderExam={handleFolderExam} onRequestNewStudy={handleRequestNewStudy}
+                onGoToHome={handleGoToHome}
+                isOpen={isMobileMenuOpen}
+                onClose={() => setIsMobileMenuOpen(false)}
+            />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
                 <header className="flex justify-between items-center p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10">
@@ -469,7 +504,7 @@ export function App() {
                     {activeStudy ? (
                         processingState.isLoading ? (
                             <div className="flex items-center justify-center h-full min-h-[500px]">
-                                <ProcessingStatus step={processingState.step} size="large" />
+                                <ProcessingStatus step={processingState.step} size="large" mode={activeStudy.mode} isBook={activeStudy.isBook} />
                             </div>
                         ) : (
                             activeStudy.isBook && !activeStudy.guide ? (
@@ -536,31 +571,41 @@ export function App() {
                                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                                         {activeTab === 'sources' && (
                                             <div className="space-y-6">
-                                                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                                                    <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500" /> Adicionar Conteúdo</h2>
-                                                    <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-1.5 rounded-xl w-full">
-                                                        <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
-                                                        <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF / E-book</button>
-                                                        <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
-                                                        <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
-                                                        <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
-                                                        <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
-                                                        <button onClick={() => setShowSearchModal(true)} className={`flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2`}><Globe className="w-4 h-4" /> Pesquisar Web</button>
-                                                    </div>
-                                                    <div className="space-y-4">
-                                                        {inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL ? (
-                                                            <textarea value={inputText} onChange={(e) => setInputText(e.target.value)} className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-sans text-sm" placeholder={inputType === InputType.URL ? "Cole o link aqui..." : inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2649-2" : "Cole suas anotações ou texto aqui..."} />
-                                                        ) : (
-                                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                                                                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} accept={inputType === InputType.PDF ? ".pdf,.epub,.mobi" : inputType === InputType.VIDEO ? "video/*,audio/*" : "image/*"} />
-                                                                <div className="flex flex-col items-center gap-2 text-gray-500">
-                                                                    {selectedFile ? (<><FileText className="w-8 h-8 text-indigo-500" /><span className="font-medium text-gray-900">{selectedFile.name}</span><span className="text-xs">Clique para trocar</span></>) : (<><UploadCloud className="w-8 h-8" /><span className="font-medium">Clique ou arraste o arquivo aqui</span><span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDF, EPUB, MOBI' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens (Cadernos/Lousas)'}</span></>)}
+                                                {/* ÁREA DE INPUT: Só mostra se NÃO for Pareto COM fonte já adicionada */}
+                                                {(!isParetoStudy || activeStudy.sources.length === 0) ? (
+                                                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                                        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500" /> Adicionar Conteúdo</h2>
+                                                        <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-1.5 rounded-xl w-full">
+                                                            <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
+                                                            <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF / E-book</button>
+                                                            <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
+                                                            <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
+                                                            <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
+                                                            <button onClick={() => setInputType(InputType.DOI)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.DOI ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>DOI/Artigo</button>
+                                                            <button onClick={() => setShowSearchModal(true)} className={`flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2`}><Globe className="w-4 h-4" /> Pesquisar Web</button>
+                                                        </div>
+                                                        <div className="space-y-4">
+                                                            {inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL ? (
+                                                                <textarea value={inputText} onChange={(e) => setInputText(e.target.value)} className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-sans text-sm" placeholder={inputType === InputType.URL ? "Cole o link aqui..." : inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2649-2" : "Cole suas anotações ou texto aqui..."} />
+                                                            ) : (
+                                                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                                                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} accept={inputType === InputType.PDF ? ".pdf,.epub,.mobi" : inputType === InputType.VIDEO ? "video/*,audio/*" : "image/*"} />
+                                                                    <div className="flex flex-col items-center gap-2 text-gray-500">
+                                                                        {selectedFile ? (<><FileText className="w-8 h-8 text-indigo-500" /><span className="font-medium text-gray-900">{selectedFile.name}</span><span className="text-xs">Clique para trocar</span></>) : (<><UploadCloud className="w-8 h-8" /><span className="font-medium">Clique ou arraste o arquivo aqui</span><span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDF, EPUB, MOBI' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens (Cadernos/Lousas)'}</span></>)}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
-                                                        <button onClick={addSourceToStudy} disabled={(!inputText && !selectedFile)} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">Adicionar à Lista</button>
+                                                            )}
+                                                            <button onClick={addSourceToStudy} disabled={(!inputText && !selectedFile)} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">Adicionar à Lista</button>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                ) : (
+                                                    /* CARD DE ARQUIVO PRONTO (Modo Pareto) */
+                                                    <div className="bg-green-50 p-6 rounded-xl border border-green-200 text-center animate-in fade-in">
+                                                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                                                        <h3 className="text-lg font-bold text-green-800">Arquivo Carregado</h3>
+                                                        <p className="text-green-700">O Modo Pareto usa apenas uma fonte principal.</p>
+                                                    </div>
+                                                )}
 
                                                 {activeStudy.sources.length > 0 && (
                                                     <div className="space-y-4">
@@ -572,18 +617,29 @@ export function App() {
                                                                         {editingSourceId === source.id ? (
                                                                             <div className="flex items-center gap-2"><input autoFocus value={editSourceName} onChange={(e) => setEditSourceName(e.target.value)} onBlur={handleSaveSourceRename} onKeyDown={(e) => e.key === 'Enter' && handleSaveSourceRename()} className="w-full text-sm font-bold text-gray-800 border-b border-indigo-500 outline-none bg-transparent" /></div>
                                                                         ) : (
-                                                                            <div className="flex items-center gap-2"><h3 className="font-bold text-gray-800 truncate cursor-pointer hover:text-indigo-600 transition-colors" title="Clique para visualizar" onClick={() => setPreviewSource(source)}>{source.name}</h3><button onClick={() => handleStartRenamingSource(source)} className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-indigo-600 transition-opacity" title="Renomear Fonte"><Edit className="w-3 h-3" /></button></div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <h3 className="font-bold text-gray-800 truncate cursor-pointer hover:text-indigo-600 transition-colors" title="Clique para visualizar" onClick={() => setPreviewSource(source)}>{source.name}</h3>
+                                                                                {/* Esconde botão renomear em Pareto */}
+                                                                                {!isParetoStudy && <button onClick={() => handleStartRenamingSource(source)} className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-indigo-600 transition-opacity" title="Renomear Fonte"><Edit className="w-3 h-3" /></button>}
+                                                                            </div>
                                                                         )}
                                                                         <div className="flex items-center gap-2 mt-1"><span className="text-xs text-gray-500 uppercase tracking-wider font-bold">{source.type} • {new Date(source.dateAdded).toLocaleTimeString()}</span><button onClick={() => setPreviewSource(source)} className="flex items-center gap-1 text-[10px] text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors"><Eye className="w-3 h-3" /> Visualizar</button></div>
                                                                     </div>
                                                                 </div>
-                                                                <button onClick={() => removeSource(source.id)} className="text-gray-400 hover:text-red-500 p-2 ml-2"><Trash className="w-5 h-5" /></button>
+                                                                {/* Esconde lixeira em Pareto */}
+                                                                {!isParetoStudy && <button onClick={() => removeSource(source.id)} className="text-gray-400 hover:text-red-500 p-2 ml-2"><Trash className="w-5 h-5" /></button>}
                                                             </div>
                                                         ))}
 
                                                         {!activeStudy.isBook && (
                                                             <div className="flex flex-col gap-4 justify-end pt-4 border-t border-gray-100 mt-4">
                                                                 <div className="flex items-center justify-end gap-2 text-sm text-gray-600">
+                                                                    {/* Seleção de Modo escondida se já estamos em Pareto (assumindo que não troca) ou apenas travada? 
+                                                                        O usuário disse "unica opcao é voltar". Se eu deixar trocar de modo, ele sai da restrição.
+                                                                        Vou manter visível, mas se ele mudar pra NORMAL, as opções voltam. 
+                                                                        Mas se ele começou como Pareto, melhor manter. 
+                                                                        Vou deixar visível por enquanto.
+                                                                    */}
                                                                     <Settings className="w-4 h-4 text-gray-400" />
                                                                     <span className="font-bold">Modo:</span>
                                                                     <select value={activeStudy.mode} onChange={(e) => updateStudyMode(activeStudy.id, e.target.value as StudyMode)} className="bg-white border border-gray-300 rounded px-2 py-1 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none">
@@ -594,10 +650,15 @@ export function App() {
                                                                     </select>
                                                                 </div>
 
-                                                                <button onClick={handleGenerateGuide} className="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 overflow-hidden w-full">
+                                                                <button onClick={handleGenerateGuide} className={`group relative text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:-translate-y-1 transition-all flex items-center justify-center gap-3 overflow-hidden w-full ${isParetoStudy
+                                                                    ? 'bg-gradient-to-r from-red-600 to-red-500 hover:shadow-red-200'
+                                                                    : activeStudy.isBook
+                                                                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:shadow-orange-200'
+                                                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-indigo-200'
+                                                                    }`}>
                                                                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                                                                     <GenerateIcon className="w-8 h-8 animate-pulse" />
-                                                                    <span className="relative">Gerar Roteiro NeuroStudy</span>
+                                                                    <span className="relative">{isParetoStudy ? 'Gerar Resumo 80/20' : 'Gerar Roteiro NeuroStudy'}</span>
                                                                 </button>
                                                             </div>
                                                         )}
