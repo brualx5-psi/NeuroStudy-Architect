@@ -46,8 +46,33 @@ export function App() {
     const [targetFolderId, setTargetFolderId] = useState<string>('root-neuro');
 
     const handleRequestNewStudy = (folderId: string) => {
-        setActiveStudyId(null);
         setTargetFolderId(folderId);
+
+        const isBook = folderId === 'root-books';
+        const isPareto = folderId === 'root-pareto';
+
+        // Verifica se já existe um estudo vazio para reutilizar nessa pasta
+        const existing = studies.find(s =>
+            s.folderId === folderId &&
+            s.sources.length === 0 &&
+            (s.title === 'Novo Estudo' || s.title === 'Livro: Novo Estudo' || s.title === 'Pareto: Novo Estudo')
+        );
+
+        if (existing) {
+            setActiveStudyId(existing.id);
+            // Garante que o modo está correto para os contextos especiais
+            if (isPareto && existing.mode !== StudyMode.PARETO) updateStudyMode(existing.id, StudyMode.PARETO);
+            if (isBook && !existing.isBook) { /* Forçar isBook seria complexo aqui, melhor confiar na criação correta */ }
+        } else {
+            // Cria um novo estudo imediatamente configurado para o contexto
+            createStudy(
+                folderId,
+                isBook ? 'Livro: Novo Estudo' : isPareto ? 'Pareto: Novo Estudo' : 'Novo Estudo',
+                isPareto ? StudyMode.PARETO : StudyMode.NORMAL,
+                isBook
+            );
+        }
+
         setView('app');
     };
 
@@ -310,19 +335,24 @@ export function App() {
     const handleGenerateFlashcards = async () => { if (!activeStudy?.guide) return; setProcessingState({ isLoading: true, error: null, step: 'flashcards' }); try { const flashcards = await generateFlashcards(activeStudy.guide); setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, flashcards } : s)); } catch (err: any) { setProcessingState(prev => ({ ...prev, error: err.message })); } finally { setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' })); } };
     const handleClearQuiz = () => { if (!activeStudyId) return; setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz: null } : s)); };
     const handleStartSession = () => {
-        // Verifica se já existe um "Novo Estudo" (ou nome padrão) VAZIO nesta pasta, para reutilizar
-        // Isso evita criar duplicatas infinitas se a pessoa ficar clicando em "Novo Estudo" sem renomear
+        const isBookContext = targetFolderId === 'root-books';
+        const isParetoContext = targetFolderId === 'root-pareto';
+
+        // Verifica se já existe um "Novo Estudo" (ou nome padrão) VAZIO nesta pasta
         const existingEmptyStudy = studies.find(s =>
             s.folderId === targetFolderId &&
-            s.title === 'Novo Estudo' &&
+            (s.title === 'Novo Estudo' || s.title === 'Livro: Novo Estudo' || s.title === 'Pareto: Novo Estudo') &&
             s.sources.length === 0
         );
 
         if (existingEmptyStudy) {
             setActiveStudyId(existingEmptyStudy.id);
-            updateStudyMode(existingEmptyStudy.id, selectedMode);
+            if (isParetoContext) updateStudyMode(existingEmptyStudy.id, StudyMode.PARETO);
+            else updateStudyMode(existingEmptyStudy.id, selectedMode);
         } else {
-            createStudy(targetFolderId, `Novo Estudo`, selectedMode);
+            const title = isBookContext ? `Livro: Novo Estudo` : isParetoContext ? `Pareto: Novo Estudo` : `Novo Estudo`;
+            const mode = isParetoContext ? StudyMode.PARETO : selectedMode;
+            createStudy(targetFolderId, title, mode, isBookContext);
         }
     };
     const handleFolderExam = (fid: string) => { /* ... */ };

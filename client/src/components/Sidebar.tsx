@@ -228,13 +228,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Icon className={`w-4 h-4 ${colorClass.replace('bg-', 'text-')}`} />
           <span className={colorClass.replace('bg-', 'text-').replace('-50', '-700')}>{title}</span>
         </div>
-        <button
-          onClick={() => setCreatingRootFolderIn(rootId)}
-          className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
-          title="Nova Pasta"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => { onRequestNewStudy(rootId); onClose?.(); }}
+            className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
+            title="Novo Estudo Rápido"
+          >
+            <FileText className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setCreatingRootFolderIn(rootId)}
+            className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
+            title="Nova Pasta"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {creatingRootFolderIn === rootId && (

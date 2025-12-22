@@ -324,35 +324,94 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 <section className="space-y-6 animate-in slide-in-from-bottom-8 duration-700">
                     <div className="flex items-center gap-2 px-2">
                         <Layers className="w-6 h-6 text-orange-500" />
-                        <h2 className="text-xl font-bold text-gray-800">Capítulos e Insights (Pareto Local)</h2>
+                        <h2 className="text-xl font-bold text-gray-800">Capítulos do Livro</h2>
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">
                         {guide.bookChapters.map((chapter, i) => (
-                            <div key={i} className={`p-6 rounded-2xl border-l-4 shadow-sm transition-all ${chapter.completed ? 'bg-green-50 border-green-500 opacity-90' : 'bg-white border-orange-400'}`}>
-                                <div className="flex justify-between items-start mb-3">
-                                    <h3 className={`text-xl font-bold ${chapter.completed ? 'text-green-800' : 'text-gray-800'}`}>
-                                        {chapter.title}
-                                    </h3>
-                                    <button
-                                        onClick={() => toggleChapterRead(i)}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${chapter.completed ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200' : 'bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600'}`}
-                                        title="Marcar como lido"
-                                    >
-                                        {chapter.completed ? <CheckCircle className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
-                                        {chapter.completed ? 'LIDO' : 'MARCAR COMO LIDO'}
-                                    </button>
-                                </div>
+                            <details key={i} className={`group p-6 rounded-2xl border-l-4 shadow-sm transition-all ${chapter.completed ? 'bg-green-50 border-green-500' : 'bg-white border-orange-400 open:ring-2 open:ring-orange-100'}`}>
+                                <summary className="flex flex-col gap-4 cursor-pointer list-none outline-none">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-orange-100 text-orange-600 rounded-lg group-open:rotate-180 transition-transform">
+                                                <ChevronDown className="w-5 h-5" />
+                                            </div>
+                                            <h3 className={`text-xl font-bold ${chapter.completed ? 'text-green-800' : 'text-gray-800'}`}>
+                                                {chapter.title}
+                                            </h3>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); toggleChapterRead(i); }}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${chapter.completed ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200' : 'bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600'}`}
+                                            title="Marcar como lido"
+                                        >
+                                            {chapter.completed ? <CheckCircle className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
+                                            {chapter.completed ? 'LIDO' : 'MARCAR'}
+                                        </button>
+                                    </div>
 
-                                <div className={`p-4 rounded-xl border ${chapter.completed ? 'bg-white/50 border-green-100' : 'bg-orange-50 border-orange-100'}`}>
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 block flex items-center gap-1 ${chapter.completed ? 'text-green-600' : 'text-orange-600'}`}>
-                                        <Zap className="w-3 h-3" /> Essência do Capítulo (80/20)
-                                    </span>
-                                    <p className={`text-sm leading-relaxed ${chapter.completed ? 'text-green-900' : 'text-orange-900 font-medium'}`}>
-                                        {chapter.paretoChunk}
-                                    </p>
+                                    {/* Pareto Chunk (Always Visible) */}
+                                    <div className={`p-4 rounded-xl border ${chapter.completed ? 'bg-white/50 border-green-100' : 'bg-orange-50 border-orange-100'} group-open:bg-white group-open:border-orange-200`}>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 block flex items-center gap-1 ${chapter.completed ? 'text-green-600' : 'text-orange-600'}`}>
+                                            <Zap className="w-3 h-3" /> Essência (80/20)
+                                        </span>
+                                        <p className={`text-sm leading-relaxed ${chapter.completed ? 'text-green-900' : 'text-orange-900 font-medium'}`}>
+                                            {chapter.paretoChunk}
+                                        </p>
+                                    </div>
+                                </summary>
+
+                                {/* Conteúdo Expandido */}
+                                <div className="mt-8 space-y-8 animate-in fade-in slide-in-from-top-4 border-t border-gray-100 pt-8">
+
+                                    {/* 1. Texto Narrativo */}
+                                    <div className="prose prose-lg px-2 text-gray-700 leading-relaxed">
+                                        <ReactMarkdown>{chapter.content || ""}</ReactMarkdown>
+                                    </div>
+
+                                    {/* 2. Conceitos Locais */}
+                                    {chapter.coreConcepts && chapter.coreConcepts.length > 0 && (
+                                        <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Target className="w-5 h-5 text-indigo-600" /> Conceitos Chave deste Capítulo</h4>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {chapter.coreConcepts.map((concept, idx) => (
+                                                    <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                                                        <strong className="text-indigo-700 block mb-1">{concept.concept}</strong>
+                                                        <p className="text-sm text-gray-600">{concept.definition}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 3. Pergunta de Reflexão */}
+                                    {chapter.reflectionQuestion && (
+                                        <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200 flex gap-4 items-start">
+                                            <div className="bg-yellow-100 p-2 rounded-full shrink-0"><Brain className="w-6 h-6 text-yellow-700" /></div>
+                                            <div>
+                                                <h4 className="font-bold text-yellow-800 mb-1">Check Mental</h4>
+                                                <p className="text-yellow-900 font-medium italic">"{chapter.reflectionQuestion}"</p>
+                                                <p className="text-xs text-yellow-600 mt-2 uppercase font-bold tracking-wide">Pausa para responder mentalmente antes de prosseguir.</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 4. Suporte Complementar */}
+                                    {chapter.supportConcepts && chapter.supportConcepts.length > 0 && (
+                                        <div className="border-t border-gray-100 pt-6">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 block">Material Complementar</span>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {chapter.supportConcepts.map((sc, idx) => (
+                                                    <div key={idx} className="flex items-start gap-2 text-sm text-gray-500">
+                                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
+                                                        <span><strong className="text-gray-700">{sc.concept}:</strong> {sc.definition}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            </details>
                         ))}
                     </div>
                 </section>

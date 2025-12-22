@@ -59,9 +59,50 @@ const CHAPTERS_PROPERTY = {
       type: Type.OBJECT,
       properties: {
         title: { type: Type.STRING },
-        paretoChunk: { type: Type.STRING }
+        content: { type: Type.STRING, description: "Texto corrido e fluido explicando o capítulo." },
+        paretoChunk: { type: Type.STRING, description: "A essência 80/20 deste capítulo." },
+        reflectionQuestion: { type: Type.STRING, description: "Uma pergunta para o aluno verificar se entendeu o conceito chave." },
+        coreConcepts: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              concept: { type: Type.STRING },
+              definition: { type: Type.STRING },
+              tools: {
+                type: Type.OBJECT,
+                properties: {
+                  feynman: { type: Type.STRING },
+                  example: { type: Type.STRING },
+                  interdisciplinary: { type: Type.STRING },
+                },
+                nullable: true
+              }
+            },
+            required: ["concept", "definition"]
+          }
+        },
+        supportConcepts: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              concept: { type: Type.STRING },
+              definition: { type: Type.STRING },
+              tools: {
+                type: Type.OBJECT,
+                properties: {
+                  example: { type: Type.STRING }
+                },
+                nullable: true
+              }
+            },
+            required: ["concept", "definition"]
+          },
+          nullable: true
+        }
       },
-      required: ["title", "paretoChunk"]
+      required: ["title", "paretoChunk", "content", "coreConcepts", "reflectionQuestion"]
     }
   }
 };
@@ -205,15 +246,12 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
   let modeInstructions = "";
   if (isBook) {
     switch (mode) {
-      case StudyMode.SURVIVAL: modeInstructions = `MODO LIVRO: SOBREVIVÊNCIA. Resumo de 1 frase por capítulo.`; break;
-      case StudyMode.HARD: modeInstructions = `MODO LIVRO: HARD. Resumo detalhado.`; break;
-      case StudyMode.NORMAL: default: modeInstructions = `MODO LIVRO: NORMAL. Princípio de Pareto.`; break;
+      case StudyMode.SURVIVAL: modeInstructions = `MODO LIVRO: SOBREVIVÊNCIA. Gere TODOS os capítulos, mas com resumo curto (1 parágrafo) em cada um.`; break;
+      case StudyMode.HARD: modeInstructions = `MODO LIVRO: HARD. Gere TODOS os capítulos com análise profunda e detalhada em cada um.`; break;
+      case StudyMode.NORMAL: default: modeInstructions = `MODO LIVRO: NORMAL. Gere TODOS os capítulos com análise equilibrada (Princípio de Pareto) em cada um.`; break;
     }
   } else {
-    const noChaptersInstruction = "NÃO GERE 'chapters'.";
-    if (mode === StudyMode.HARD) modeInstructions = `MODO: TURBO. ${noChaptersInstruction} Suporte OBRIGATÓRIO.`;
-    else if (mode === StudyMode.SURVIVAL) modeInstructions = `MODO: SOBREVIVÊNCIA. ${noChaptersInstruction} Sem suporte.`;
-    else modeInstructions = `MODO: NORMAL. ${noChaptersInstruction} Suporte OBRIGATÓRIO.`;
+    // ...
   }
 
   // LÓGICA DE PROMPT ADAPTATIVA (LIVRO vs MATERIAL vs PARETO)
@@ -225,27 +263,34 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
   ${structureInstruction}
 
   ${isBook ? `
-  📚 MODO LIVRO vs NEUROSTUDY (ESTRUTURA AVANÇADA):
+  📚 MODO LIVRO AVANÇADO (ESTRUTURA HIERÁRQUICA):
   1. ADVANCE ORGANIZER ('overview'):
-     - O QUE É: Preparação cognitiva (Schema Theory).
-     - COMO FAZER: Diga o que esperar, ative conhecimentos prévios e crie curiosidade. Tom inspirador e claro.
-  2. GLOBAL PARETO ('coreConcepts'):
-     - O QUE É: A "Big Picture". Os 80/20 de TODO o livro.
-     - COMO FAZER: Liste os conceitos que sustentam a obra.
-  3. LOCAL PARETO ('chapters'):
-     - O QUE É: A essência de cada capítulo.
-     - REGRAS RÍGIDAS: Use 'paretoChunk'. Texto denso, direto e revelador.
-     - PROIBIDO: Listas genéricas ("Neste capítulo o autor fala de..."). Diga O QUE ELE FALA. Vá direto ao insight.
+     - O QUE É: Preparação cognitiva. Diga o que esperar do livro como um todo.
+  2. PARETO GLOBAL ('coreConcepts' fora dos capítulos - OPCIONAL/VAZIO se redundante):
+     - Dê preferência por colocar conceitos DENTRO dos capítulos. Use o global apenas se for transversal.
+  
+  3. CAPÍTULOS ('chapters') - A ALMA DO GUIA:
+     - REGRA DE OURO 1: Você DEVE gerar uma entrada para CADA um dos capítulos do livro. Se o livro tem 20 capítulos, o array deve ter 20 itens.
+     - REGRA DE OURO 2: O campo 'title' é SAGRADO. Deve conter o NOME REAL do capítulo.
+         - PROIBIDO ABSOLUTAMENTE usar "N/A", "Unknown" ou "Capítulo X" sem nome.
+         - Se o índice não estiver claro, LEIA o conteúdo e crie um título descritivo.
+
+     Para CADA capítulo:
+     - 'title': Título do Capítulo (ex: "Capítulo 1: Introdução à Ansiedade"). NÃO USE "N/A".
+     - 'content': TEXTO CORRIDO e NARRATIVO. Não faça tópicos. Explique o capítulo como um professor contando uma história.
+         * MODO SOBREVIVÊNCIA: 1 parágrafo curto e direto (mas faça para todos os capítulos).
+         * MODO NORMAL: Texto fluido, completo e denso.
+     - 'paretoChunk': O "Insight de Ouro" (80/20) específico deste capítulo.
+     - 'coreConcepts': Extraia 2 ou 3 conceitos-chave DESTE capítulo. Defina-os aqui.
+     - 'supportConcepts': Se as Fontes Complementares trouxerem algo sobre este capítulo, insira aqui.
+     - 'reflectionQuestion': Uma pergunta direta para o aluno testar se entendeu a essência do capítulo.
   ` : ''}
   
   ${mode === StudyMode.PARETO && !isBook ? `
   🔥 MODO PARETO 80/20 (EXTREMO):
   - Foco: VELOCIDADE e ESSÊNCIA.
-  - O QUE FAZER: Identifique os 20% de informação que dão 80% do resultado.
   - "Core Concepts": Máximo 3-5 conceitos CRUCIAIS.
   - "Support Concepts": NÃO GERE. Deixe vazio [].
-  - Elimine: Histórias, introduções longas, "palha".
-  - Estilo: Direto ao ponto, sem rodeios.
   ` : mode === StudyMode.PARETO && isBook ? '' : mode === StudyMode.HARD ? `
   🚀 MODO HARD (PROFUNDO):
   - Foco: DETALHE e DOMÍNIO TÉCNICO.
@@ -312,7 +357,14 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
     let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
     if (!text) text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const guide = JSON.parse(cleanText) as StudyGuide;
+    const guide = JSON.parse(cleanText) as StudyGuide & { chapters?: any[] };
+
+    // CORREÇÃO CRÍTICA: Mapeia 'chapters' do Schema JSON para 'bookChapters' da Interface
+    if (guide.chapters) {
+      guide.bookChapters = guide.chapters;
+      delete guide.chapters;
+    }
+
     if (guide.checkpoints) {
       guide.checkpoints = guide.checkpoints.map((cp, index) => ({
         ...cp,

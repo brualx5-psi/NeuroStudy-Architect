@@ -50,9 +50,14 @@ export interface StudyGuide {
 
   bookChapters?: {
     title: string;
-    paretoChunk: string; // Resumo Pareto do capítulo (80/20)
-    completed?: boolean; // Controle de leitura
+    content: string; // Texto corrido do capítulo
+    paretoChunk: string; // Resumo Pareto (80/20)
+    coreConcepts: CoreConcept[]; // Conceitos locais deste capítulo
+    supportConcepts?: CoreConcept[]; // Conceitos complementares integrados aqui
+    reflectionQuestion?: string; // Pergunta de auto-reflexão
+    completed?: boolean;
   }[];
+  // Globais tornam-se opcionais ou específicos de outros modos
   supportConcepts?: CoreConcept[];
   checkpoints?: Checkpoint[];
   quiz?: QuizQuestion[];
