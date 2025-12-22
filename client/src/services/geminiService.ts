@@ -66,21 +66,32 @@ const CHAPTERS_PROPERTY = {
   }
 };
 
-export async function uploadFileToGemini(base64Data: string, mimeType: string): Promise<string> {
+export async function uploadFileToGemini(file: Blob | File, mimeType: string): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key missing");
-  const byteCharacters = atob(base64Data);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-  const byteArray = new Uint8Array(byteNumbers);
-  const blob = new Blob([byteArray], { type: mimeType });
+  // Removido conversão Base64 manual para evitar estouro de memória com arquivos grandes
+
   const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
-  const initialResponse = await fetch(uploadUrl, { method: 'POST', headers: { 'X-Goog-Upload-Protocol': 'resumable', 'X-Goog-Upload-Command': 'start', 'X-Goog-Upload-Header-Content-Length': blob.size.toString(), 'X-Goog-Upload-Header-Content-Type': mimeType, 'Content-Type': 'application/json', }, body: JSON.stringify({ file: { display_name: 'User Upload' } }) });
+  const initialResponse = await fetch(uploadUrl, { method: 'POST', headers: { 'X-Goog-Upload-Protocol': 'resumable', 'X-Goog-Upload-Command': 'start', 'X-Goog-Upload-Header-Content-Length': file.size.toString(), 'X-Goog-Upload-Header-Content-Type': mimeType, 'Content-Type': 'application/json', }, body: JSON.stringify({ file: { display_name: 'User Upload' } }) });
   const uploadHeader = initialResponse.headers.get('x-goog-upload-url');
   if (!uploadHeader) throw new Error("Falha ao iniciar upload no Google AI.");
-  const uploadResponse = await fetch(uploadHeader, { method: 'POST', headers: { 'X-Goog-Upload-Protocol': 'resumable', 'X-Goog-Upload-Command': 'upload, finalize', 'X-Goog-Upload-Offset': '0', 'Content-Length': blob.size.toString(), }, body: blob });
+
+  const uploadResponse = await fetch(uploadHeader, { method: 'POST', headers: { 'X-Goog-Upload-Protocol': 'resumable', 'X-Goog-Upload-Command': 'upload, finalize', 'X-Goog-Upload-Offset': '0', 'Content-Length': file.size.toString(), }, body: file });
   const uploadResult = await uploadResponse.json();
-  return uploadResult.file.uri;
+  const fileUri = uploadResult.file.uri;
+  const fileName = uploadResult.file.name; // Resource name: files/xyz
+
+  // POLLING: Wait for file to be ACTIVE
+  let state = uploadResult.file.state;
+  while (state === 'PROCESSING') {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const checkResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`);
+    const checkResult = await checkResponse.json();
+    state = checkResult.state;
+    if (state === 'FAILED') throw new Error("O processamento do arquivo falhou no Google AI.");
+  }
+
+  return fileUri;
 }
 
 async function fetchWithRetry<T>(operation: () => Promise<T>, retries = 3, delay = 5000): Promise<T> {
@@ -149,7 +160,7 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
   if (!apiKey) throw new Error("Chave de API não encontrada.");
   const ai = new GoogleGenAI({ apiKey });
   const schemaProperties = isBook ? { ...COMMON_PROPERTIES, ...CHAPTERS_PROPERTY } : { ...COMMON_PROPERTIES };
-  const finalSchema: Schema = { type: Type.OBJECT, properties: schemaProperties, required: ["subject", "overview", "coreConcepts", "checkpoints"] };
+  const finalSchema: Schema = { type: Type.OBJECT, properties: schemaProperties, required: isBook ? ["subject", "overview", "coreConcepts", "chapters"] : ["subject", "overview", "coreConcepts", "checkpoints"] };
 
   // 1. Identificar Fonte Principal e Complementares
   const primarySource = sources.find(s => s.isPrimary) || sources[0];
@@ -184,8 +195,9 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
     structureInstruction = `
     ESTRUTURA OBRIGATÓRIA (Baseada em TEXTO/LIVRO):
     - O esqueleto do roteiro DEVE seguir os Tópicos/Capítulos da Fonte Principal.
-    - NÃO invente timestamps se não estiverem explícitos.
+    - PROIBIDO INVENTAR TIMESTAMPS. Use "N/A" ou deixe vazio se o campo for obrigatório.
     - Use "Seções" ou "Títulos" como marcadores de progresso.
+    - O campo 'chapters' é OBRIGATÓRIO. O campo 'checkpoints' é OPCIONAL (ou deixe vazio se redundante).
     - Integre o conteúdo das Fontes Complementares dentro dos tópicos da Fonte Principal.
     `;
   }
@@ -249,6 +261,7 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
   - "Checkpoints": Equilibrados.
   `}
   
+  ${!isBook ? `
   CHECKPOINTS OBRIGATÓRIOS:
   Para cada checkpoint, você DEVE preencher:
   - "noteExactly": O QUE ANOTAR NO CADERNO. Gere um conteúdo substancial, mas **ESTRUTURADO**.
@@ -256,6 +269,7 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
       - NÃO gere "paredões de texto" denso.
       - Deve ser algo que valha a pena copiar e revisar depois.
   - "drawExactly": Uma instrução visual clara do que desenhar (ex: 'Desenhe um triângulo com...').
+  ` : ''}
   
   Estratégia Adicional: ${modeInstructions} 
   

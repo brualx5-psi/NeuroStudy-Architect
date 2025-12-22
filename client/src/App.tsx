@@ -170,9 +170,10 @@ export function App() {
             if (inputType === InputType.VIDEO) {
                 setProcessingState({ isLoading: true, error: null, step: 'transcribing' });
                 try {
-                    const base64 = await fileToBase64(selectedFile);
+                    // Otimização: Upload direto do arquivo binário (sem converter para base64 antes)
+                    // Isso permite arquivos gigantes (60min+) sem travar o navegador e é muito mais rápido.
                     // 1. Upload para Gemini (para gerar URI)
-                    const fileUri = await uploadFileToGemini(base64, selectedFile.type);
+                    const fileUri = await uploadFileToGemini(selectedFile, selectedFile.type);
                     // 2. Transcrever
                     const transcript = await transcribeMedia(fileUri, selectedFile.type);
 
