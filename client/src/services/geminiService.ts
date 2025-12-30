@@ -438,6 +438,7 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
   - ${openCount} questões Dissertativas (type: 'open').
 
   Para questões 'open', o campo 'correctAnswer' deve conter a "Resposta Esperada/Gabarito" (texto ideal).
+  Para questões 'multiple_choice', o campo 'correctAnswer' DEVE ser um NÚMERO INTEIRO (0, 1, 2 ou 3) representando o ÍNDICE da alternativa correta no array 'options'. NÃO use letras (A, B, C, D), use apenas o índice numérico.
   Foco: Testar compreensão profunda e aplicação. JSON estrito.
   `;
   try { return JSON.parse((await safeGenerate(ai, prompt)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }

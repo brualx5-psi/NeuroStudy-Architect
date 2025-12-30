@@ -179,7 +179,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
         // Estilização condicional baseada no status
         if (isChecked) {
           if (q.type === 'multiple_choice') {
-            const isUserCorrect = answers[q.id] === q.correctAnswer; // MC CorrectAnswer armazena o índice (mock service) ou letra? Types diz number. Gemini gera number ou string? GeminiService parseia QuizQuestion.
+            const isUserCorrect = answers[q.id] === String(Number(q.correctAnswer)); // MC CorrectAnswer armazena o índice (mock service) ou letra? Types diz number. Gemini gera number ou string? GeminiService parseia QuizQuestion.
             // Wait, QuizQuestion defines correctAnswer as number. Gemini generates JSON.
             // Se o usuário acertou: Verde. Se errou: Vermelho (mas não mostra a certa ainda).
             if (isUserCorrect) containerClass += "border-green-300 bg-green-50/30";
@@ -209,7 +209,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                 <div className="space-y-3">
                   {q.options.map((opt, optIdx) => {
                     const isSelected = answers[q.id] === optIdx.toString();
-                    const isCorrectOption = q.correctAnswer === optIdx; // Assuming number
+                    const isCorrectOption = Number(q.correctAnswer) === optIdx; // Force number comparison
                     // Se estiver checado e o usuário errou, NÃO mostra qual é a correta imediatamente, só marca a errada.
                     // A correta só aparece se isRevealed for true.
 
@@ -327,11 +327,11 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
         );
 
         function isUserCorrect(qid: string) {
-          if (q.type === 'multiple_choice') return answers[qid] === String(q.correctAnswer);
+          if (q.type === 'multiple_choice') return answers[qid] === String(Number(q.correctAnswer));
           return evaluation?.status === 'correct';
         }
         function isAnswerCorrect(question: QuizQuestion) {
-          if (question.type === 'multiple_choice') return answers[question.id] === String(question.correctAnswer);
+          if (question.type === 'multiple_choice') return answers[question.id] === String(Number(question.correctAnswer));
           return evaluations[question.id]?.status === 'correct';
         }
       })}
