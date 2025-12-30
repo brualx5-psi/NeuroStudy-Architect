@@ -499,23 +499,71 @@ export const generateTool = async (
 };
 
 export const generateDiagram = async (desc: string): Promise<{ code: string, url: string }> => {
-  const apiKey = getApiKey(); if (!apiKey) throw new Error("Erro API"); const ai = new GoogleGenAI({ apiKey });
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("Erro API");
+  const ai = new GoogleGenAI({ apiKey });
+
+  const safeDesc = desc || "Mapa conceitual do tema estudado";
+  const selectedModel = selectModel('diagram');
+
   try {
     const prompt = `
-    Crie um diagrama Mermaid.js (graph TD) visualmente rico para: "${desc}".
-    - Use cores vibrantes e harmônicas (ex: fill:#f9f,stroke:#333,stroke-width:2px).
-    - Aplique estilos (classDef) para nós principais e secundários.
-    - O diagrama deve ser bonito, não o padrão preto e branco.
-    - Retorne APENAS o código mermaid graph TD. Sem markdown.
+    Crie um diagrama Mermaid.js (graph TD) visualmente organizado para: "${safeDesc}".
+    
+    REGRAS OBRIGATÓRIAS:
+    1. Use APENAS sintaxe Mermaid válida (graph TD).
+    2. Use IDs simples sem caracteres especiais (ex: A, B, C ou node1, node2).
+    3. Textos dos nós devem estar entre colchetes: A[Texto do Nó]
+    4. Conexões simples: A --> B
+    5. Máximo 8-12 nós para manter legibilidade.
+    6. Adicione estilos classDef para cores (opcional).
+    
+    EXEMPLO DE FORMATO CORRETO:
+    graph TD
+        A[Conceito Principal] --> B[Sub-conceito 1]
+        A --> C[Sub-conceito 2]
+        B --> D[Detalhe]
+        classDef principal fill:#6366f1,stroke:#333,color:white
+        class A principal
+    
+    Retorne APENAS o código mermaid. Sem markdown, sem crases, sem explicação.
     `;
-    const response = await ai.models.generateContent({ model: MODEL_NAME, contents: { parts: [{ text: prompt }] } });
+
+    const response = await ai.models.generateContent({
+      model: selectedModel,
+      contents: { parts: [{ text: prompt }] }
+    });
+
     let code = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-    code = code.replace(/```mermaid/g, '').replace(/```/g, '').trim();
-    return {
-      code,
-      url: `https://mermaid.ink/img/${btoa(unescape(encodeURIComponent(code)))}?bgColor=FFFFFF`
-    };
-  } catch (e) { return { code: "", url: "" }; }
+
+    // Limpa o código
+    code = code
+      .replace(/```mermaid/gi, '')
+      .replace(/```/g, '')
+      .replace(/^\s*mermaid\s*/i, '') // Remove "mermaid" no início se houver
+      .trim();
+
+    // Valida se é código Mermaid válido (começa com graph)
+    if (!code.toLowerCase().startsWith('graph')) {
+      console.warn('[generateDiagram] Código inválido, não começa com graph:', code.slice(0, 100));
+      // Tenta adicionar graph TD se estiver faltando
+      if (code.includes('-->') || code.includes('---')) {
+        code = 'graph TD\n' + code;
+      } else {
+        return { code: "", url: "" };
+      }
+    }
+
+    // Gera URL para mermaid.ink
+    const encodedCode = btoa(unescape(encodeURIComponent(code)));
+    const url = `https://mermaid.ink/img/${encodedCode}?bgColor=FFFFFF`;
+
+    console.log('[generateDiagram] Diagrama gerado com sucesso');
+    return { code, url };
+  } catch (e) {
+    console.error('[generateDiagram] Erro:', e);
+    return { code: "", url: "" };
+  }
 };
 
 export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
