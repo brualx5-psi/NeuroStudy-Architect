@@ -249,35 +249,116 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                 }
 
             } else if (activeTab === 'article') {
-                // AUMENTADO PARA 40 RESULTADOS
-                const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=40&sort=cited_by_count:desc`);
-                const data = await response.json();
+                // === GEMINI COM GROUNDING (Google Search) ===
+                const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+                if (!apiKey) {
+                    console.error('API Key não configurada');
+                    return;
+                }
 
-                if (data.results) {
-                    const formatted: SearchResult[] = data.results.map((item: any) => {
-                        const reliability = calculateReliability(item.display_name || item.title, item.abstract_inverted_index ? 'abstract available' : '');
-                        return {
-                            id: item.id,
-                            title: item.display_name || item.title,
-                            author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
-                            description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
-                            url: item.doi || item.primary_location?.landing_page_url || `https://openalex.org/${item.id}`,
-                            type: InputType.DOI,
-                            thumbnail: undefined,
-                            reliabilityScore: reliability.score,
-                            reliabilityLabel: reliability.label,
-                            isGuideline: reliability.isGuideline
-                        };
+                const { GoogleGenAI } = await import('@google/genai');
+                const ai = new GoogleGenAI({ apiKey });
+
+                const prompt = `Você é um assistente de pesquisa científica. Busque artigos científicos sobre: "${query}"
+                
+TAREFA: Encontre 10-15 artigos científicos relevantes (priorizando meta-análises, revisões sistemáticas e guidelines).
+
+Para cada artigo encontrado, retorne um JSON com esta estrutura:
+{
+  "articles": [
+    {
+      "title": "Título do artigo",
+      "author": "Primeiro autor ou organização",
+      "year": 2024,
+      "type": "meta-analysis" | "systematic-review" | "guideline" | "rct" | "cohort" | "other",
+      "description": "Breve descrição do que o estudo descobriu (1-2 frases)",
+      "url": "URL do artigo ou DOI"
+    }
+  ]
+}
+
+IMPORTANTE: 
+- Priorize artigos de revistas científicas renomadas (Lancet, NEJM, JAMA, Cochrane, etc.)
+- Inclua o DOI ou link direto sempre que possível
+- Foque em estudos recentes (últimos 5-10 anos)
+- Retorne APENAS o JSON, sem markdown ou explicações`;
+
+                try {
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.0-flash',
+                        contents: { parts: [{ text: prompt }] },
+                        config: {
+                            tools: [{ googleSearch: {} }], // Ativa Grounding com Google Search
+                        }
                     });
 
-                    // ORDENAÇÃO FORÇADA: Guidelines > Score > Citações
-                    const sorted = formatted.sort((a, b) => {
-                        if (a.isGuideline && !b.isGuideline) return -1;
-                        if (!a.isGuideline && b.isGuideline) return 1;
-                        return (b.reliabilityScore || 0) - (a.reliabilityScore || 0);
-                    });
+                    let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
 
-                    setResults(sorted);
+                    // Limpa e faz parse do JSON
+                    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+                    try {
+                        const parsed = JSON.parse(text);
+                        const articles = parsed.articles || parsed;
+
+                        if (Array.isArray(articles)) {
+                            const formatted: SearchResult[] = articles.map((item: any, idx: number) => {
+                                const typeScore: Record<string, number> = {
+                                    'guideline': 5,
+                                    'meta-analysis': 5,
+                                    'systematic-review': 5,
+                                    'rct': 4,
+                                    'cohort': 3,
+                                    'other': 1
+                                };
+
+                                return {
+                                    id: `grounding-${idx}-${Date.now()}`,
+                                    title: item.title || 'Artigo sem título',
+                                    author: item.author || 'Autor desconhecido',
+                                    description: item.description || `Publicado em ${item.year || 'N/A'}`,
+                                    url: item.url || item.doi || '#',
+                                    type: InputType.DOI,
+                                    reliabilityScore: typeScore[item.type] || 1,
+                                    reliabilityLabel: item.type || 'other',
+                                    isGuideline: item.type === 'guideline'
+                                };
+                            });
+
+                            // Ordena por relevância
+                            const sorted = formatted.sort((a, b) => {
+                                if (a.isGuideline && !b.isGuideline) return -1;
+                                if (!a.isGuideline && b.isGuideline) return 1;
+                                return (b.reliabilityScore || 0) - (a.reliabilityScore || 0);
+                            });
+
+                            setResults(sorted);
+                        }
+                    } catch (parseError) {
+                        console.error('Erro ao parsear resposta do Gemini:', parseError);
+                        // Fallback para OpenAlex se falhar
+                        const fallbackResponse = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=20&sort=cited_by_count:desc`);
+                        const fallbackData = await fallbackResponse.json();
+                        if (fallbackData.results) {
+                            const formatted: SearchResult[] = fallbackData.results.map((item: any) => {
+                                const reliability = calculateReliability(item.display_name || item.title, '');
+                                return {
+                                    id: item.id,
+                                    title: item.display_name || item.title,
+                                    author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
+                                    description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
+                                    url: item.doi || `https://openalex.org/${item.id}`,
+                                    type: InputType.DOI,
+                                    reliabilityScore: reliability.score,
+                                    reliabilityLabel: reliability.label,
+                                    isGuideline: reliability.isGuideline
+                                };
+                            });
+                            setResults(formatted);
+                        }
+                    }
+                } catch (geminiError) {
+                    console.error('Erro no Gemini Grounding:', geminiError);
                 }
 
             } else {
