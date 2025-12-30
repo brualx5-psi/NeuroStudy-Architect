@@ -56,6 +56,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
+  // Estado para seções recolhíveis (NeuroStudy, Biblioteca, Pareto)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    'root-neuro': true,
+    'root-books': true,
+    'root-pareto': true
+  });
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
+  };
+
   // --- LÓGICA DE RECOLHER/EXPANDIR (CORRIGIDA) ---
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }));
@@ -221,51 +232,71 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
-  const SectionHeader = ({ id, title, icon: Icon, colorClass, rootId }: any) => (
-    <div className="mb-2">
-      <div className={`flex items-center justify-between px-3 py-2 ${colorClass} bg-opacity-10 rounded-lg`}>
-        <div className="flex items-center gap-2 font-bold text-sm">
-          <Icon className={`w-4 h-4 ${colorClass.replace('bg-', 'text-')}`} />
-          <span className={colorClass.replace('bg-', 'text-').replace('-50', '-700')}>{title}</span>
+  const SectionHeader = ({ id, title, icon: Icon, colorClass, rootId }: any) => {
+    const isExpanded = expandedSections[rootId] ?? true;
+
+    return (
+      <div className="mb-2">
+        <div
+          className={`flex items-center justify-between px-3 py-2 ${colorClass} bg-opacity-10 rounded-lg cursor-pointer hover:bg-opacity-20 transition-all`}
+          onClick={() => toggleSection(rootId)}
+        >
+          <div className="flex items-center gap-2 font-bold text-sm">
+            {/* Ícone de toggle ▶ / ▼ */}
+            {isExpanded ? (
+              <ChevronDown className={`w-4 h-4 ${colorClass.replace('bg-', 'text-').replace('-50', '-500')} transition-transform`} />
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${colorClass.replace('bg-', 'text-').replace('-50', '-500')}`}>
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            )}
+            <Icon className={`w-4 h-4 ${colorClass.replace('bg-', 'text-')}`} />
+            <span className={colorClass.replace('bg-', 'text-').replace('-50', '-700')}>{title}</span>
+          </div>
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => { onRequestNewStudy(rootId); onClose?.(); }}
+              className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
+              title="Novo Estudo Rápido"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCreatingRootFolderIn(rootId)}
+              className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
+              title="Nova Pasta"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        <div className="flex gap-1">
-          <button
-            onClick={() => { onRequestNewStudy(rootId); onClose?.(); }}
-            className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
-            title="Novo Estudo Rápido"
-          >
-            <FileText className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setCreatingRootFolderIn(rootId)}
-            className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
-            title="Nova Pasta"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
+
+        {/* Conteúdo da seção - só mostra se expandido */}
+        {isExpanded && (
+          <>
+            {creatingRootFolderIn === rootId && (
+              <div className="flex items-center gap-2 p-2 mx-2 bg-white border rounded shadow-sm my-2 animate-fade-in">
+                <input autoFocus placeholder="Nome da pasta..." className="text-xs p-1 w-full outline-none"
+                  value={newRootFolderName} onChange={e => setNewRootFolderName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleCreateFolder(rootId)}
+                />
+                <button onClick={() => setCreatingRootFolderIn(null)}><X className="w-3 h-3 text-gray-400" /></button>
+              </div>
+            )}
+
+            {renderFolderTree(rootId, 0, colorClass.replace('bg-', 'text-').replace('-50', '-500'))}
+
+            {/* Empty State Hint */}
+            {folders.filter(f => f.parentId === rootId).length === 0 && studies.filter(s => s.folderId === rootId).length === 0 && !creatingRootFolderIn && (
+              <div className="px-4 py-3 text-[10px] text-gray-400 italic text-center border-2 border-dashed border-gray-100 rounded-lg mx-2 mt-1">
+                Vazio
+              </div>
+            )}
+          </>
+        )}
       </div>
-
-      {creatingRootFolderIn === rootId && (
-        <div className="flex items-center gap-2 p-2 mx-2 bg-white border rounded shadow-sm my-2 animate-fade-in">
-          <input autoFocus placeholder="Nome da pasta..." className="text-xs p-1 w-full outline-none"
-            value={newRootFolderName} onChange={e => setNewRootFolderName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleCreateFolder(rootId)}
-          />
-          <button onClick={() => setCreatingRootFolderIn(null)}><X className="w-3 h-3 text-gray-400" /></button>
-        </div>
-      )}
-
-      {renderFolderTree(rootId, 0, colorClass.replace('bg-', 'text-').replace('-50', '-500'))}
-
-      {/* Empty State Hint */}
-      {folders.filter(f => f.parentId === rootId).length === 0 && studies.filter(s => s.folderId === rootId).length === 0 && !creatingRootFolderIn && (
-        <div className="px-4 py-3 text-[10px] text-gray-400 italic text-center border-2 border-dashed border-gray-100 rounded-lg mx-2 mt-1">
-          Vazio
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
     <>

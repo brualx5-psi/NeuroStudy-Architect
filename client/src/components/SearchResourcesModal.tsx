@@ -55,6 +55,125 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     // Controle do Tutorial
     const [showTutorial, setShowTutorial] = useState(false);
 
+    // Estado de Tradução
+    const [translating, setTranslating] = useState(false);
+    const [translatedQuery, setTranslatedQuery] = useState<string | null>(null);
+
+    // Função para traduzir PT → EN usando MyMemory API (gratuita)
+    const handleTranslate = async () => {
+        if (!query.trim()) return;
+        setTranslating(true);
+        try {
+            const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(query)}&langpair=pt|en`);
+            const data = await response.json();
+            if (data.responseStatus === 200 && data.responseData?.translatedText) {
+                const translated = data.responseData.translatedText;
+                setTranslatedQuery(translated);
+                setQuery(translated); // Substitui o texto pelo traduzido
+            } else {
+                alert('Não foi possível traduzir. Tente novamente.');
+            }
+        } catch (error) {
+            console.error('Erro ao traduzir:', error);
+            alert('Erro na tradução. Verifique sua conexão.');
+        } finally {
+            setTranslating(false);
+        }
+    };
+
+    // === DEEP RESEARCH ===
+    const [deepResearchMode, setDeepResearchMode] = useState(false);
+    const [deepResearchLoading, setDeepResearchLoading] = useState(false);
+    const [deepResearchInsight, setDeepResearchInsight] = useState<string | null>(null);
+
+    const handleDeepResearch = async () => {
+        if (!query.trim()) return;
+        setDeepResearchLoading(true);
+        setDeepResearchInsight(null);
+        setHasSearched(true);
+        setResults([]);
+
+        try {
+            // 1. Primeiro faz a busca normal para pegar artigos
+            const searchResponse = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=20&sort=cited_by_count:desc`);
+            const searchData = await searchResponse.json();
+
+            if (!searchData.results || searchData.results.length === 0) {
+                setDeepResearchInsight('Nenhum resultado encontrado para análise. Tente outro termo.');
+                return;
+            }
+
+            // 2. Formata os artigos para análise
+            const articlesForAnalysis = searchData.results.slice(0, 10).map((item: any) => ({
+                title: item.display_name || item.title,
+                year: item.publication_year,
+                citations: item.cited_by_count,
+                abstract: item.abstract_inverted_index ? 'Possui abstract' : 'Sem abstract'
+            }));
+
+            // 3. Envia para o Gemini analisar
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+            if (!apiKey) {
+                setDeepResearchInsight('API Key do Gemini não configurada.');
+                return;
+            }
+
+            const { GoogleGenAI } = await import('@google/genai');
+            const ai = new GoogleGenAI({ apiKey });
+
+            const prompt = `Você é um pesquisador científico experiente. Analise estes artigos sobre "${query}" e forneça:
+
+ARTIGOS ENCONTRADOS:
+${JSON.stringify(articlesForAnalysis, null, 2)}
+
+TAREFA:
+1. Resuma em 2-3 frases o que a literatura científica diz sobre este tema.
+2. Identifique os 3 principais consensos ou descobertas.
+3. Sugira 2-3 termos de busca mais específicos (em inglês) para encontrar estudos melhores.
+4. Indique se há alguma lacuna ou controvérsia no tema.
+
+Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 200 palavras.`;
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.0-flash',
+                contents: { parts: [{ text: prompt }] }
+            });
+
+            let insight = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
+            setDeepResearchInsight(insight);
+
+            // 4. Também popula os resultados normais
+            const formatted = searchData.results.map((item: any) => {
+                const reliability = calculateReliability(item.display_name || item.title, '');
+                return {
+                    id: item.id,
+                    title: item.display_name || item.title,
+                    author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
+                    description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
+                    url: item.doi || item.primary_location?.landing_page_url || `https://openalex.org/${item.id}`,
+                    type: InputType.DOI,
+                    reliabilityScore: reliability.score,
+                    reliabilityLabel: reliability.label,
+                    isGuideline: reliability.isGuideline
+                };
+            });
+
+            const sorted = formatted.sort((a: any, b: any) => {
+                if (a.isGuideline && !b.isGuideline) return -1;
+                if (!a.isGuideline && b.isGuideline) return 1;
+                return (b.reliabilityScore || 0) - (a.reliabilityScore || 0);
+            });
+
+            setResults(sorted);
+
+        } catch (error) {
+            console.error('Erro no Deep Research:', error);
+            setDeepResearchInsight('Erro ao executar Deep Research. Tente novamente.');
+        } finally {
+            setDeepResearchLoading(false);
+        }
+    };
+
     useEffect(() => {
         const hideTutorial = localStorage.getItem('neurostudy_hide_search_tutorial');
         if (!hideTutorial) {
@@ -272,17 +391,42 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                         <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4" /> Wiki / Conceitos</button>
                     </div>
 
+
                     <div className="relative max-w-2xl mx-auto group">
                         <input
                             autoFocus
                             type="text"
                             placeholder={activeTab === 'article' ? "Ex: 'Anxiety treatment systematic review' (Inglês é melhor)" : "Digite o tema..."}
-                            className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-lg shadow-sm transition-all"
+                            className="w-full pl-12 pr-36 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-lg shadow-sm transition-all"
                             value={query}
-                            onChange={(e) => setQuery(e.target.value)}
+                            onChange={(e) => { setQuery(e.target.value); setTranslatedQuery(null); }}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         />
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 group-focus-within:text-indigo-500 transition-colors" />
+
+                        {/* Botão de Tradução PT → EN */}
+                        {query.trim() && !translatedQuery && (
+                            <button
+                                onClick={handleTranslate}
+                                disabled={translating}
+                                className="absolute right-28 top-2 bottom-2 px-3 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-lg transition-colors text-xs flex items-center gap-1"
+                                title="Traduzir para Inglês"
+                            >
+                                {translating ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <>🌐 PT→EN</>
+                                )}
+                            </button>
+                        )}
+
+                        {/* Indicador de que foi traduzido */}
+                        {translatedQuery && (
+                            <span className="absolute right-28 top-1/2 -translate-y-1/2 text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded">
+                                ✓ Traduzido
+                            </span>
+                        )}
+
                         <button
                             onClick={handleSearch}
                             disabled={loading || !query.trim()}
@@ -292,10 +436,50 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                         </button>
                     </div>
 
-                    {/* Dica Rápida */}
-                    <p className="text-center text-xs text-gray-500 flex items-center justify-center gap-1">
-                        <Globe className="w-3 h-3" /> Dica: Busque <span className="font-bold text-gray-700">"Guidelines"</span> ou <span className="font-bold text-gray-700">"Meta-analysis"</span> junto com o tema para ver o topo da pirâmide.
-                    </p>
+                    {/* Dica Rápida + Botão Deep Research */}
+                    <div className="flex items-center justify-center gap-4">
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Globe className="w-3 h-3" /> Dica: Busque <span className="font-bold text-gray-700">"Guidelines"</span> ou <span className="font-bold text-gray-700">"Meta-analysis"</span>
+                        </p>
+
+                        {/* Botão Deep Research */}
+                        {activeTab === 'article' && (
+                            <button
+                                onClick={handleDeepResearch}
+                                disabled={deepResearchLoading || !query.trim()}
+                                className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-full text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center gap-1"
+                            >
+                                {deepResearchLoading ? (
+                                    <><Loader2 className="w-3 h-3 animate-spin" /> Analisando...</>
+                                ) : (
+                                    <>🧠 Deep Research</>
+                                )}
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Painel de Insights do Deep Research */}
+                    {deepResearchInsight && (
+                        <div className="mt-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
+                            <div className="flex items-start gap-3">
+                                <div className="bg-purple-600 text-white p-2 rounded-lg shrink-0">
+                                    🧠
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-purple-800 text-sm mb-2">Análise Deep Research</h4>
+                                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                        {deepResearchInsight}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setDeepResearchInsight(null)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Results */}
