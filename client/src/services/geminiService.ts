@@ -434,18 +434,68 @@ export const generateTool = async (
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key missing");
   const ai = new GoogleGenAI({ apiKey });
+
+  // Validação: garante que topic não é undefined
+  const safeTopic = topic || "o tema do estudo";
+  const safeContext = context?.slice(0, 1000) || "Contexto não disponível";
+  const safeDomain = targetDomain && targetDomain.trim() !== '' ? targetDomain : null;
+
   let prompt = '';
   switch (toolType) {
-    case 'explainLikeIm5': prompt = `Explique "${topic}" (Contexto: ${context.slice(0, 500)}) usando o Método Feynman. O tom deve ser fascinante e revelador. Use uma metáfora brilhante se possível. Mantenha curto (max 3 frases), mas impactante.`; break;
-    case 'realWorldApplication': prompt = `Como "${topic}" (Contexto: ${context.slice(0, 500)}) é usado no mundo real? Dê um exemplo prático (MAX 3 LINHAS), curto e útil.`; break;
-    case 'analogy': prompt = `Crie uma analogia para "${topic}".`; break;
-    case 'interdisciplinary':
-      const domain = targetDomain ? `com a área de ${targetDomain}` : 'com outra área do conhecimento inusitada';
-      prompt = `Conecte "${topic}" ${domain}. Mostre como os conceitos se cruzam de forma surpreendente.\n\nIMPORTANTE: Escreva um texto fluído e curto. NÃO use formatação markdown como negrito (**) ou itálico (*). Apenas texto puro.`;
+    case 'explainLikeIm5':
+      prompt = `Explique "${safeTopic}" usando o Método Feynman. 
+      Contexto: ${safeContext.slice(0, 500)}
+      O tom deve ser fascinante e revelador. Use uma metáfora brilhante se possível. 
+      Mantenha curto (max 3 frases), mas impactante.`;
       break;
-    default: throw new Error("Ferramenta inválida.");
+    case 'realWorldApplication':
+      prompt = `Como "${safeTopic}" é usado no mundo real? 
+      Contexto: ${safeContext.slice(0, 500)}
+      Dê um exemplo prático (MAX 3 LINHAS), curto e útil.`;
+      break;
+    case 'analogy':
+      prompt = `Crie uma analogia criativa para explicar "${safeTopic}".
+      Contexto: ${safeContext.slice(0, 300)}
+      Seja criativo e use comparações do dia-a-dia.`;
+      break;
+    case 'interdisciplinary':
+      const domainInstruction = safeDomain
+        ? `Conecte especificamente com a área de "${safeDomain}".`
+        : 'Conecte com outra área do conhecimento inusitada (pode ser arte, física, culinária, esportes, música, etc).';
+
+      prompt = `TAREFA: Fazer uma conexão interdisciplinar.
+      
+      TEMA PRINCIPAL: "${safeTopic}"
+      CONTEXTO DO ESTUDO: ${safeContext.slice(0, 800)}
+      
+      ${domainInstruction}
+      
+      REGRAS:
+      1. Mostre como os conceitos se cruzam de forma surpreendente e educativa.
+      2. A conexão deve ser REAL e baseada em ciência ou fatos conhecidos.
+      3. Escreva um texto fluido de 3-5 frases.
+      4. NÃO use formatação markdown (sem **, *, #, etc). Apenas texto puro.
+      5. NÃO invente informações. Se não souber uma conexão real, escolha outra área.
+      6. O texto deve ser útil para um estudante entender o tema de forma mais ampla.`;
+      break;
+    default:
+      throw new Error("Ferramenta inválida.");
   }
-  return safeGenerate(ai, prompt, false);
+
+  const selectedModel = selectModel('tool');
+
+  try {
+    const result = await safeGenerate(ai, prompt, false, selectedModel);
+    // Verifica se a resposta contém "undefined" (bug) e retorna mensagem de fallback
+    if (result.includes('undefined') || result.length < 20) {
+      console.warn('[generateTool] Resposta suspeita detectada:', result);
+      return `Não foi possível gerar a conexão interdisciplinar para "${safeTopic}". Tente novamente ou escolha outra área.`;
+    }
+    return result;
+  } catch (e) {
+    console.error('[generateTool] Erro:', e);
+    return `Erro ao gerar conteúdo. Tente novamente.`;
+  }
 };
 
 export const generateDiagram = async (desc: string): Promise<{ code: string, url: string }> => {
