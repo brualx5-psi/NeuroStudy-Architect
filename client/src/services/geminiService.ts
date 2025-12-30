@@ -494,8 +494,14 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
   try {
     const response = await safeGenerate(ai, prompt, true, selectedModel);
     const parsed = JSON.parse(response.replace(/```json/g, '').replace(/```/g, '').trim() || "[]");
-    // Garante que sempre retorna array
-    return Array.isArray(parsed) ? parsed : [];
+    // Garante que sempre retorna array com IDs únicos
+    if (Array.isArray(parsed)) {
+      return parsed.map((q, index) => ({
+        ...q,
+        id: q.id || `quiz-${Date.now()}-${index}` // Garante ID único mesmo se API não retornar
+      }));
+    }
+    return [];
   } catch (e) {
     console.error('[generateQuiz] Erro ao gerar quiz:', e);
     return [];
