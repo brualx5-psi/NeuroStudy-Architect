@@ -434,7 +434,7 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
   Crie um Quiz DE ALTO NÍVEL (Neuroscience-based) sobre: ${guide.subject}.
   TOTAL DE QUESTÕES: ${qty}.
   DISTRIBUIÇÃO OBRIGATÓRIA:
-  - ${mcCount} questões de Múltipla Escolha (type: 'multiple_choice').
+  - ${mcCount} questões de Alternativa (type: 'multiple_choice').
   - ${openCount} questões Dissertativas (type: 'open').
 
   Para questões 'open', o campo 'correctAnswer' deve conter a "Resposta Esperada/Gabarito" (texto ideal).

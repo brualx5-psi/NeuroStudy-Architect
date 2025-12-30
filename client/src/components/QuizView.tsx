@@ -126,7 +126,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
             {distMode === 'custom' ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-xs font-bold text-blue-600 uppercase mb-1 block">Múltipla Escolha</span>
+                  <span className="text-xs font-bold text-blue-600 uppercase mb-1 block">Alternativa</span>
                   <input type="number" min="0" max={quantity} value={mcCount} onChange={(e) => { const v = parseInt(e.target.value) || 0; setMcCount(v); setOpenCount(Math.max(0, quantity - v)); }} className="w-full p-2 border border-gray-300 rounded-lg text-center font-bold text-lg" />
                 </div>
                 <div>
@@ -136,7 +136,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
               </div>
             ) : (
               <div className="flex gap-2">
-                <div className="flex-1 bg-blue-100 p-2 rounded-lg text-center"><span className="block text-blue-700 font-bold text-lg">{mcCount}</span><span className="text-[10px] text-blue-500 uppercase font-bold">Múltipla Escolha</span></div>
+                <div className="flex-1 bg-blue-100 p-2 rounded-lg text-center"><span className="block text-blue-700 font-bold text-lg">{mcCount}</span><span className="text-[10px] text-blue-500 uppercase font-bold">Alternativa</span></div>
                 <div className="flex-1 bg-purple-100 p-2 rounded-lg text-center"><span className="block text-purple-700 font-bold text-lg">{openCount}</span><span className="text-[10px] text-purple-500 uppercase font-bold">Dissertativas</span></div>
               </div>
             )}
@@ -199,12 +199,12 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
           <div key={q.id} className={containerClass}>
             <div className={`p-4 border-b flex justify-between items-center ${isChecked ? 'bg-gray-50/50' : 'bg-gray-50'}`}>
               <div className="flex items-center gap-3"><span className="font-bold text-sm text-gray-500">QUESTÃO {index + 1}</span>{getDifficultyBadge(q.difficulty)}</div>
-              <span className={`text-xs px-2 py-1 rounded font-bold uppercase ${q.type === 'multiple_choice' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{q.type === 'multiple_choice' ? 'Múltipla Escolha' : 'Dissertativa'}</span>
+              <span className={`text-xs px-2 py-1 rounded font-bold uppercase ${q.type === 'multiple_choice' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{q.type === 'multiple_choice' ? 'Alternativa' : 'Dissertativa'}</span>
             </div>
             <div className="p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-6">{q.question}</h3>
 
-              {/* --- LÓGICA MÚLTIPLA ESCOLHA --- */}
+              {/* --- LÓGICA ALTERNATIVA --- */}
               {q.type === 'multiple_choice' && q.options && (
                 <div className="space-y-3">
                   {q.options.map((opt, optIdx) => {
