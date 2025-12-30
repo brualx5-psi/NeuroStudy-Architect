@@ -491,7 +491,15 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
   Foco: Testar compreensão profunda e aplicação. JSON estrito.
   `;
   const selectedModel = selectModel('quiz');
-  try { return JSON.parse((await safeGenerate(ai, prompt, true, selectedModel)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
+  try {
+    const response = await safeGenerate(ai, prompt, true, selectedModel);
+    const parsed = JSON.parse(response.replace(/```json/g, '').replace(/```/g, '').trim() || "[]");
+    // Garante que sempre retorna array
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('[generateQuiz] Erro ao gerar quiz:', e);
+    return [];
+  }
 };
 
 export const evaluateOpenAnswer = async (question: string, userAnswer: string, expectedAnswer: string): Promise<{ status: 'correct' | 'partial' | 'wrong', feedback: string }> => {
