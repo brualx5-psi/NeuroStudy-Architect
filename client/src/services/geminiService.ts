@@ -5,7 +5,50 @@ const getApiKey = (): string | undefined => {
   return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
 };
 
-const MODEL_NAME = 'gemini-2.0-flash';
+// === SISTEMA HÍBRIDO DE MODELOS ===
+const MODEL_FLASH = 'gemini-2.0-flash';  // Rápido e barato - para chat, ferramentas simples
+const MODEL_PRO = 'gemini-pro-latest';      // Inteligente e preciso - para quiz, flashcards, PDFs longos
+
+// Tipos de tarefa para seleção de modelo
+type TaskType = 'chat' | 'tool' | 'transcription' | 'studyGuide' | 'quiz' | 'flashcard' | 'slides' | 'diagram';
+
+// Função para selecionar o modelo baseado no contexto
+const selectModel = (
+  taskType: TaskType,
+  contentLength: number = 0,
+  sourceCount: number = 1,
+  isBook: boolean = false
+): string => {
+  // Tarefas que SEMPRE usam Pro (precisão é crítica)
+  const alwaysProTasks: TaskType[] = ['quiz', 'flashcard'];
+  if (alwaysProTasks.includes(taskType)) {
+    console.log(`[ModelSelector] Usando PRO para ${taskType} (precisão crítica)`);
+    return MODEL_PRO;
+  }
+
+  // Tarefas que SEMPRE usam Flash (velocidade importa mais)
+  const alwaysFlashTasks: TaskType[] = ['chat', 'tool', 'transcription', 'diagram'];
+  if (alwaysFlashTasks.includes(taskType)) {
+    console.log(`[ModelSelector] Usando FLASH para ${taskType} (velocidade)`);
+    return MODEL_FLASH;
+  }
+
+  // StudyGuide e Slides: depende do tamanho e complexidade
+  if (taskType === 'studyGuide' || taskType === 'slides') {
+    // Usa Pro se: é livro, conteúdo grande (>50k chars), ou muitas fontes (3+)
+    if (isBook || contentLength > 50000 || sourceCount >= 3) {
+      console.log(`[ModelSelector] Usando PRO para ${taskType} (conteúdo complexo: ${contentLength} chars, ${sourceCount} fontes, livro=${isBook})`);
+      return MODEL_PRO;
+    }
+  }
+
+  // Fallback: Flash para tudo mais
+  console.log(`[ModelSelector] Usando FLASH para ${taskType} (padrão)`);
+  return MODEL_FLASH;
+};
+
+// Mantém compatibilidade com código legado
+const MODEL_NAME = MODEL_FLASH;
 
 // ESQUEMA COMPLETO RESTAURADO
 const COMMON_PROPERTIES = {
@@ -145,11 +188,12 @@ async function fetchWithRetry<T>(operation: () => Promise<T>, retries = 3, delay
   }
 }
 
-const safeGenerate = async (ai: GoogleGenAI, prompt: string, schemaMode = true): Promise<string> => {
+const safeGenerate = async (ai: GoogleGenAI, prompt: string, schemaMode = true, modelOverride?: string): Promise<string> => {
+  const model = modelOverride || MODEL_FLASH;
   return fetchWithRetry(async () => {
     const config: any = {};
     if (schemaMode) config.responseMimeType = "application/json";
-    const response = await ai.models.generateContent({ model: MODEL_NAME, contents: { parts: [{ text: prompt }] }, config });
+    const response = await ai.models.generateContent({ model, contents: { parts: [{ text: prompt }] }, config });
     let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
     return text || "";
   });
@@ -352,8 +396,13 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
   // Como 'combinedContext' já tem tudo, enviamos ele.
   parts.push({ text: combinedContext });
 
+  // Seleciona modelo baseado no contexto (tamanho, fontes, é livro?)
+  const contentLength = combinedContext.length;
+  const sourceCount = sources.length;
+  const selectedModel = selectModel('studyGuide', contentLength, sourceCount, isBook);
+
   return fetchWithRetry(async () => {
-    const response = await ai.models.generateContent({ model: MODEL_NAME, contents: { role: 'user', parts: parts }, config: { systemInstruction: MASTER_PROMPT, responseMimeType: "application/json", responseSchema: finalSchema, temperature: 0.3 } });
+    const response = await ai.models.generateContent({ model: selectedModel, contents: { role: 'user', parts: parts }, config: { systemInstruction: MASTER_PROMPT, responseMimeType: "application/json", responseSchema: finalSchema, temperature: 0.3 } });
     let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
     if (!text) text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -441,7 +490,8 @@ export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: 
   Para questões 'multiple_choice', o campo 'correctAnswer' DEVE ser um NÚMERO INTEIRO (0, 1, 2 ou 3) representando o ÍNDICE da alternativa correta no array 'options'. NÃO use letras (A, B, C, D), use apenas o índice numérico.
   Foco: Testar compreensão profunda e aplicação. JSON estrito.
   `;
-  try { return JSON.parse((await safeGenerate(ai, prompt)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
+  const selectedModel = selectModel('quiz');
+  try { return JSON.parse((await safeGenerate(ai, prompt, true, selectedModel)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
 };
 
 export const evaluateOpenAnswer = async (question: string, userAnswer: string, expectedAnswer: string): Promise<{ status: 'correct' | 'partial' | 'wrong', feedback: string }> => {
@@ -468,7 +518,8 @@ export const evaluateOpenAnswer = async (question: string, userAnswer: string, e
 
 export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]> => {
   const apiKey = getApiKey(); if (!apiKey) throw new Error("API Key missing"); const ai = new GoogleGenAI({ apiKey });
-  try { return JSON.parse((await safeGenerate(ai, `Crie Flashcards OTIMIZADOS PARA MEMORIZAÇÃO (Spaced Repetition) sobre: ${guide.subject}. Foco: Pergunta gatilho -> Resposta direta e clara. JSON estrito.`)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
+  const selectedModel = selectModel('flashcard');
+  try { return JSON.parse((await safeGenerate(ai, `Crie Flashcards OTIMIZADOS PARA MEMORIZAÇÃO (Spaced Repetition) sobre: ${guide.subject}. Foco: Pergunta gatilho -> Resposta direta e clara. JSON estrito.`, true, selectedModel)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
 };
 
 export const sendChatMessage = async (history: ChatMessage[], msg: string, studyGuide: StudyGuide | null = null): Promise<string> => {
