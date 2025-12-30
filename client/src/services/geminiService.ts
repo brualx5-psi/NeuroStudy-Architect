@@ -470,7 +470,39 @@ export const generateDiagram = async (desc: string): Promise<{ code: string, url
 
 export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
   const apiKey = getApiKey(); if (!apiKey) throw new Error("API Key missing"); const ai = new GoogleGenAI({ apiKey });
-  try { return JSON.parse((await safeGenerate(ai, `Crie Slides JSON sobre: "${guide.subject}".`)).replace(/```json/g, '').replace(/```/g, '').trim() || "[]"); } catch { return []; }
+
+  const prompt = `
+  Crie uma apresentação de Slides (.pdf style) sobre: "${guide.subject}".
+  Contexto: Baseie-se no guia de estudo fornecido.
+  
+  Gere um JSON com uma lista de slides. Cada slide deve ter:
+  - "title": Título impactante.
+  - "bullets": Array de 3 a 5 pontos chave (texto curto).
+  - "speakerNotes": O que falar nesse slide (roteiro para o apresentador).
+  
+  Estrutura sugerida:
+  1. Capa
+  2. Introdução/Contexto
+  3. Conceitos Chave (1 slide por conceito principal)
+  4. Aplicação Prática
+  5. Conclusão/Próximos Passos
+  
+  Retorne APENAS o JSON estrito: [{ "title": "...", "bullets": ["..."], "speakerNotes": "..." }, ...]
+  `;
+
+  // Seleciona modelo adequado (Slides podem ser complexos, usa lógica similar a studyGuide se necessário, ou padrão)
+  // Para slides, geralmente Flash é suficiente, mas se o guia for muito complexo, o seletor pode decidir.
+  // Vamos usar 'slides' como tipo.
+  const selectedModel = selectModel('slides', JSON.stringify(guide).length);
+
+  try {
+    const response = await safeGenerate(ai, prompt, true, selectedModel);
+    const parsed = JSON.parse(response.replace(/```json/g, '').replace(/```/g, '').trim() || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('[generateSlides] Erro:', e);
+    return [];
+  }
 };
 
 export const generateQuiz = async (guide: StudyGuide, mode: StudyMode, config?: { quantity: number, distribution?: { mc: number, open: number } }): Promise<QuizQuestion[]> => {
