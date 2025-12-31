@@ -455,10 +455,11 @@ export function App() {
                 <main className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
                     <div className="max-w-5xl mx-auto space-y-12">
                         <div className="space-y-4">
-                            <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-widest border border-indigo-100">Neurociência Aplicada</span>
+                            <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-widest border border-indigo-100">IA + Neurociência</span>
                             <div className="flex justify-center mb-8"><NeuroLogo size={130} className="drop-shadow-2xl" /></div>
-                            <h2 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">Pare de estudar.<br /><span className="text-indigo-600">Comece a aprender.</span></h2>
-                            <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed">Transforme PDFs, Vídeos e Anotações em guias de estudo ativo.</p>
+                            <h2 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">Não é resumo.<br /><span className="text-indigo-600">É roteiro.</span></h2>
+                            <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed">Economize energia mental <strong>planejando</strong>. Gaste energia mental <strong>aprendendo</strong>.</p>
+                            <p className="text-sm text-slate-400 max-w-lg mx-auto">Transforme PDFs, Vídeos e Anotações em roteiros de estudo ativo baseados em neurociência.</p>
                         </div>
 
                         <div className="flex flex-col md:flex-row items-center justify-center gap-6">
@@ -663,9 +664,9 @@ export function App() {
                                                             <button onClick={() => setShowSearchModal(true)} className={`flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2`}><Globe className="w-4 h-4" /> Pesquisar Web</button>
                                                         </div>
                                                         {inputType === InputType.URL && (
-                                                            <div className="mb-4 bg-blue-50 text-blue-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-blue-100">
+                                                            <div className="mb-4 bg-green-50 text-green-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-green-100">
                                                                 <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                                <p><strong>Dica para YouTube:</strong> Para melhores resultados e timestamps precisos, recomendamos colar a <strong>Transcrição Completa</strong> (Texto) ou usar ferramentas externas para baixar o áudio/vídeo e fazer upload do arquivo aqui. A IA analisa melhor o texto direto.</p>
+                                                                <p><strong>✅ Links suportados:</strong> YouTube, PDFs online, sites e artigos. A IA extrai e analisa o conteúdo automaticamente. Para vídeos privados, certifique-se de estar logado.</p>
                                                             </div>
                                                         )}
                                                         <div className="space-y-4">

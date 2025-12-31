@@ -7,7 +7,7 @@ interface MethodologyModalProps {
 }
 
 export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState<'science' | 'workflow' | 'modes'>('science');
+  const [activeTab, setActiveTab] = useState<'science' | 'workflow' | 'modes' | 'research'>('science');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -28,24 +28,30 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 bg-gray-50 shrink-0">
+        <div className="flex border-b border-gray-200 bg-gray-50 shrink-0 overflow-x-auto">
           <button
             onClick={() => setActiveTab('science')}
-            className={`flex-1 py-4 font-bold text-sm uppercase tracking-wider transition-colors border-b-4 ${activeTab === 'science' ? 'border-indigo-600 text-indigo-800 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`flex-1 py-3 font-bold text-xs uppercase tracking-wider transition-colors border-b-4 whitespace-nowrap px-2 ${activeTab === 'science' ? 'border-indigo-600 text-indigo-800 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             🧠 A Ciência
           </button>
           <button
             onClick={() => setActiveTab('modes')}
-            className={`flex-1 py-4 font-bold text-sm uppercase tracking-wider transition-colors border-b-4 ${activeTab === 'modes' ? 'border-indigo-600 text-indigo-800 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`flex-1 py-3 font-bold text-xs uppercase tracking-wider transition-colors border-b-4 whitespace-nowrap px-2 ${activeTab === 'modes' ? 'border-indigo-600 text-indigo-800 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            ⚡ Modos & Níveis
+            ⚡ Modos
+          </button>
+          <button
+            onClick={() => setActiveTab('research')}
+            className={`flex-1 py-3 font-bold text-xs uppercase tracking-wider transition-colors border-b-4 whitespace-nowrap px-2 ${activeTab === 'research' ? 'border-emerald-600 text-emerald-800 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            🔬 Pesquisa
           </button>
           <button
             onClick={() => setActiveTab('workflow')}
-            className={`flex-1 py-4 font-bold text-sm uppercase tracking-wider transition-colors border-b-4 ${activeTab === 'workflow' ? 'border-indigo-600 text-indigo-800 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`flex-1 py-3 font-bold text-xs uppercase tracking-wider transition-colors border-b-4 whitespace-nowrap px-2 ${activeTab === 'workflow' ? 'border-indigo-600 text-indigo-800 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            🛠️ Guia & Ferramentas
+            🛠️ Guia
           </button>
         </div>
 
@@ -55,7 +61,55 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
           {/* TAB: A CIÊNCIA */}
           {activeTab === 'science' && (
             <div className="space-y-8 max-w-4xl mx-auto animate-fade-in">
-              <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 mb-6">
+
+              {/* ANALOGIA DO PERSONAL TRAINER */}
+              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 opacity-10">
+                  <BrainCircuit className="w-32 h-32" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3">🧠 NeuroStudy é como um Personal Trainer para o cérebro</h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="bg-black/20 p-4 rounded-xl">
+                    <p className="font-bold text-indigo-200 mb-1">O personal não malha por você.</p>
+                    <p className="text-white/80">Ele cria o <strong>treino perfeito</strong> para você malhar.</p>
+                  </div>
+                  <div className="bg-black/20 p-4 rounded-xl">
+                    <p className="font-bold text-indigo-200 mb-1">NeuroStudy não estuda por você.</p>
+                    <p className="text-white/80">Ele cria o <strong>roteiro perfeito</strong> para você estudar.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* O QUE NÃO SOMOS vs O QUE SOMOS */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-red-50 p-5 rounded-xl border border-red-100">
+                  <h4 className="font-bold text-red-700 mb-3 text-lg">❌ O que NÃO somos</h4>
+                  <ul className="space-y-2 text-sm text-red-800">
+                    <li className="flex items-center gap-2"><X className="w-4 h-4" /> Um resumo pronto para ler</li>
+                    <li className="flex items-center gap-2"><X className="w-4 h-4" /> Algo que estuda por você</li>
+                    <li className="flex items-center gap-2"><X className="w-4 h-4" /> Ilusão de aprendizado</li>
+                  </ul>
+                </div>
+                <div className="bg-green-50 p-5 rounded-xl border border-green-100">
+                  <h4 className="font-bold text-green-700 mb-3 text-lg">✅ O que SOMOS</h4>
+                  <ul className="space-y-2 text-sm text-green-800">
+                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Roteiro baseado em neurociência</li>
+                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Guia para estudo ativo</li>
+                    <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Aprendizado real e duradouro</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* ENERGIA MENTAL */}
+              <div className="bg-yellow-50 p-5 rounded-xl border border-yellow-200 text-center">
+                <h4 className="font-bold text-yellow-800 text-lg mb-2">💡 Seu cérebro tem energia limitada</h4>
+                <p className="text-sm text-yellow-700">
+                  <strong>Economize energia</strong> deixando a IA planejar o roteiro.<br />
+                  <strong>Gaste energia</strong> aprendendo de verdade.
+                </p>
+              </div>
+
+              <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
                 <p className="text-lg text-indigo-900 font-medium leading-relaxed">
                   O NeuroStudy não é apenas um "resumidor". Ele é um <strong>arquiteto cognitivo</strong>. Usamos quatro pilares da neurociência para transformar estudo passivo em retenção ativa de longo prazo.
                 </p>
@@ -218,6 +272,121 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
                     <p className="text-xs text-purple-700">Especialização. A IA busca nuances, exceções e cria desafios críticos.</p>
                   </div>
                 </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB: PESQUISA CIENTÍFICA */}
+          {activeTab === 'research' && (
+            <div className="space-y-8 max-w-4xl mx-auto animate-fade-in">
+
+              {/* Intro */}
+              <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
+                <p className="text-lg text-emerald-900 font-medium leading-relaxed">
+                  O NeuroStudy integra <strong>fontes científicas de primeira linha</strong> para embasar seus estudos com evidências. Busque artigos, meta-análises e diretrizes diretamente da plataforma.
+                </p>
+              </div>
+
+              {/* Fontes de Pesquisa */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  🌐 Fontes de Pesquisa
+                </h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">PubMed</span>
+                    </div>
+                    <p className="text-sm text-blue-800">Padrão ouro para Saúde. RCTs, Meta-análises e Guidelines.</p>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-bold">OpenAlex</span>
+                    </div>
+                    <p className="text-sm text-orange-800">Multidisciplinar. Direito, Engenharia, Humanas e mais.</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">Web/IA</span>
+                    </div>
+                    <p className="text-sm text-purple-800">Google Search via IA. PDFs e artigos não indexados.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pirâmide de Evidência */}
+              <div className="border-t border-gray-200 pt-8">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  📊 Pirâmide de Evidência
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Pirâmide Visual */}
+                  <div className="flex flex-col items-center">
+                    <svg width="180" height="160" viewBox="0 0 100 90">
+                      <polygon points="50,5 53,12 60,12 55,17 57,24 50,20 43,24 45,17 40,12 47,12" fill="#9333ea" stroke="#fff" strokeWidth="0.5" />
+                      <polygon points="50,24 65,42 35,42" fill="#059669" stroke="#fff" strokeWidth="1" />
+                      <polygon points="35,42 65,42 75,54 25,54" fill="#22c55e" stroke="#fff" strokeWidth="1" />
+                      <polygon points="25,54 75,54 82,66 18,66" fill="#eab308" stroke="#fff" strokeWidth="1" />
+                      <polygon points="18,66 82,66 90,78 10,78" fill="#f97316" stroke="#fff" strokeWidth="1" />
+                      <polygon points="10,78 90,78 98,90 2,90" fill="#ef4444" stroke="#fff" strokeWidth="1" />
+                    </svg>
+                    <div className="text-sm space-y-1 mt-4 text-left">
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-purple-600"></span> <strong>Guideline</strong> (topo)</div>
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-emerald-600"></span> Meta-análise</div>
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-green-500"></span> RCT</div>
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-yellow-500"></span> Coorte</div>
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-orange-500"></span> Caso-Controle</div>
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-red-500"></span> Observacional</div>
+                    </div>
+                  </div>
+
+                  {/* Explicação */}
+                  <div className="bg-gray-50 p-4 rounded-xl">
+                    <p className="text-sm text-gray-700 mb-4">
+                      A pirâmide indica o <strong>nível de confiabilidade</strong> do estudo. Quanto mais alto, menor o risco de viés e mais forte a evidência.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      ↑ Quanto mais alto + boa avaliação = maior confiabilidade
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ferramentas de Avaliação */}
+              <div className="border-t border-gray-200 pt-8">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  🔬 Ferramentas de Avaliação de Qualidade
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Clique no botão de avaliação em cada resultado para que a IA analise a qualidade metodológica usando ferramentas científicas validadas:
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                    <h4 className="font-bold text-emerald-700 mb-1">🔬 AMSTAR 2</h4>
+                    <p className="text-xs text-emerald-800">Para <strong>Meta-análises</strong>. Score de 0-16 pontos avaliando busca, seleção, viés e análise estatística.</p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                    <h4 className="font-bold text-blue-700 mb-1">⚖️ RoB 2 (Risk of Bias)</h4>
+                    <p className="text-xs text-blue-800">Para <strong>RCTs</strong>. Avalia randomização, cegamento, dados faltantes. Risco: Baixo/Moderado/Alto.</p>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                    <h4 className="font-bold text-yellow-700 mb-1">⭐ NOS (Newcastle-Ottawa)</h4>
+                    <p className="text-xs text-yellow-800">Para <strong>Coorte/Caso-Controle</strong>. Score de 0-9 estrelas avaliando seleção, comparabilidade e desfecho.</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                    <h4 className="font-bold text-purple-700 mb-1">🏛️ AGREE II</h4>
+                    <p className="text-xs text-purple-800">Para <strong>Guidelines</strong>. Avalia 6 domínios: escopo, envolvimento, rigor, clareza, aplicabilidade e independência.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dica de Busca */}
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                <h4 className="font-bold text-blue-800 flex items-center gap-2 mb-2">💡 Dica Pro</h4>
+                <p className="text-sm text-blue-700">
+                  Busque em <strong>inglês</strong> para melhores resultados. Use o botão <span className="bg-white px-2 py-0.5 rounded text-xs font-bold">🌐 PT→EN</span> para traduzir automaticamente sua busca.
+                </p>
               </div>
 
             </div>
