@@ -141,3 +141,22 @@ export interface Flashcard {
   front: string;
   back: string;
 }
+
+// === PERFIL DO USUÁRIO (Onboarding) ===
+export type StudyArea = 'health' | 'engineering' | 'law' | 'marketing' | 'general';
+export type Purpose = 'vestibular' | 'exam' | 'graduation' | 'postgrad' | 'professional';
+export type ExamType = 'oab' | 'concursos' | 'enem' | 'residencia' | 'none';
+export type SourceType = 'video' | 'pdf' | 'text' | 'mixed';
+export type PreferredSource = 'auto' | 'pubmed' | 'openalex' | 'grounding';
+
+export interface UserProfile {
+  name?: string;
+  studyArea: StudyArea;
+  purpose: Purpose;
+  examType?: ExamType; // Só quando purpose='exam'
+  primarySourceType: SourceType;
+  preferredSource: PreferredSource;
+  profileVersion: number;
+  hasCompletedOnboarding: boolean;
+  createdAt: string;
+}

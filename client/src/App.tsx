@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode, SlideContent } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards, uploadFileToGemini, transcribeMedia } from './services/geminiService';
 import { loadUserData, saveUserData, isCloudMode } from './services/storage';
+import { hasCompletedOnboarding } from './services/userProfileService';
 import { ResultsView } from './components/ResultsView';
 import { SlidesView } from './components/SlidesView';
 import { QuizView } from './components/QuizView';
@@ -19,6 +20,7 @@ import { ReviewSchedulerModal } from './components/ReviewSchedulerModal';
 import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
 import { SearchResourcesModal } from './components/SearchResourcesModal';
+import { OnboardingModal } from './components/OnboardingModal';
 import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles } from './components/Icons';
 
 export function App() {
@@ -94,6 +96,7 @@ export function App() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding());
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
 
     const paretoInputRef = useRef<HTMLInputElement>(null);
@@ -820,6 +823,12 @@ export function App() {
                     <SearchResourcesModal
                         onClose={() => setShowSearchModal(false)}
                         onAddSource={handleAddSearchSource}
+                    />
+                )}
+                {showOnboarding && (
+                    <OnboardingModal
+                        onComplete={() => setShowOnboarding(false)}
+                        onCreateStudy={handleStartSession}
                     />
                 )}
             </div>

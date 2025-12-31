@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, HelpCircle, Shield } from './Icons';
 import { InputType } from '../types';
+import { searchPubMed } from '../services/pubmedService';
+import { getProfile, getPreferredSource } from '../services/userProfileService';
 
 interface SearchResult {
     id: string;
@@ -51,6 +53,9 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     const [filter, setFilter] = useState<'ALL' | 'GUIDELINE' | 'META' | 'RCT'>('ALL'); // Filtro de Tipo de Estudo
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+
+    // Seletor de fonte (auto, pubmed, openalex, grounding)
+    const [sourceMode, setSourceMode] = useState<'auto' | 'pubmed' | 'openalex' | 'grounding'>('auto');
 
     // Controle do Tutorial
     const [showTutorial, setShowTutorial] = useState(false);
@@ -249,17 +254,63 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                 }
 
             } else if (activeTab === 'article') {
-                // === GEMINI COM GROUNDING (Google Search) ===
-                const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-                if (!apiKey) {
-                    console.error('API Key não configurada');
-                    return;
-                }
+                // Determina qual fonte usar
+                const effectiveSource = sourceMode === 'auto' ? getPreferredSource() : sourceMode;
 
-                const { GoogleGenAI } = await import('@google/genai');
-                const ai = new GoogleGenAI({ apiKey });
+                // === PUBMED ===
+                if (effectiveSource === 'pubmed') {
+                    const pubmedResults = await searchPubMed(query, 30);
+                    const formatted: SearchResult[] = pubmedResults.map((item) => {
+                        const reliability = calculateReliability(item.title, item.abstract);
+                        return {
+                            id: item.id,
+                            title: item.title,
+                            author: item.authors,
+                            description: `${item.journal} (${item.year})`,
+                            url: item.url,
+                            type: InputType.DOI,
+                            reliabilityScore: reliability.score,
+                            reliabilityLabel: reliability.label,
+                            isGuideline: reliability.isGuideline
+                        };
+                    });
+                    setResults(formatted);
 
-                const prompt = `Você é um assistente de pesquisa científica. Busque artigos científicos sobre: "${query}"
+                    // === OPENALEX ===
+                } else if (effectiveSource === 'openalex') {
+                    const response = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=30&sort=cited_by_count:desc`);
+                    const data = await response.json();
+                    if (data.results) {
+                        const formatted: SearchResult[] = data.results.map((item: any) => {
+                            const reliability = calculateReliability(item.display_name || item.title, '');
+                            return {
+                                id: item.id,
+                                title: item.display_name || item.title,
+                                author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
+                                description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
+                                url: item.doi || `https://openalex.org/${item.id}`,
+                                type: InputType.DOI,
+                                reliabilityScore: reliability.score,
+                                reliabilityLabel: reliability.label,
+                                isGuideline: reliability.isGuideline
+                            };
+                        });
+                        const sorted = formatted.sort((a, b) => (b.reliabilityScore || 0) - (a.reliabilityScore || 0));
+                        setResults(sorted);
+                    }
+
+                    // === GEMINI GROUNDING ===
+                } else {
+                    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+                    if (!apiKey) {
+                        console.error('API Key não configurada');
+                        return;
+                    }
+
+                    const { GoogleGenAI } = await import('@google/genai');
+                    const ai = new GoogleGenAI({ apiKey });
+
+                    const prompt = `Você é um assistente de pesquisa científica. Busque artigos científicos sobre: "${query}"
                 
 TAREFA: Encontre 10-15 artigos científicos relevantes (priorizando meta-análises, revisões sistemáticas e guidelines).
 
@@ -283,83 +334,84 @@ IMPORTANTE:
 - Foque em estudos recentes (últimos 5-10 anos)
 - Retorne APENAS o JSON, sem markdown ou explicações`;
 
-                try {
-                    const response = await ai.models.generateContent({
-                        model: 'gemini-2.0-flash',
-                        contents: { parts: [{ text: prompt }] },
-                        config: {
-                            tools: [{ googleSearch: {} }], // Ativa Grounding com Google Search
-                        }
-                    });
-
-                    let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-
-                    // Limpa e faz parse do JSON
-                    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
                     try {
-                        const parsed = JSON.parse(text);
-                        const articles = parsed.articles || parsed;
+                        const response = await ai.models.generateContent({
+                            model: 'gemini-2.0-flash',
+                            contents: { parts: [{ text: prompt }] },
+                            config: {
+                                tools: [{ googleSearch: {} }], // Ativa Grounding com Google Search
+                            }
+                        });
 
-                        if (Array.isArray(articles)) {
-                            const formatted: SearchResult[] = articles.map((item: any, idx: number) => {
-                                const typeScore: Record<string, number> = {
-                                    'guideline': 5,
-                                    'meta-analysis': 5,
-                                    'systematic-review': 5,
-                                    'rct': 4,
-                                    'cohort': 3,
-                                    'other': 1
-                                };
+                        let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
 
-                                return {
-                                    id: `grounding-${idx}-${Date.now()}`,
-                                    title: item.title || 'Artigo sem título',
-                                    author: item.author || 'Autor desconhecido',
-                                    description: item.description || `Publicado em ${item.year || 'N/A'}`,
-                                    url: item.url || item.doi || '#',
-                                    type: InputType.DOI,
-                                    reliabilityScore: typeScore[item.type] || 1,
-                                    reliabilityLabel: item.type || 'other',
-                                    isGuideline: item.type === 'guideline'
-                                };
-                            });
+                        // Limpa e faz parse do JSON
+                        text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-                            // Ordena por relevância
-                            const sorted = formatted.sort((a, b) => {
-                                if (a.isGuideline && !b.isGuideline) return -1;
-                                if (!a.isGuideline && b.isGuideline) return 1;
-                                return (b.reliabilityScore || 0) - (a.reliabilityScore || 0);
-                            });
+                        try {
+                            const parsed = JSON.parse(text);
+                            const articles = parsed.articles || parsed;
 
-                            setResults(sorted);
+                            if (Array.isArray(articles)) {
+                                const formatted: SearchResult[] = articles.map((item: any, idx: number) => {
+                                    const typeScore: Record<string, number> = {
+                                        'guideline': 5,
+                                        'meta-analysis': 5,
+                                        'systematic-review': 5,
+                                        'rct': 4,
+                                        'cohort': 3,
+                                        'other': 1
+                                    };
+
+                                    return {
+                                        id: `grounding-${idx}-${Date.now()}`,
+                                        title: item.title || 'Artigo sem título',
+                                        author: item.author || 'Autor desconhecido',
+                                        description: item.description || `Publicado em ${item.year || 'N/A'}`,
+                                        url: item.url || item.doi || '#',
+                                        type: InputType.DOI,
+                                        reliabilityScore: typeScore[item.type] || 1,
+                                        reliabilityLabel: item.type || 'other',
+                                        isGuideline: item.type === 'guideline'
+                                    };
+                                });
+
+                                // Ordena por relevância
+                                const sorted = formatted.sort((a, b) => {
+                                    if (a.isGuideline && !b.isGuideline) return -1;
+                                    if (!a.isGuideline && b.isGuideline) return 1;
+                                    return (b.reliabilityScore || 0) - (a.reliabilityScore || 0);
+                                });
+
+                                setResults(sorted);
+                            }
+                        } catch (parseError) {
+                            console.error('Erro ao parsear resposta do Gemini:', parseError);
+                            // Fallback para OpenAlex se falhar
+                            const fallbackResponse = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=20&sort=cited_by_count:desc`);
+                            const fallbackData = await fallbackResponse.json();
+                            if (fallbackData.results) {
+                                const formatted: SearchResult[] = fallbackData.results.map((item: any) => {
+                                    const reliability = calculateReliability(item.display_name || item.title, '');
+                                    return {
+                                        id: item.id,
+                                        title: item.display_name || item.title,
+                                        author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
+                                        description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
+                                        url: item.doi || `https://openalex.org/${item.id}`,
+                                        type: InputType.DOI,
+                                        reliabilityScore: reliability.score,
+                                        reliabilityLabel: reliability.label,
+                                        isGuideline: reliability.isGuideline
+                                    };
+                                });
+                                setResults(formatted);
+                            }
                         }
-                    } catch (parseError) {
-                        console.error('Erro ao parsear resposta do Gemini:', parseError);
-                        // Fallback para OpenAlex se falhar
-                        const fallbackResponse = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=20&sort=cited_by_count:desc`);
-                        const fallbackData = await fallbackResponse.json();
-                        if (fallbackData.results) {
-                            const formatted: SearchResult[] = fallbackData.results.map((item: any) => {
-                                const reliability = calculateReliability(item.display_name || item.title, '');
-                                return {
-                                    id: item.id,
-                                    title: item.display_name || item.title,
-                                    author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
-                                    description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
-                                    url: item.doi || `https://openalex.org/${item.id}`,
-                                    type: InputType.DOI,
-                                    reliabilityScore: reliability.score,
-                                    reliabilityLabel: reliability.label,
-                                    isGuideline: reliability.isGuideline
-                                };
-                            });
-                            setResults(formatted);
-                        }
+                    } catch (geminiError) {
+                        console.error('Erro no Gemini Grounding:', geminiError);
                     }
-                } catch (geminiError) {
-                    console.error('Erro no Gemini Grounding:', geminiError);
-                }
+                } // Fecha else do Gemini Grounding
 
             } else {
                 const response = await fetch(`https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=40`);
@@ -472,6 +524,61 @@ IMPORTANTE:
                         <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4" /> Wiki / Conceitos</button>
                     </div>
 
+                    {/* Seletor de fonte (só para artigos) */}
+                    {activeTab === 'article' && (
+                        <div className="flex flex-col gap-4">
+                            {/* Seletor de Fonte */}
+                            <div className="flex items-center justify-center gap-2">
+                                <span className="text-xs text-gray-500 font-medium">Fonte:</span>
+                                {[
+                                    { key: 'auto', label: '✨ Automático', color: 'indigo' },
+                                    { key: 'pubmed', label: '🏥 PubMed', color: 'green' },
+                                    { key: 'openalex', label: '📚 OpenAlex', color: 'blue' },
+                                    { key: 'grounding', label: '🌐 Web/IA', color: 'purple' }
+                                ].map(({ key, label, color }) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setSourceMode(key as any)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sourceMode === key
+                                            ? `bg-${color}-600 text-white shadow-md`
+                                            : `bg-white border border-gray-200 text-gray-600 hover:border-${color}-300`
+                                            }`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Cards Explicativos (só aparecem se não tiver busca ou focado) */}
+                            {!query && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs animate-in fade-in slide-in-from-top-2">
+                                    <div className={`p-3 rounded-lg border transition-colors ${sourceMode === 'pubmed' || (sourceMode === 'auto') ? 'bg-green-50 border-green-200 text-green-800 ring-1 ring-green-300' : 'bg-gray-50 border-gray-100 text-gray-500 opacity-50'}`}>
+                                        <span className="font-bold block mb-1 flex items-center gap-1"><Shield className="w-3 h-3" /> PubMed (Saúde)</span>
+                                        Padrão ouro para Medicina. Prioriza Ensaios Clínicos e Revisões Sistemáticas.
+                                    </div>
+                                    <div className={`p-3 rounded-lg border transition-colors ${sourceMode === 'openalex' || (sourceMode === 'auto') ? 'bg-blue-50 border-blue-200 text-blue-800 ring-1 ring-blue-300' : 'bg-gray-50 border-gray-100 text-gray-500 opacity-50'}`}>
+                                        <span className="font-bold block mb-1 flex items-center gap-1"><BookOpen className="w-3 h-3" /> OpenAlex (Geral)</span>
+                                        Ciência global. Ideal para Engenharia, Direito, Humanas e Tecnologia.
+                                    </div>
+                                    <div className={`p-3 rounded-lg border transition-colors ${sourceMode === 'grounding' || (sourceMode === 'auto') ? 'bg-purple-50 border-purple-200 text-purple-800 ring-1 ring-purple-300' : 'bg-gray-50 border-gray-100 text-gray-500 opacity-50'}`}>
+                                        <span className="font-bold block mb-1 flex items-center gap-1"><Globe className="w-3 h-3" /> Web/IA (Smart)</span>
+                                        Usa IA para varrer a web, blogs técnicos e PDFs quando não há artigos formais.
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dica de Inglês */}
+                            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2.5 flex items-center justify-between text-xs text-indigo-800">
+                                <span className="flex items-center gap-2">
+                                    <Globe className="w-4 h-4 text-indigo-500" />
+                                    <span><b>Dica Pro:</b> Buscas em <b>Inglês</b> retornam 10x mais resultados relevantes.</span>
+                                </span>
+                                <span className="text-indigo-600 bg-white px-2 py-0.5 rounded border border-indigo-100 shadow-sm">
+                                    Use o botão <b>🌐 PT→EN</b> na barra de busca
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="relative max-w-2xl mx-auto group">
                         <input
