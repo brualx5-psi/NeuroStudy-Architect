@@ -1,7 +1,7 @@
-// Force rebuild: ChevronRight import fix
 import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
-import { FolderIcon, Plus, FileText, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target } from './Icons';
+import { useAuth } from '../contexts/AuthContext';
+import { FolderIcon, Plus, FileText, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target, LogOut, User } from './Icons';
 // ChevronRight agora é inline (SVG direto no JSX) para evitar problema de bundling
 
 interface SidebarProps {
@@ -43,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen = false,
   onClose
 }) => {
+  const { profile, signOut } = useAuth();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -342,8 +343,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <SectionHeader id="pareto" title="Pareto 80/20" icon={Target} colorClass="bg-red-50" rootId="root-pareto" />
         </div>
 
-        <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-2">
-          <button onClick={() => { onOpenMethodology(); onClose?.(); }} className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-2 rounded-lg text-xs shadow-sm">
+        <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
+          {/* Perfil do Usuário */}
+          {profile && (
+            <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-100 shadow-sm mb-2">
+              {profile.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full border border-gray-200" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-gray-900 truncate">{profile.full_name || 'Estudante'}</p>
+                <p className="text-[10px] text-gray-500 truncate">{profile.email}</p>
+              </div>
+            </div>
+          )}
+
+          <button onClick={() => { onOpenMethodology(); onClose?.(); }} className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-2 rounded-lg text-xs shadow-sm shadow-indigo-50/50">
             <GraduationCap className="w-3 h-3" /> Método e Instruções
           </button>
 
@@ -362,14 +380,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => {
                 if (confirm('Deseja sair da sua conta?')) {
-                  localStorage.removeItem('user_profile');
-                  window.location.reload();
+                  signOut();
                 }
               }}
               className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-xs transition-colors"
               title="Sair"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+              <LogOut className="w-3 h-3" />
               Sair
             </button>
           </div>

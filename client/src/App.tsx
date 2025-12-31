@@ -7,10 +7,8 @@ import { ResultsView } from './components/ResultsView';
 import { SlidesView } from './components/SlidesView';
 import { QuizView } from './components/QuizView';
 import { FlashcardsView } from './components/FlashcardsView';
-// --- NOVOS IMPORTS (Só funcionam se você criar os arquivos antes) ---
 import { MindMapView } from './components/MindMapView';
 import { ConnectionsView } from './components/ConnectionsView';
-// -------------------------------------------------------------------
 import { ChatWidget } from './components/ChatWidget';
 import { Sidebar } from './components/Sidebar';
 import { MethodologyModal } from './components/MethodologyModal';
@@ -21,26 +19,12 @@ import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
 import { SearchResourcesModal } from './components/SearchResourcesModal';
 import { OnboardingModal } from './components/OnboardingModal';
-import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles } from './components/Icons';
+import { useAuth, AuthProvider } from './contexts/AuthContext';
+import { LoginPage } from './pages/LoginPage';
+import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles, Loader2 } from './components/Icons';
 
-export function App() {
-    const [isAuthorized, setIsAuthorized] = useState(false);
-    const [passwordInput, setPasswordInput] = useState('');
-
-    useEffect(() => {
-        const authorized = localStorage.getItem('neurostudy_auth');
-        if (authorized === 'true') setIsAuthorized(true);
-    }, []);
-
-    const handleLogin = () => {
-        if (passwordInput === 'neurostudy2025') {
-            setIsAuthorized(true);
-            localStorage.setItem('neurostudy_auth', 'true');
-        } else {
-            alert('Senha incorreta.');
-        }
-    };
-
+export function AppContent() {
+    const { user, loading, signOut } = useAuth();
     const [view, setView] = useState<'landing' | 'app'>('landing');
     const [folders, setFolders] = useState<Folder[]>([]);
     const [studies, setStudies] = useState<StudySession[]>([]);
@@ -98,6 +82,23 @@ export function App() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding());
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
+
+    // Se estiver carregando a sessão, mostra um loading bonito
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+                <div className="bg-white p-4 rounded-2xl shadow-xl shadow-indigo-100/50">
+                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+                </div>
+                <p className="text-slate-400 font-bold animate-pulse">Sincronizando neurônios...</p>
+            </div>
+        );
+    }
+
+    // Se não houver usuário, redireciona para o login
+    if (!user) {
+        return <LoginPage />;
+    }
 
     const paretoInputRef = useRef<HTMLInputElement>(null);
     const bookInputRef = useRef<HTMLInputElement>(null);
@@ -834,5 +835,13 @@ export function App() {
                 )}
             </div>
         </div>
+    );
+}
+
+export function App() {
+    return (
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
     );
 }
