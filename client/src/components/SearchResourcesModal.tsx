@@ -22,26 +22,79 @@ interface SearchResourcesModalProps {
     onAddSource: (name: string, content: string, type: InputType) => void;
 }
 
-// COMPONENTE VISUAL: Barra de Nível de Evidência
-const EvidenceLevelBar = ({ score, isGuideline }: { score: number, isGuideline?: boolean }) => {
-    let color = 'bg-gray-300';
-    let width = '20%';
+// COMPONENTE VISUAL: Pirâmide de Evidência Interativa
+const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: boolean }) => {
+    // Dados de cada nível da pirâmide
+    const levels = [
+        { level: 5, name: 'Meta-análise', fullName: 'Meta-análise / Revisão Sistemática', tool: 'AMSTAR 2, ROBIS', color: '#059669' },
+        { level: 4, name: 'RCT', fullName: 'Ensaio Clínico Randomizado', tool: 'RoB 2', color: '#22c55e' },
+        { level: 3, name: 'Coorte', fullName: 'Estudo de Coorte / Longitudinal', tool: 'NOS, ROBINS-I', color: '#eab308' },
+        { level: 2, name: 'Caso-Controle', fullName: 'Estudo Caso-Controle', tool: 'NOS', color: '#f97316' },
+        { level: 1, name: 'Observacional', fullName: 'Observacional / Série de Casos / Opinião', tool: '-', color: '#ef4444' },
+    ];
 
-    if (isGuideline) { color = 'bg-purple-600'; width = '100%'; }
-    else if (score === 5) { color = 'bg-emerald-600'; width = '100%'; } // Meta-análise (Verde Escuro)
-    else if (score === 4) { color = 'bg-green-500'; width = '80%'; }   // RCT (Verde Claro)
-    else if (score === 3) { color = 'bg-yellow-400'; width = '60%'; }  // Coorte (Amarelo)
-    else if (score === 2) { color = 'bg-orange-500'; width = '40%'; }  // Caso-controle (Laranja)
-    else { color = 'bg-red-500'; width = '20%'; }                      // Outros (Vermelho)
+    const currentLevel = levels.find(l => l.level === score) || levels[4];
+    const guidelineTooltip = 'Diretriz clínica oficial - Máxima autoridade. Avaliação: AGREE II';
 
     return (
-        <div className="flex flex-col gap-1 w-full max-w-[120px]">
-            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full ${color} transition-all duration-500`} style={{ width }}></div>
+        <div className="flex items-center gap-2">
+            {/* Mini Pirâmide SVG */}
+            <div className="relative group cursor-pointer" title={isGuideline ? guidelineTooltip : `${currentLevel.fullName}\nAvaliação: ${currentLevel.tool}`}>
+                <svg width="40" height="36" viewBox="0 0 100 90" className="drop-shadow-sm">
+                    {/* Nível 5 - Topo */}
+                    <polygon
+                        points="50,5 62,22 38,22"
+                        fill={score >= 5 || isGuideline ? levels[0].color : '#e5e7eb'}
+                        stroke="#fff" strokeWidth="1"
+                    />
+                    {/* Nível 4 */}
+                    <polygon
+                        points="38,22 62,22 70,38 30,38"
+                        fill={score >= 4 || isGuideline ? levels[1].color : '#e5e7eb'}
+                        stroke="#fff" strokeWidth="1"
+                    />
+                    {/* Nível 3 */}
+                    <polygon
+                        points="30,38 70,38 78,54 22,54"
+                        fill={score >= 3 ? levels[2].color : '#e5e7eb'}
+                        stroke="#fff" strokeWidth="1"
+                    />
+                    {/* Nível 2 */}
+                    <polygon
+                        points="22,54 78,54 86,70 14,70"
+                        fill={score >= 2 ? levels[3].color : '#e5e7eb'}
+                        stroke="#fff" strokeWidth="1"
+                    />
+                    {/* Nível 1 - Base */}
+                    <polygon
+                        points="14,70 86,70 95,88 5,88"
+                        fill={score >= 1 ? levels[4].color : '#e5e7eb'}
+                        stroke="#fff" strokeWidth="1"
+                    />
+                    {/* Seta indicando "melhor" */}
+                    <path d="M96,85 L96,10 L92,18 M96,10 L100,18" stroke="#9ca3af" strokeWidth="1.5" fill="none" />
+                </svg>
+
+                {/* Tooltip expandido ao hover */}
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50 w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl">
+                    <div className="font-bold text-xs mb-1">{isGuideline ? '🏛️ Guideline' : `📊 ${currentLevel.name}`}</div>
+                    <div className="text-gray-300 mb-1">{isGuideline ? 'Diretriz clínica oficial' : currentLevel.fullName}</div>
+                    <div className="text-gray-400 border-t border-gray-700 pt-1 mt-1">
+                        Ferramenta: {isGuideline ? 'AGREE II' : currentLevel.tool}
+                    </div>
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                </div>
             </div>
-            <span className={`text-[9px] uppercase font-bold tracking-wider ${isGuideline ? 'text-purple-700' : 'text-gray-500'}`}>
-                {isGuideline ? 'Guideline (Máximo)' : `Nível ${6 - score}`}
-            </span>
+
+            {/* Label */}
+            <div className="flex flex-col">
+                <span className={`text-[10px] font-bold ${isGuideline ? 'text-purple-700' : score >= 4 ? 'text-emerald-700' : score >= 3 ? 'text-yellow-700' : 'text-gray-600'}`}>
+                    {isGuideline ? '🏛️ Guideline' : currentLevel.name}
+                </span>
+                <span className="text-[8px] text-gray-400">
+                    Nível {score}/5
+                </span>
+            </div>
         </div>
     );
 };
@@ -149,7 +202,7 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
 
             // 4. Também popula os resultados normais
             const formatted = searchData.results.map((item: any) => {
-                const reliability = calculateReliability(item.display_name || item.title, '');
+                const reliability = calculateReliability(item.display_name || item.title, '', 'openalex');
                 return {
                     id: item.id,
                     title: item.display_name || item.title,
@@ -201,11 +254,15 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
     };
 
     // --- LÓGICA DE HIERARQUIA DE EVIDÊNCIA ---
-    const calculateReliability = (title: string, abstract: string = ''): { score: number, label: string, isGuideline: boolean } => {
+    const calculateReliability = (title: string, abstract: string = '', source: string = ''): { score: number, label: string, isGuideline: boolean } => {
         const text = (title + ' ' + abstract).toLowerCase();
 
-        // 1. GUIDELINES (TOPO)
-        if (text.includes('guideline') || text.includes('diretriz') || text.includes('consensus') || text.includes('recommendation')) {
+        // Verifica se área do usuário é saúde
+        const profile = getProfile();
+        const isHealthArea = profile?.studyArea === 'health';
+
+        // 1. GUIDELINES (TOPO) - Só para área de saúde
+        if (isHealthArea && (text.includes('guideline') || text.includes('diretriz') || text.includes('consensus') || text.includes('recommendation'))) {
             return { score: 5, label: 'Diretriz Clínica (Guideline)', isGuideline: true };
         }
         // 2. META-ANÁLISE / REVISÃO SISTEMÁTICA
@@ -261,7 +318,7 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                 if (effectiveSource === 'pubmed') {
                     const pubmedResults = await searchPubMed(query, 30);
                     const formatted: SearchResult[] = pubmedResults.map((item) => {
-                        const reliability = calculateReliability(item.title, item.abstract);
+                        const reliability = calculateReliability(item.title, item.abstract, 'pubmed');
                         return {
                             id: item.id,
                             title: item.title,
@@ -282,7 +339,7 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                     const data = await response.json();
                     if (data.results) {
                         const formatted: SearchResult[] = data.results.map((item: any) => {
-                            const reliability = calculateReliability(item.display_name || item.title, '');
+                            const reliability = calculateReliability(item.display_name || item.title, '', 'openalex');
                             return {
                                 id: item.id,
                                 title: item.display_name || item.title,
@@ -448,44 +505,114 @@ IMPORTANTE:
     return (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
 
-            {/* TUTORIAL LÍQUIDO / GLASSMORPHISM */}
+            {/* TUTORIAL COMPLETO / GLASSMORPHISM */}
             {showTutorial && (
                 <div className="absolute inset-0 z-[70] flex items-center justify-center p-4">
-                    <div className="bg-gradient-to-br from-slate-900 to-indigo-900 border border-indigo-500/30 shadow-2xl rounded-3xl p-8 max-w-lg text-white relative animate-in zoom-in duration-300">
+                    <div className="bg-gradient-to-br from-slate-900 to-indigo-900 border border-indigo-500/30 shadow-2xl rounded-3xl p-6 max-w-2xl max-h-[90vh] overflow-y-auto text-white relative animate-in zoom-in duration-300">
                         <div className="absolute top-0 right-0 p-4">
                             <button onClick={() => setShowTutorial(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors"><X className="w-6 h-6" /></button>
                         </div>
 
-                        <div className="flex flex-col items-center text-center space-y-6">
-                            <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                                <Globe className="w-8 h-8 text-white" />
+                        <div className="flex flex-col items-center text-center space-y-5">
+                            <div className="w-14 h-14 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                <Globe className="w-7 h-7 text-white" />
                             </div>
 
                             <div>
-                                <h2 className="text-2xl font-bold mb-2">Como Pesquisar como um Pro</h2>
-                                <p className="text-white/80 leading-relaxed">
-                                    O NeuroStudy prioriza a ciência. Para encontrar os melhores estudos ("High Relevance"):
+                                <h2 className="text-xl font-bold mb-1">Guia de Pesquisa Científica</h2>
+                                <p className="text-white/70 text-sm">
+                                    O NeuroStudy usa as melhores bases científicas do mundo
                                 </p>
                             </div>
 
-                            <div className="text-left bg-black/20 p-4 rounded-xl space-y-3 w-full border border-white/10">
-                                <div className="flex items-center gap-3">
-                                    <span className="bg-emerald-500 w-2 h-2 rounded-full shrink-0"></span>
-                                    <p className="text-sm"><span className="font-bold text-emerald-300">Seja Específico:</span> Evite "Ansiedade". Use "Terapia Cognitiva Ansiedade" ou "Anxiety treatment".</p>
+                            {/* Cards das Fontes */}
+                            <div className="grid grid-cols-3 gap-2 w-full">
+                                <div className="bg-green-500/20 border border-green-400/30 rounded-lg p-3 text-left">
+                                    <span className="text-green-300 font-bold text-sm flex items-center gap-1.5 mb-1">🏥 PubMed</span>
+                                    <p className="text-[11px] text-green-100/80 leading-relaxed">Padrão ouro para Saúde. RCTs, Meta-análises e Guidelines.</p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="bg-blue-500 w-2 h-2 rounded-full shrink-0"></span>
-                                    <p className="text-sm"><span className="font-bold text-blue-300">Use Inglês:</span> 95% da ciência está em inglês. Termos como <i>"Systematic Review"</i> trazem ouro.</p>
+                                <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-3 text-left">
+                                    <span className="text-blue-300 font-bold text-sm flex items-center gap-1.5 mb-1">📚 OpenAlex</span>
+                                    <p className="text-[11px] text-blue-100/80 leading-relaxed">Multidisciplinar. Direito, Engenharia, Humanas.</p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="bg-purple-500 w-2 h-2 rounded-full shrink-0"></span>
-                                    <p className="text-sm"><span className="font-bold text-purple-300">Olhe a Barra:</span> A barra colorida indica o nível de evidência (Guidelines no topo).</p>
+                                <div className="bg-purple-500/20 border border-purple-400/30 rounded-lg p-3 text-left">
+                                    <span className="text-purple-300 font-bold text-sm flex items-center gap-1.5 mb-1">🌐 Web/IA</span>
+                                    <p className="text-[11px] text-purple-100/80 leading-relaxed">IA com Google Search. PDFs e artigos não indexados.</p>
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 w-full pt-2">
-                                <button onClick={() => handleCloseTutorial(false)} className="flex-1 py-3 bg-white text-indigo-900 font-bold rounded-xl hover:bg-indigo-50 transition-colors">Entendi</button>
-                                <button onClick={() => handleCloseTutorial(true)} className="px-4 py-3 bg-transparent border border-white/30 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm">Não mostrar mais</button>
+                            {/* Pirâmide de Evidência + Ferramentas */}
+                            <div className="bg-black/30 p-4 rounded-xl w-full">
+                                <p className="font-bold text-sm mb-3 text-center">📊 Entendendo a Qualidade dos Estudos</p>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Esquerda: Pirâmide Grande com Labels ao lado */}
+                                    <div className="flex items-center justify-center gap-1">
+                                        <svg width="100" height="110" viewBox="0 0 100 110">
+                                            {/* Guideline - Estrela no topo */}
+                                            <polygon points="50,5 53,12 60,12 55,17 57,24 50,20 43,24 45,17 40,12 47,12" fill="#9333ea" stroke="#fff" strokeWidth="0.5" />
+                                            {/* Nível 5 - Meta-análise */}
+                                            <polygon points="50,24 65,42 35,42" fill="#059669" stroke="#fff" strokeWidth="1" />
+                                            {/* Nível 4 - RCT */}
+                                            <polygon points="35,42 65,42 75,58 25,58" fill="#22c55e" stroke="#fff" strokeWidth="1" />
+                                            {/* Nível 3 - Coorte */}
+                                            <polygon points="25,58 75,58 82,74 18,74" fill="#eab308" stroke="#fff" strokeWidth="1" />
+                                            {/* Nível 2 - Caso-Controle */}
+                                            <polygon points="18,74 82,74 90,90 10,90" fill="#f97316" stroke="#fff" strokeWidth="1" />
+                                            {/* Nível 1 - Observacional */}
+                                            <polygon points="10,90 90,90 98,106 2,106" fill="#ef4444" stroke="#fff" strokeWidth="1" />
+                                        </svg>
+                                        {/* Labels ao lado */}
+                                        <div className="text-[9px] space-y-2 text-left">
+                                            <div className="flex items-center gap-1 -mt-2"><span className="text-purple-400">★</span> <span className="text-purple-300 font-bold">Guideline</span></div>
+                                            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-600"></span> <span>Meta-análise</span></div>
+                                            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500"></span> <span>RCT</span></div>
+                                            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-500"></span> <span>Coorte</span></div>
+                                            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-orange-500"></span> <span>Caso-Controle</span></div>
+                                            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500"></span> <span>Observacional</span></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Direita: Ferramentas de Avaliação */}
+                                    <div className="text-left">
+                                        <p className="text-[10px] text-gray-400 mb-2">Ferramentas de Avaliação</p>
+                                        <div className="space-y-2 text-[10px]">
+                                            <div className="bg-white/5 p-2 rounded">
+                                                <p className="font-bold text-emerald-300">AMSTAR 2</p>
+                                                <p className="text-gray-300">Avalia meta-análises. Score de 0-16 pontos.</p>
+                                            </div>
+                                            <div className="bg-white/5 p-2 rounded">
+                                                <p className="font-bold text-green-300">RoB 2 (Risk of Bias)</p>
+                                                <p className="text-gray-300">Avalia RCTs. Risco: baixo, moderado ou alto.</p>
+                                            </div>
+                                            <div className="bg-white/5 p-2 rounded">
+                                                <p className="font-bold text-yellow-300">NOS (Newcastle-Ottawa)</p>
+                                                <p className="text-gray-300">Avalia coorte e caso-controle. 0-9 estrelas.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p className="text-[10px] text-gray-400 text-center mt-3 border-t border-white/10 pt-2">
+                                    ↑ Quanto mais alto na pirâmide + boa avaliação = maior confiabilidade
+                                </p>
+                            </div>
+
+                            {/* Dicas de Busca */}
+                            <div className="text-left bg-black/20 p-3 rounded-xl space-y-2 w-full border border-white/10">
+                                <div className="flex items-start gap-3">
+                                    <span className="bg-emerald-500 w-2 h-2 rounded-full shrink-0 mt-1.5"></span>
+                                    <p className="text-xs"><span className="font-bold text-emerald-300">Seja Específico:</span> Use "Terapia Cognitiva Ansiedade" ao invés de "Ansiedade".</p>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <span className="bg-blue-500 w-2 h-2 rounded-full shrink-0 mt-1.5"></span>
+                                    <p className="text-xs"><span className="font-bold text-blue-300">Use Inglês:</span> 95% da ciência está em inglês. Use <span className="bg-white/20 px-1 py-0.5 rounded text-[10px] font-bold">🌐 PT→EN</span></p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 w-full pt-1">
+                                <button onClick={() => handleCloseTutorial(false)} className="flex-1 py-2.5 bg-white text-indigo-900 font-bold rounded-xl hover:bg-indigo-50 transition-colors">Entendi</button>
+                                <button onClick={() => handleCloseTutorial(true)} className="px-4 py-2.5 bg-transparent border border-white/30 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm">Não mostrar mais</button>
                             </div>
                         </div>
                     </div>
@@ -516,68 +643,55 @@ IMPORTANTE:
                     </div>
                 </div>
 
-                {/* Tabs & Search */}
-                <div className="p-6 bg-slate-50 border-b border-gray-200 shrink-0 space-y-4">
-                    <div className="flex gap-2 justify-center">
-                        <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4" /> Artigos Científicos</button>
-                        <button onClick={() => setActiveTab('book')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'book' ? 'bg-orange-500 text-white shadow-md ring-2 ring-orange-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><BookOpen className="w-4 h-4" /> Livros</button>
-                        <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4" /> Wiki / Conceitos</button>
-                    </div>
+                {/* Tabs & Search - Colapsável quando há resultados */}
+                <div className={`bg-slate-50 border-b border-gray-200 shrink-0 transition-all duration-300 ${results.length > 0 ? 'p-3' : 'p-6 space-y-4'}`}>
 
-                    {/* Seletor de fonte (só para artigos) */}
-                    {activeTab === 'article' && (
-                        <div className="flex flex-col gap-4">
-                            {/* Seletor de Fonte */}
-                            <div className="flex items-center justify-center gap-2">
-                                <span className="text-xs text-gray-500 font-medium">Fonte:</span>
-                                {[
-                                    { key: 'auto', label: '✨ Automático', color: 'indigo' },
-                                    { key: 'pubmed', label: '🏥 PubMed', color: 'green' },
-                                    { key: 'openalex', label: '📚 OpenAlex', color: 'blue' },
-                                    { key: 'grounding', label: '🌐 Web/IA', color: 'purple' }
-                                ].map(({ key, label, color }) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => setSourceMode(key as any)}
-                                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sourceMode === key
-                                            ? `bg-${color}-600 text-white shadow-md`
-                                            : `bg-white border border-gray-200 text-gray-600 hover:border-${color}-300`
-                                            }`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
+                    {/* Versão expandida (sem resultados) */}
+                    {results.length === 0 && (
+                        <>
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4" /> Artigos Científicos</button>
+                                <button onClick={() => setActiveTab('book')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'book' ? 'bg-orange-500 text-white shadow-md ring-2 ring-orange-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><BookOpen className="w-4 h-4" /> Livros</button>
+                                <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4" /> Wiki / Conceitos</button>
                             </div>
 
-                            {/* Cards Explicativos (só aparecem se não tiver busca ou focado) */}
-                            {!query && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs animate-in fade-in slide-in-from-top-2">
-                                    <div className={`p-3 rounded-lg border transition-colors ${sourceMode === 'pubmed' || (sourceMode === 'auto') ? 'bg-green-50 border-green-200 text-green-800 ring-1 ring-green-300' : 'bg-gray-50 border-gray-100 text-gray-500 opacity-50'}`}>
-                                        <span className="font-bold block mb-1 flex items-center gap-1"><Shield className="w-3 h-3" /> PubMed (Saúde)</span>
-                                        Padrão ouro para Medicina. Prioriza Ensaios Clínicos e Revisões Sistemáticas.
+                            {/* Seletor de fonte (só para artigos) */}
+                            {activeTab === 'article' && (
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-xs text-gray-500 font-medium">Fonte:</span>
+                                        {[
+                                            { key: 'auto', label: '✨ Automático', color: 'indigo' },
+                                            { key: 'pubmed', label: '🏥 PubMed', color: 'green' },
+                                            { key: 'openalex', label: '📚 OpenAlex', color: 'blue' },
+                                            { key: 'grounding', label: '🌐 Web/IA', color: 'purple' }
+                                        ].map(({ key, label, color }) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => setSourceMode(key as any)}
+                                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sourceMode === key
+                                                    ? `bg-${color}-600 text-white shadow-md`
+                                                    : `bg-white border border-gray-200 text-gray-600 hover:border-${color}-300`
+                                                    }`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
                                     </div>
-                                    <div className={`p-3 rounded-lg border transition-colors ${sourceMode === 'openalex' || (sourceMode === 'auto') ? 'bg-blue-50 border-blue-200 text-blue-800 ring-1 ring-blue-300' : 'bg-gray-50 border-gray-100 text-gray-500 opacity-50'}`}>
-                                        <span className="font-bold block mb-1 flex items-center gap-1"><BookOpen className="w-3 h-3" /> OpenAlex (Geral)</span>
-                                        Ciência global. Ideal para Engenharia, Direito, Humanas e Tecnologia.
-                                    </div>
-                                    <div className={`p-3 rounded-lg border transition-colors ${sourceMode === 'grounding' || (sourceMode === 'auto') ? 'bg-purple-50 border-purple-200 text-purple-800 ring-1 ring-purple-300' : 'bg-gray-50 border-gray-100 text-gray-500 opacity-50'}`}>
-                                        <span className="font-bold block mb-1 flex items-center gap-1"><Globe className="w-3 h-3" /> Web/IA (Smart)</span>
-                                        Usa IA para varrer a web, blogs técnicos e PDFs quando não há artigos formais.
+
+                                    {/* Dica compacta */}
+                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-lg p-2 flex items-center justify-center gap-4 text-xs">
+                                        <span className="flex items-center gap-1.5 text-indigo-700">
+                                            <Globe className="w-3.5 h-3.5" />
+                                            <span>Buscas em <b>Inglês</b> têm 10x mais resultados</span>
+                                        </span>
+                                        <span className="text-purple-600 bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-[11px]">
+                                            Use o botão 🌐 PT→EN abaixo
+                                        </span>
                                     </div>
                                 </div>
                             )}
-
-                            {/* Dica de Inglês */}
-                            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2.5 flex items-center justify-between text-xs text-indigo-800">
-                                <span className="flex items-center gap-2">
-                                    <Globe className="w-4 h-4 text-indigo-500" />
-                                    <span><b>Dica Pro:</b> Buscas em <b>Inglês</b> retornam 10x mais resultados relevantes.</span>
-                                </span>
-                                <span className="text-indigo-600 bg-white px-2 py-0.5 rounded border border-indigo-100 shadow-sm">
-                                    Use o botão <b>🌐 PT→EN</b> na barra de busca
-                                </span>
-                            </div>
-                        </div>
+                        </>
                     )}
 
                     <div className="relative max-w-2xl mx-auto group">
@@ -624,14 +738,9 @@ IMPORTANTE:
                         </button>
                     </div>
 
-                    {/* Dica Rápida + Botão Deep Research */}
-                    <div className="flex items-center justify-center gap-4">
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <Globe className="w-3 h-3" /> Dica: Busque <span className="font-bold text-gray-700">"Guidelines"</span> ou <span className="font-bold text-gray-700">"Meta-analysis"</span>
-                        </p>
-
-                        {/* Botão Deep Research */}
-                        {activeTab === 'article' && (
+                    {/* Botão Deep Research (centralizado) */}
+                    {activeTab === 'article' && (
+                        <div className="flex items-center justify-center">
                             <button
                                 onClick={handleDeepResearch}
                                 disabled={deepResearchLoading || !query.trim()}
@@ -643,8 +752,8 @@ IMPORTANTE:
                                     <>🧠 Deep Research</>
                                 )}
                             </button>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* Painel de Insights do Deep Research */}
                     {deepResearchInsight && (
@@ -675,7 +784,7 @@ IMPORTANTE:
                     {filteredResults.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredResults.map((item) => (
-                                <div key={item.id} className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full group relative ${item.isGuideline ? 'border-purple-300 ring-1 ring-purple-100 bg-purple-50/20' : 'border-gray-200'}`}>
+                                <div key={item.id} className={`bg-white p-4 rounded-xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full group relative ${item.isGuideline ? 'border-purple-300 ring-1 ring-purple-100 bg-purple-50/20' : 'border-gray-200'}`}>
 
                                     {/* SELO DE GUIDELINE */}
                                     {item.isGuideline && (
@@ -684,24 +793,24 @@ IMPORTANTE:
                                         </div>
                                     )}
 
-                                    <div className="flex justify-between items-start mb-3">
-                                        {/* TIPO DE FONTE E BARRA DE EVIDÊNCIA */}
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className={`p-1.5 rounded-lg ${activeTab === 'book' ? 'bg-orange-100 text-orange-600' : activeTab === 'article' ? 'bg-blue-100 text-blue-600' : 'bg-indigo-100 text-indigo-600'}`}>
-                                                    {activeTab === 'book' ? <BookOpen className="w-4 h-4" /> : activeTab === 'article' ? <FileText className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-                                                </div>
-                                                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider truncate max-w-[100px]">{item.author}</span>
+                                    {/* Header: Autor + Barra de Evidência */}
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-1.5 rounded-lg ${activeTab === 'book' ? 'bg-orange-100 text-orange-600' : activeTab === 'article' ? 'bg-blue-100 text-blue-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                                                {activeTab === 'book' ? <BookOpen className="w-4 h-4" /> : activeTab === 'article' ? <FileText className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
                                             </div>
+                                            <span className="text-[11px] uppercase font-bold text-gray-500 tracking-wider truncate max-w-[180px]">{item.author}</span>
                                         </div>
                                         {activeTab === 'article' && item.reliabilityScore !== undefined && (
-                                            <EvidenceLevelBar score={item.reliabilityScore} isGuideline={item.isGuideline} />
+                                            <EvidencePyramid score={item.reliabilityScore} isGuideline={item.isGuideline} />
                                         )}
                                     </div>
 
-                                    <h4 className="font-bold text-gray-900 leading-tight mb-2 text-sm line-clamp-2 group-hover:text-indigo-700 transition-colors" title={item.title}>{item.title}</h4>
+                                    {/* Título - mais espaço */}
+                                    <h4 className="font-bold text-gray-900 leading-snug mb-2 text-sm line-clamp-3 group-hover:text-indigo-700 transition-colors" title={item.title}>{item.title}</h4>
 
-                                    <p className="text-xs text-gray-600 line-clamp-3 mb-4 flex-1 leading-relaxed bg-gray-50 p-2 rounded-lg border border-gray-100">{item.description}</p>
+                                    {/* Descrição */}
+                                    <p className="text-xs text-gray-600 line-clamp-2 mb-3 flex-1 leading-relaxed">{item.description}</p>
 
                                     <button
                                         onClick={() => { onAddSource(item.title, item.url, item.type); onClose(); }}
