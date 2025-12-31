@@ -342,11 +342,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <SectionHeader id="pareto" title="Pareto 80/20" icon={Target} colorClass="bg-red-50" rootId="root-pareto" />
         </div>
 
-        <div className="p-4 border-t border-gray-200 bg-gray-50 text-center">
+        <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-2">
           <button onClick={() => { onOpenMethodology(); onClose?.(); }} className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-2 rounded-lg text-xs shadow-sm">
             <GraduationCap className="w-3 h-3" /> Método e Instruções
           </button>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">Versão Beta</p>
+
+          <div className="flex gap-2">
+            {/* Botão Recolher */}
+            <button
+              onClick={onClose}
+              className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-500 py-2 rounded-lg text-xs transition-colors"
+              title="Recolher Sidebar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h7" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+              Recolher
+            </button>
+
+            {/* Botão Sair */}
+            <button
+              onClick={() => {
+                if (confirm('Deseja sair da sua conta?')) {
+                  localStorage.removeItem('user_profile');
+                  window.location.reload();
+                }
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-xs transition-colors"
+              title="Sair"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+              Sair
+            </button>
+          </div>
+
+          <p className="text-[10px] text-gray-400 text-center font-medium">Versão Beta</p>
         </div>
       </div>
     </>

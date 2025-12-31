@@ -117,6 +117,9 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     const [translating, setTranslating] = useState(false);
     const [translatedQuery, setTranslatedQuery] = useState<string | null>(null);
 
+    // Estado para avaliação de qualidade AMSTAR 2
+    const [qualityAssessments, setQualityAssessments] = useState<Record<string, { score: number, summary: string, loading: boolean }>>({});
+
     // Função para traduzir PT → EN usando MyMemory API (gratuita)
     const handleTranslate = async () => {
         if (!query.trim()) return;
@@ -143,6 +146,219 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     const [deepResearchMode, setDeepResearchMode] = useState(false);
     const [deepResearchLoading, setDeepResearchLoading] = useState(false);
     const [deepResearchInsight, setDeepResearchInsight] = useState<string | null>(null);
+
+    // === AVALIAÇÃO DE QUALIDADE AMSTAR 2 ===
+    const handleQualityAssessment = async (itemId: string, title: string, abstractText: string) => {
+        // Marca como loading
+        setQualityAssessments(prev => ({
+            ...prev,
+            [itemId]: { score: 0, summary: '', loading: true }
+        }));
+
+        try {
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+            if (!apiKey) {
+                throw new Error('API Key não configurada');
+            }
+
+            const prompt = `Você é um especialista em avaliação de evidências científicas. Analise esta meta-análise/revisão sistemática usando critérios simplificados do AMSTAR 2.
+
+TÍTULO: ${title}
+RESUMO: ${abstractText || 'Não disponível'}
+
+Baseado nas informações disponíveis, avalie de 0-16 pontos considerando:
+1. Protocolo registrado previamente?
+2. Busca abrangente na literatura?
+3. Justificativa para exclusão de estudos?
+4. Avaliação de risco de viés?
+5. Métodos estatísticos apropriados?
+6. Heterogeneidade discutida?
+7. Conflitos de interesse declarados?
+
+RESPONDA EXATAMENTE NESTE FORMATO:
+SCORE: [número de 0 a 16]
+QUALIDADE: [Alta/Moderada/Baixa/Criticamente Baixa]
+RESUMO: [1 frase sobre a qualidade metodológica]`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.3, maxOutputTokens: 200 }
+                })
+            });
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            // Parse da resposta
+            const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
+            const score = scoreMatch ? parseInt(scoreMatch[1]) : 8;
+            const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+
+            setQualityAssessments(prev => ({
+                ...prev,
+                [itemId]: { score, summary, loading: false }
+            }));
+
+        } catch (error) {
+            console.error('Erro na avaliação:', error);
+            setQualityAssessments(prev => ({
+                ...prev,
+                [itemId]: { score: -1, summary: 'Erro na avaliação', loading: false }
+            }));
+        }
+    };
+
+    // === AVALIAÇÃO RoB 2 (Risk of Bias) PARA RCTs ===
+    const handleRoB2Assessment = async (itemId: string, title: string, abstractText: string) => {
+        setQualityAssessments(prev => ({
+            ...prev,
+            [itemId]: { score: 0, summary: '', loading: true }
+        }));
+
+        try {
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+            if (!apiKey) throw new Error('API Key não configurada');
+
+            const prompt = `Você é um especialista em avaliação de evidências científicas. Analise este Ensaio Clínico Randomizado (RCT) usando os domínios do RoB 2 (Risk of Bias 2).
+
+TÍTULO: ${title}
+RESUMO: ${abstractText || 'Não disponível'}
+
+Avalie os 5 domínios do RoB 2:
+1. Randomização adequada?
+2. Desvios das intervenções pretendidas?
+3. Dados de desfecho faltantes?
+4. Mensuração do desfecho adequada?
+5. Seleção dos resultados reportados?
+
+RESPONDA EXATAMENTE NESTE FORMATO:
+RISCO: [Baixo/Algumas Preocupações/Alto]
+SCORE: [número de 1 a 5, onde 5=baixo risco, 1=alto risco]
+RESUMO: [1 frase sobre o risco de viés do estudo]`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.3, maxOutputTokens: 200 }
+                })
+            });
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
+            const score = scoreMatch ? parseInt(scoreMatch[1]) : 3;
+            const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+
+            setQualityAssessments(prev => ({
+                ...prev,
+                [itemId]: { score, summary, loading: false }
+            }));
+
+        } catch (error) {
+            console.error('Erro na avaliação RoB 2:', error);
+            setQualityAssessments(prev => ({
+                ...prev,
+                [itemId]: { score: -1, summary: 'Erro na avaliação', loading: false }
+            }));
+        }
+    };
+
+    // === AVALIAÇÃO NOS (Newcastle-Ottawa Scale) PARA COORTE/CASO-CONTROLE ===
+    const handleNOSAssessment = async (itemId: string, title: string, abstractText: string) => {
+        setQualityAssessments(prev => ({ ...prev, [itemId]: { score: 0, summary: '', loading: true } }));
+
+        try {
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+            if (!apiKey) throw new Error('API Key não configurada');
+
+            const prompt = `Você é um especialista em avaliação de evidências. Analise este estudo de coorte/caso-controle usando a Newcastle-Ottawa Scale (NOS).
+
+TÍTULO: ${title}
+RESUMO: ${abstractText || 'Não disponível'}
+
+Avalie os 3 domínios do NOS (total 9 estrelas):
+1. SELEÇÃO (4 estrelas): representatividade, seleção controles, definição exposição
+2. COMPARABILIDADE (2 estrelas): controle de confundidores
+3. DESFECHO (3 estrelas): avaliação, seguimento adequado
+
+RESPONDA EXATAMENTE NESTE FORMATO:
+SCORE: [número de 0 a 9]
+QUALIDADE: [Alta (7-9)/Moderada (4-6)/Baixa (0-3)]
+RESUMO: [1 frase sobre a qualidade metodológica]`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 200 } })
+            });
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
+            const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
+            const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+
+            setQualityAssessments(prev => ({ ...prev, [itemId]: { score, summary, loading: false } }));
+        } catch (error) {
+            console.error('Erro NOS:', error);
+            setQualityAssessments(prev => ({ ...prev, [itemId]: { score: -1, summary: 'Erro', loading: false } }));
+        }
+    };
+
+    // === AVALIAÇÃO AGREE II PARA GUIDELINES ===
+    const handleAGREEIIAssessment = async (itemId: string, title: string, abstractText: string) => {
+        setQualityAssessments(prev => ({ ...prev, [itemId]: { score: 0, summary: '', loading: true } }));
+
+        try {
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+            if (!apiKey) throw new Error('API Key não configurada');
+
+            const prompt = `Você é um especialista em avaliação de guidelines clínicas. Analise esta diretriz usando critérios do AGREE II.
+
+TÍTULO: ${title}
+RESUMO: ${abstractText || 'Não disponível'}
+
+Avalie os 6 domínios do AGREE II:
+1. Escopo e Propósito
+2. Envolvimento das Partes Interessadas
+3. Rigor do Desenvolvimento
+4. Clareza da Apresentação
+5. Aplicabilidade
+6. Independência Editorial
+
+RESPONDA EXATAMENTE NESTE FORMATO:
+SCORE: [número de 1 a 7, onde 7=excelente]
+RECOMENDAÇÃO: [Fortemente Recomendada/Recomendada com Modificações/Não Recomendada]
+RESUMO: [1 frase sobre a qualidade da diretriz]`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 200 } })
+            });
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
+            const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
+            const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+
+            setQualityAssessments(prev => ({ ...prev, [itemId]: { score, summary, loading: false } }));
+        } catch (error) {
+            console.error('Erro AGREE II:', error);
+            setQualityAssessments(prev => ({ ...prev, [itemId]: { score: -1, summary: 'Erro', loading: false } }));
+        }
+    };
 
     const handleDeepResearch = async () => {
         if (!query.trim()) return;
@@ -810,7 +1026,123 @@ IMPORTANTE:
                                     <h4 className="font-bold text-gray-900 leading-snug mb-2 text-sm line-clamp-3 group-hover:text-indigo-700 transition-colors" title={item.title}>{item.title}</h4>
 
                                     {/* Descrição */}
-                                    <p className="text-xs text-gray-600 line-clamp-2 mb-3 flex-1 leading-relaxed">{item.description}</p>
+                                    <p className="text-xs text-gray-600 line-clamp-2 mb-2 flex-1 leading-relaxed">{item.description}</p>
+
+                                    {/* Botão de Avaliação AMSTAR 2 (só para meta-análises) */}
+                                    {activeTab === 'article' && item.reliabilityScore === 5 && !item.isGuideline && (
+                                        <div className="mb-2">
+                                            {qualityAssessments[item.id]?.loading ? (
+                                                <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 rounded-lg py-2 px-3">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    Analisando com AMSTAR 2...
+                                                </div>
+                                            ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
+                                                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg py-2 px-3 text-xs">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-bold text-emerald-700">🔬 AMSTAR 2</span>
+                                                        <span className={`font-bold ${qualityAssessments[item.id].score >= 12 ? 'text-emerald-600' : qualityAssessments[item.id].score >= 8 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                            {qualityAssessments[item.id].score}/16
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-gray-600 text-[10px]">{qualityAssessments[item.id].summary}</p>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleQualityAssessment(item.id, item.title, item.description)}
+                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all"
+                                                >
+                                                    🔬 Avaliar Qualidade (AMSTAR 2)
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Botão de Avaliação RoB 2 (só para RCTs) */}
+                                    {activeTab === 'article' && item.reliabilityScore === 4 && (
+                                        <div className="mb-2">
+                                            {qualityAssessments[item.id]?.loading ? (
+                                                <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 rounded-lg py-2 px-3">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    Analisando com RoB 2...
+                                                </div>
+                                            ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
+                                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg py-2 px-3 text-xs">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-bold text-blue-700">⚖️ RoB 2</span>
+                                                        <span className={`font-bold ${qualityAssessments[item.id].score >= 4 ? 'text-green-600' : qualityAssessments[item.id].score >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                            {qualityAssessments[item.id].score >= 4 ? 'Baixo' : qualityAssessments[item.id].score >= 3 ? 'Moderado' : 'Alto'} Risco
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-gray-600 text-[10px]">{qualityAssessments[item.id].summary}</p>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleRoB2Assessment(item.id, item.title, item.description)}
+                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all"
+                                                >
+                                                    ⚖️ Avaliar Risco de Viés (RoB 2)
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Botão de Avaliação NOS (Coorte e Caso-Controle) */}
+                                    {activeTab === 'article' && (item.reliabilityScore === 3 || item.reliabilityScore === 2) && (
+                                        <div className="mb-2">
+                                            {qualityAssessments[item.id]?.loading ? (
+                                                <div className="flex items-center gap-2 text-xs text-yellow-600 bg-yellow-50 rounded-lg py-2 px-3">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    Analisando com NOS...
+                                                </div>
+                                            ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
+                                                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg py-2 px-3 text-xs">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-bold text-yellow-700">⭐ NOS</span>
+                                                        <span className={`font-bold ${qualityAssessments[item.id].score >= 7 ? 'text-green-600' : qualityAssessments[item.id].score >= 4 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                            {qualityAssessments[item.id].score}/9 estrelas
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-gray-600 text-[10px]">{qualityAssessments[item.id].summary}</p>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleNOSAssessment(item.id, item.title, item.description)}
+                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 transition-all"
+                                                >
+                                                    ⭐ Avaliar Qualidade (NOS)
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Botão de Avaliação AGREE II (Guidelines) */}
+                                    {activeTab === 'article' && item.isGuideline && (
+                                        <div className="mb-2">
+                                            {qualityAssessments[item.id]?.loading ? (
+                                                <div className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 rounded-lg py-2 px-3">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    Analisando com AGREE II...
+                                                </div>
+                                            ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
+                                                <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-200 rounded-lg py-2 px-3 text-xs">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-bold text-purple-700">🏛️ AGREE II</span>
+                                                        <span className={`font-bold ${qualityAssessments[item.id].score >= 5 ? 'text-green-600' : qualityAssessments[item.id].score >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                            {qualityAssessments[item.id].score}/7
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-gray-600 text-[10px]">{qualityAssessments[item.id].summary}</p>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleAGREEIIAssessment(item.id, item.title, item.description)}
+                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all"
+                                                >
+                                                    🏛️ Avaliar Guideline (AGREE II)
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <button
                                         onClick={() => { onAddSource(item.title, item.url, item.type); onClose(); }}
