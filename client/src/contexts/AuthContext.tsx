@@ -91,6 +91,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return supabase;
     };
 
+    // Sincroniza dados do Google OAuth com a tabela users
+    const syncGoogleProfile = async (authUser: User) => {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        // Extrai dados do Google OAuth
+        const googleName = authUser.user_metadata?.full_name ||
+            authUser.user_metadata?.name ||
+            authUser.email?.split('@')[0];
+        const googleAvatar = authUser.user_metadata?.avatar_url ||
+            authUser.user_metadata?.picture;
+        const googleEmail = authUser.email;
+
+        if (!googleName && !googleAvatar) return; // Nada para sincronizar
+
+        try {
+            // Verifica se o perfil já existe
+            const { data: existingProfile, error: fetchError } = await client
+                .from('users')
+                .select('id, full_name, avatar_url')
+                .eq('id', authUser.id)
+                .single();
+
+            if (fetchError && fetchError.code !== 'PGRST116') {
+                console.error('Erro ao verificar perfil para sync:', fetchError);
+                return;
+            }
+
+            // Se o perfil não existe, criar um novo
+            if (!existingProfile) {
+                console.log('Criando novo perfil com dados do Google...');
+                const { error: insertError } = await client
+                    .from('users')
+                    .insert({
+                        id: authUser.id,
+                        email: googleEmail,
+                        full_name: googleName,
+                        avatar_url: googleAvatar,
+                        subscription_status: 'free'
+                    });
+
+                if (insertError) {
+                    console.error('Erro ao criar perfil:', insertError);
+                }
+                return;
+            }
+
+            // Se o perfil existe mas tem campos NULL, atualizar
+            const updates: Record<string, string> = {};
+            if (!existingProfile.full_name && googleName) {
+                updates.full_name = googleName;
+            }
+            if (!existingProfile.avatar_url && googleAvatar) {
+                updates.avatar_url = googleAvatar;
+            }
+
+            if (Object.keys(updates).length > 0) {
+                console.log('Atualizando perfil com dados do Google:', updates);
+                const { error: updateError } = await client
+                    .from('users')
+                    .update(updates)
+                    .eq('id', authUser.id);
+
+                if (updateError) {
+                    console.error('Erro ao atualizar perfil:', updateError);
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao sincronizar perfil Google:', error);
+        }
+    };
+
     const fetchProfile = async (userId: string) => {
         const client = getSupabaseClient();
         if (!client) return;
@@ -102,11 +174,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .eq('id', userId)
                 .single();
 
-            if (error) throw error;
-            setProfile(data);
-            await fetchUsage(userId);
+            if (error) {
+                // Se o usuário não existe na tabela, criar um perfil básico
+                if (error.code === 'PGRST116') {
+                    console.log('Perfil não encontrado, criando novo perfil...');
+                    // Perfil não existe, definir como null - o app continua funcionando
+                    setProfile(null);
+                } else {
+                    console.error('Erro ao buscar perfil:', error);
+                    setProfile(null);
+                }
+            } else {
+                setProfile(data);
+            }
+
+            // Tenta buscar uso, mas não bloqueia se falhar
+            try {
+                await fetchUsage(userId);
+            } catch (usageError) {
+                console.error('Erro ao buscar uso, continuando sem dados de uso:', usageError);
+                setUsage(null);
+            }
         } catch (error) {
-            console.error('Erro ao buscar perfil:', error);
+            console.error('Erro crítico ao buscar perfil:', error);
+            setProfile(null);
+            setUsage(null);
         }
     };
 
@@ -124,22 +216,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .single();
 
             if (error && error.code === 'PGRST116') {
-                // Não encontrou uso para este mês, criar um novo
-                const { data: newData, error: insertError } = await client
-                    .from('user_usage')
-                    .insert([{ user_id: userId, month: currentMonth }])
-                    .select()
-                    .single();
+                // Não encontrou uso para este mês, tentar criar um novo
+                try {
+                    const { data: newData, error: insertError } = await client
+                        .from('user_usage')
+                        .insert([{ user_id: userId, month: currentMonth }])
+                        .select()
+                        .single();
 
-                if (insertError) throw insertError;
-                data = newData;
+                    if (insertError) {
+                        console.error('Erro ao criar registro de uso, continuando sem:', insertError);
+                        setUsage(null);
+                        return;
+                    }
+                    data = newData;
+                } catch (insertErr) {
+                    console.error('Erro ao inserir uso:', insertErr);
+                    setUsage(null);
+                    return;
+                }
             } else if (error) {
-                throw error;
+                // Tabela pode não existir ou outro erro
+                console.error('Erro ao buscar uso (tabela pode não existir):', error);
+                setUsage(null);
+                return;
             }
 
             setUsage(data);
         } catch (error) {
             console.error('Erro ao buscar consumo:', error);
+            setUsage(null);
         }
     };
 
@@ -160,6 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     const { data, error } = await client.auth.exchangeCodeForSession(code);
                     if (error) throw error;
                     if (data?.session?.user) {
+                        await syncGoogleProfile(data.session.user);
                         await fetchProfile(data.session.user.id);
                     }
                 } catch (err) {
@@ -199,6 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (error) throw error;
                 setUser(session?.user ?? null);
                 if (session?.user) {
+                    await syncGoogleProfile(session.user);
                     await fetchProfile(session.user.id);
                 }
             } catch (err) {
@@ -216,6 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 setUser(session?.user ?? null);
                 if (session?.user) {
+                    await syncGoogleProfile(session.user);
                     await fetchProfile(session.user.id);
                 } else {
                     setProfile(null);
