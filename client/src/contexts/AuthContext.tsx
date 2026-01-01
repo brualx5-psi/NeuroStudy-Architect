@@ -27,20 +27,45 @@ type UserUsage = {
     updated_at: string;
 };
 
+type UsageLimits = {
+    roadmaps: number;
+    youtube_minutes: number;
+    web_research: number;
+    chat_messages: number;
+};
+
 interface AuthContextType {
     user: User | null;
     profile: UserProfile | null;
     usage: UserUsage | null;
     loading: boolean;
+    isPro: boolean;
+    limits: UsageLimits;
     signOut: () => Promise<void>;
     refreshProfile: () => Promise<void>;
 }
+
+const FREE_LIMITS: UsageLimits = {
+    roadmaps: 3,
+    youtube_minutes: 30,
+    web_research: 10,
+    chat_messages: 20
+};
+
+const PRO_LIMITS: UsageLimits = {
+    roadmaps: 1000,
+    youtube_minutes: 10000,
+    web_research: 1000,
+    chat_messages: 10000
+};
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     profile: null,
     usage: null,
     loading: true,
+    isPro: false,
+    limits: FREE_LIMITS,
     signOut: async () => { },
     refreshProfile: async () => { },
 });
@@ -50,6 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [usage, setUsage] = useState<UserUsage | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Derivados
+    const isPro = profile?.subscription_status === 'premium';
+    const limits = isPro ? PRO_LIMITS : FREE_LIMITS;
 
     const getSupabaseClient = () => {
         if (!supabase) {
@@ -170,8 +199,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Teste de Conectividade
         console.log('🔵 [Debug] Testando conexão com banco de dados...');
-        // Teste de Conectividade
-        console.log('🔵 [Debug] Testando conexão com banco de dados...');
         (async () => {
             try {
                 const { count, error } = await client.from('users').select('count', { count: 'exact', head: true });
@@ -189,7 +216,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, 3000);
 
         // 1. Tentar parsear o hash manualmente (Google OAuth)
-        // Isso é necessário se o listener não disparar automaticamente
         const hash = window.location.hash;
         if (hash && hash.includes('access_token')) {
             console.log('🔵 [Auth] Hash encontrado, tentando setar sessão manualmente...');
@@ -198,14 +224,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const refresh_token = params.get('refresh_token');
 
             if (access_token && refresh_token) {
-                // NÃO usamos await aqui para não bloquear a UI if travar
                 client.auth.setSession({ access_token, refresh_token })
                     .then(({ data, error }) => {
                         if (error) {
                             console.error('🔴 [Auth] Erro ao setar sessão manual:', error);
                         } else {
                             console.log('🟢 [Auth] Sessão manual definida com sucesso:', data.session?.user?.email);
-                            // O listener abaixo vai pegar a mudança de estado
                         }
                     })
                     .catch(err => console.error('🔴 [Auth] Exceção no setSession:', err));
@@ -216,24 +240,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { subscription } } = client.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
             console.log('🔔 [Auth] Evento:', event, session?.user?.email ?? 'sem usuário');
 
-            // Cancela timeout se tivermos resposta
             clearTimeout(authTimeout);
 
             if (session?.user) {
                 setUser(session.user);
 
-                // Limpa hash da URL para ficar bonito
                 if (window.location.hash && window.location.hash.includes('access_token')) {
                     window.history.replaceState(null, '', window.location.pathname);
                 }
 
-                // Carrega dados em background
                 syncGoogleProfile(session.user)
                     .then(() => fetchProfile(session.user.id))
                     .finally(() => setLoading(false));
             } else {
-                // Só desloga se não estivermos processando um hash
-                // Se tiver hash, esperamos o setSession manual resolver (ou o timeout)
                 if (!window.location.hash.includes('access_token')) {
                     setUser(null);
                     setProfile(null);
@@ -265,7 +284,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, profile, usage, loading, signOut, refreshProfile }}>
+        <AuthContext.Provider value={{ user, profile, usage, loading, isPro, limits, signOut, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );
