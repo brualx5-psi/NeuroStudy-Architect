@@ -12,20 +12,26 @@ export const isCloudMode = () => !!supabase;
  * Salva os dados do usuário, escolhendo entre Supabase (Modo Nuvem) ou LocalStorage (Modo Local/Amigos).
  */
 export const saveUserData = async (studies: StudySession[], folders: Folder[]) => {
+  // Sempre salva no localStorage como backup
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ studies, folders }));
+
   if (isCloudMode()) {
-    // MODO NUVEM (Para ti): Salva tudo no Supabase no ID fixo 1.
-    const { error } = await supabase!
-      .from('user_data')
-      .upsert({ 
-        id: 1, 
-        content: { studies, folders }, 
-        updated_at: new Date().toISOString() 
-      });
-      
-    if (error) console.error('Erro ao salvar na nuvem:', error);
-  } else {
-    // MODO LOCAL (Para amigos): Salva no navegador.
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ studies, folders }));
+    // MODO NUVEM (Para ti): Tenta salvar no Supabase
+    try {
+      const { error } = await supabase!
+        .from('user_data')
+        .upsert({
+          id: 1,
+          content: { studies, folders },
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.warn('⚠️ Erro ao salvar na nuvem (dados salvos localmente):', error.message);
+      }
+    } catch (err) {
+      console.warn('⚠️ Exceção ao salvar na nuvem (dados salvos localmente):', err);
+    }
   }
 };
 
@@ -37,17 +43,25 @@ export const loadUserData = async (): Promise<{ studies: StudySession[], folders
 
   if (isCloudMode()) {
     // MODO NUVEM
-    const { data, error } = await supabase!
-      .from('user_data')
-      .select('content')
-      .eq('id', 1)
-      .single();
+    try {
+      const { data, error } = await supabase!
+        .from('user_data')
+        .select('content')
+        .eq('id', 1)
+        .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116: Nenhuma linha encontrada (OK se for o primeiro acesso)
-      console.error('Erro ao carregar da nuvem:', error);
-      return defaultData;
+      if (error && error.code !== 'PGRST116') { // PGRST116: Nenhuma linha encontrada (OK se for o primeiro acesso)
+        console.warn('⚠️ Erro ao carregar da nuvem, usando localStorage como fallback:', error.message);
+        // Fallback para localStorage se a tabela não existir ou outro erro
+        const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return localData ? JSON.parse(localData) : defaultData;
+      }
+      return data?.content || defaultData;
+    } catch (err) {
+      console.warn('⚠️ Exceção ao carregar da nuvem, usando localStorage:', err);
+      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return localData ? JSON.parse(localData) : defaultData;
     }
-    return data?.content || defaultData;
   } else {
     // MODO LOCAL
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);

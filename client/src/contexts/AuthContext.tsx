@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('🔑 Tokens encontrados na URL, persistindo sessão...');
 
             try {
-                const { error } = await supabase.auth.setSession({
+                const { error } = await supabase!.auth.setSession({
                     access_token: accessToken,
                     refresh_token: refreshToken,
                 });
@@ -170,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const initAuth = async () => {
             await persistSessionFromHash();
 
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabase!.auth.getSession();
             setUser(session?.user ?? null);
             if (session?.user) {
                 await fetchProfile(session.user.id);
@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         initAuth();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state changed:', event);
             setUser(session?.user ?? null);
             if (session?.user) {
