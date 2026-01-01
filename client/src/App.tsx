@@ -96,6 +96,10 @@ export function AppContent() {
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
 
+    // Refs precisam ser declarados antes de qualquer return condicional
+    const paretoInputRef = useRef<HTMLInputElement>(null);
+    const bookInputRef = useRef<HTMLInputElement>(null);
+
     // Se estiver carregando a sessão, mostra um loading bonito
     if (loading) {
         return (
@@ -112,9 +116,6 @@ export function AppContent() {
     if (!user) {
         return <LoginPage />;
     }
-
-    const paretoInputRef = useRef<HTMLInputElement>(null);
-    const bookInputRef = useRef<HTMLInputElement>(null);
 
     const activeStudy = studies.find(s => s.id === activeStudyId) || null;
     const isParetoStudy = activeStudy?.mode === StudyMode.PARETO;
