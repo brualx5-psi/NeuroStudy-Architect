@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, HelpCircle, Shield, Crown } from './Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { InputType } from '../types';
@@ -13,7 +13,7 @@ interface SearchResult {
     url: string;
     type: InputType;
     thumbnail?: string;
-    reliabilityScore?: number; // 1 a 5 (5 é o melhor)
+    reliabilityScore?: number; // 1 a 5 (5 Ã© o melhor)
     reliabilityLabel?: string;
     isGuideline?: boolean;
 }
@@ -24,50 +24,50 @@ interface SearchResourcesModalProps {
     onOpenSubscription: () => void;
 }
 
-// COMPONENTE VISUAL: Pirâmide de Evidência Interativa
+// COMPONENTE VISUAL: PirÃ¢mide de EvidÃªncia Interativa
 const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: boolean }) => {
-    // Dados de cada nível da pirâmide
+    // Dados de cada nÃ­vel da pirÃ¢mide
     const levels = [
-        { level: 5, name: 'Meta-análise', fullName: 'Meta-análise / Revisão Sistemática', tool: 'AMSTAR 2, ROBIS', color: '#059669' },
-        { level: 4, name: 'RCT', fullName: 'Ensaio Clínico Randomizado', tool: 'RoB 2', color: '#22c55e' },
+        { level: 5, name: 'Meta-anÃ¡lise', fullName: 'Meta-anÃ¡lise / RevisÃ£o SistemÃ¡tica', tool: 'AMSTAR 2, ROBIS', color: '#059669' },
+        { level: 4, name: 'RCT', fullName: 'Ensaio ClÃ­nico Randomizado', tool: 'RoB 2', color: '#22c55e' },
         { level: 3, name: 'Coorte', fullName: 'Estudo de Coorte / Longitudinal', tool: 'NOS, ROBINS-I', color: '#eab308' },
         { level: 2, name: 'Caso-Controle', fullName: 'Estudo Caso-Controle', tool: 'NOS', color: '#f97316' },
-        { level: 1, name: 'Observacional', fullName: 'Observacional / Série de Casos / Opinião', tool: '-', color: '#ef4444' },
+        { level: 1, name: 'Observacional', fullName: 'Observacional / SÃ©rie de Casos / OpiniÃ£o', tool: '-', color: '#ef4444' },
     ];
 
     const currentLevel = levels.find(l => l.level === score) || levels[4];
-    const guidelineTooltip = 'Diretriz clínica oficial - Máxima autoridade. Avaliação: AGREE II';
+    const guidelineTooltip = 'Diretriz clÃ­nica oficial - MÃ¡xima autoridade. AvaliaÃ§Ã£o: AGREE II';
 
     return (
         <div className="flex items-center gap-2">
-            {/* Mini Pirâmide SVG */}
-            <div className="relative group cursor-pointer" title={isGuideline ? guidelineTooltip : `${currentLevel.fullName}\nAvaliação: ${currentLevel.tool}`}>
+            {/* Mini PirÃ¢mide SVG */}
+            <div className="relative group cursor-pointer" title={isGuideline ? guidelineTooltip : `${currentLevel.fullName}\nAvaliaÃ§Ã£o: ${currentLevel.tool}`}>
                 <svg width="40" height="36" viewBox="0 0 100 90" className="drop-shadow-sm">
-                    {/* Nível 5 - Topo */}
+                    {/* NÃ­vel 5 - Topo */}
                     <polygon
                         points="50,5 62,22 38,22"
                         fill={score >= 5 || isGuideline ? levels[0].color : '#e5e7eb'}
                         stroke="#fff" strokeWidth="1"
                     />
-                    {/* Nível 4 */}
+                    {/* NÃ­vel 4 */}
                     <polygon
                         points="38,22 62,22 70,38 30,38"
                         fill={score >= 4 || isGuideline ? levels[1].color : '#e5e7eb'}
                         stroke="#fff" strokeWidth="1"
                     />
-                    {/* Nível 3 */}
+                    {/* NÃ­vel 3 */}
                     <polygon
                         points="30,38 70,38 78,54 22,54"
                         fill={score >= 3 ? levels[2].color : '#e5e7eb'}
                         stroke="#fff" strokeWidth="1"
                     />
-                    {/* Nível 2 */}
+                    {/* NÃ­vel 2 */}
                     <polygon
                         points="22,54 78,54 86,70 14,70"
                         fill={score >= 2 ? levels[3].color : '#e5e7eb'}
                         stroke="#fff" strokeWidth="1"
                     />
-                    {/* Nível 1 - Base */}
+                    {/* NÃ­vel 1 - Base */}
                     <polygon
                         points="14,70 86,70 95,88 5,88"
                         fill={score >= 1 ? levels[4].color : '#e5e7eb'}
@@ -79,8 +79,8 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
 
                 {/* Tooltip expandido ao hover */}
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50 w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl">
-                    <div className="font-bold text-xs mb-1">{isGuideline ? '🏛️ Guideline' : `📊 ${currentLevel.name}`}</div>
-                    <div className="text-gray-300 mb-1">{isGuideline ? 'Diretriz clínica oficial' : currentLevel.fullName}</div>
+                    <div className="font-bold text-xs mb-1">{isGuideline ? 'ðŸ›ï¸ Guideline' : `ðŸ“Š ${currentLevel.name}`}</div>
+                    <div className="text-gray-300 mb-1">{isGuideline ? 'Diretriz clÃ­nica oficial' : currentLevel.fullName}</div>
                     <div className="text-gray-400 border-t border-gray-700 pt-1 mt-1">
                         Ferramenta: {isGuideline ? 'AGREE II' : currentLevel.tool}
                     </div>
@@ -91,10 +91,10 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
             {/* Label */}
             <div className="flex flex-col">
                 <span className={`text-[10px] font-bold ${isGuideline ? 'text-purple-700' : score >= 4 ? 'text-emerald-700' : score >= 3 ? 'text-yellow-700' : 'text-gray-600'}`}>
-                    {isGuideline ? '🏛️ Guideline' : currentLevel.name}
+                    {isGuideline ? 'ðŸ›ï¸ Guideline' : currentLevel.name}
                 </span>
                 <span className="text-[8px] text-gray-400">
-                    Nível {score}/5
+                    NÃ­vel {score}/5
                 </span>
             </div>
         </div>
@@ -115,7 +115,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     // Seletor de fonte (auto, pubmed, openalex, grounding)
     const [sourceMode, setSourceMode] = useState<SourceMode>('auto');
     const sourceOptions: { value: SourceMode; label: string }[] = [
-        { value: 'auto', label: 'Automático (recomendado)' },
+        { value: 'auto', label: 'Automatico (recomendado)' },
         { value: 'pubmed', label: 'PubMed' },
         { value: 'openalex', label: 'OpenAlex' },
         { value: 'grounding', label: 'Web/Geral' }
@@ -124,14 +124,14 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     // Controle do Tutorial
     const [showTutorial, setShowTutorial] = useState(false);
 
-    // Estado de Tradução
+    // Estado de TraduÃ§Ã£o
     const [translating, setTranslating] = useState(false);
     const [translatedQuery, setTranslatedQuery] = useState<string | null>(null);
 
-    // Estado para avaliação de qualidade AMSTAR 2
+    // Estado para avaliaÃ§Ã£o de qualidade AMSTAR 2
     const [qualityAssessments, setQualityAssessments] = useState<Record<string, { score: number, summary: string, loading: boolean }>>({});
 
-    // Função para traduzir PT → EN usando MyMemory API (gratuita)
+    // FunÃ§Ã£o para traduzir PT â†’ EN usando MyMemory API (gratuita)
     const handleTranslate = async () => {
         if (!query.trim()) return;
         setTranslating(true);
@@ -143,11 +143,11 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 setTranslatedQuery(translated);
                 setQuery(translated); // Substitui o texto pelo traduzido
             } else {
-                alert('Não foi possível traduzir. Tente novamente.');
+                alert('NÃ£o foi possÃ­vel traduzir. Tente novamente.');
             }
         } catch (error) {
             console.error('Erro ao traduzir:', error);
-            alert('Erro na tradução. Verifique sua conexão.');
+            alert('Erro na traduÃ§Ã£o. Verifique sua conexÃ£o.');
         } finally {
             setTranslating(false);
         }
@@ -158,7 +158,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     const [deepResearchLoading, setDeepResearchLoading] = useState(false);
     const [deepResearchInsight, setDeepResearchInsight] = useState<string | null>(null);
 
-    // === AVALIAÇÃO DE QUALIDADE AMSTAR 2 ===
+    // === AVALIAÃ‡ÃƒO DE QUALIDADE AMSTAR 2 ===
     const handleQualityAssessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPro) {
             onOpenSubscription();
@@ -173,27 +173,27 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
         try {
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
             if (!apiKey) {
-                throw new Error('API Key não configurada');
+                throw new Error('API Key nÃ£o configurada');
             }
 
-            const prompt = `Você é um especialista em avaliação de evidências científicas. Analise esta meta-análise/revisão sistemática usando critérios simplificados do AMSTAR 2.
+            const prompt = `VocÃª Ã© um especialista em avaliaÃ§Ã£o de evidÃªncias cientÃ­ficas. Analise esta meta-anÃ¡lise/revisÃ£o sistemÃ¡tica usando critÃ©rios simplificados do AMSTAR 2.
 
-TÍTULO: ${title}
-RESUMO: ${abstractText || 'Não disponível'}
+TÃTULO: ${title}
+RESUMO: ${abstractText || 'NÃ£o disponÃ­vel'}
 
-Baseado nas informações disponíveis, avalie de 0-16 pontos considerando:
+Baseado nas informaÃ§Ãµes disponÃ­veis, avalie de 0-16 pontos considerando:
 1. Protocolo registrado previamente?
 2. Busca abrangente na literatura?
-3. Justificativa para exclusão de estudos?
-4. Avaliação de risco de viés?
-5. Métodos estatísticos apropriados?
+3. Justificativa para exclusÃ£o de estudos?
+4. AvaliaÃ§Ã£o de risco de viÃ©s?
+5. MÃ©todos estatÃ­sticos apropriados?
 6. Heterogeneidade discutida?
 7. Conflitos de interesse declarados?
 
 RESPONDA EXATAMENTE NESTE FORMATO:
-SCORE: [número de 0 a 16]
+SCORE: [nÃºmero de 0 a 16]
 QUALIDADE: [Alta/Moderada/Baixa/Criticamente Baixa]
-RESUMO: [1 frase sobre a qualidade metodológica]`;
+RESUMO: [1 frase sobre a qualidade metodolÃ³gica]`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
                 method: 'POST',
@@ -211,7 +211,7 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : 8;
             const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
-            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'AvaliaÃ§Ã£o concluÃ­da';
 
             setQualityAssessments(prev => ({
                 ...prev,
@@ -219,15 +219,15 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
             }));
 
         } catch (error) {
-            console.error('Erro na avaliação:', error);
+            console.error('Erro na avaliaÃ§Ã£o:', error);
             setQualityAssessments(prev => ({
                 ...prev,
-                [itemId]: { score: -1, summary: 'Erro na avaliação', loading: false }
+                [itemId]: { score: -1, summary: 'Erro na avaliaÃ§Ã£o', loading: false }
             }));
         }
     };
 
-    // === AVALIAÇÃO RoB 2 (Risk of Bias) PARA RCTs ===
+    // === AVALIAÃ‡ÃƒO RoB 2 (Risk of Bias) PARA RCTs ===
     const handleRoB2Assessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPro) {
             onOpenSubscription();
@@ -240,24 +240,24 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
 
         try {
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) throw new Error('API Key não configurada');
+            if (!apiKey) throw new Error('API Key nÃ£o configurada');
 
-            const prompt = `Você é um especialista em avaliação de evidências científicas. Analise este Ensaio Clínico Randomizado (RCT) usando os domínios do RoB 2 (Risk of Bias 2).
+            const prompt = `VocÃª Ã© um especialista em avaliaÃ§Ã£o de evidÃªncias cientÃ­ficas. Analise este Ensaio ClÃ­nico Randomizado (RCT) usando os domÃ­nios do RoB 2 (Risk of Bias 2).
 
-TÍTULO: ${title}
-RESUMO: ${abstractText || 'Não disponível'}
+TÃTULO: ${title}
+RESUMO: ${abstractText || 'NÃ£o disponÃ­vel'}
 
-Avalie os 5 domínios do RoB 2:
-1. Randomização adequada?
-2. Desvios das intervenções pretendidas?
+Avalie os 5 domÃ­nios do RoB 2:
+1. RandomizaÃ§Ã£o adequada?
+2. Desvios das intervenÃ§Ãµes pretendidas?
 3. Dados de desfecho faltantes?
-4. Mensuração do desfecho adequada?
-5. Seleção dos resultados reportados?
+4. MensuraÃ§Ã£o do desfecho adequada?
+5. SeleÃ§Ã£o dos resultados reportados?
 
 RESPONDA EXATAMENTE NESTE FORMATO:
-RISCO: [Baixo/Algumas Preocupações/Alto]
-SCORE: [número de 1 a 5, onde 5=baixo risco, 1=alto risco]
-RESUMO: [1 frase sobre o risco de viés do estudo]`;
+RISCO: [Baixo/Algumas PreocupaÃ§Ãµes/Alto]
+SCORE: [nÃºmero de 1 a 5, onde 5=baixo risco, 1=alto risco]
+RESUMO: [1 frase sobre o risco de viÃ©s do estudo]`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
                 method: 'POST',
@@ -274,7 +274,7 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : 3;
             const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
-            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'AvaliaÃ§Ã£o concluÃ­da';
 
             setQualityAssessments(prev => ({
                 ...prev,
@@ -282,15 +282,15 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
             }));
 
         } catch (error) {
-            console.error('Erro na avaliação RoB 2:', error);
+            console.error('Erro na avaliaÃ§Ã£o RoB 2:', error);
             setQualityAssessments(prev => ({
                 ...prev,
-                [itemId]: { score: -1, summary: 'Erro na avaliação', loading: false }
+                [itemId]: { score: -1, summary: 'Erro na avaliaÃ§Ã£o', loading: false }
             }));
         }
     };
 
-    // === AVALIAÇÃO NOS (Newcastle-Ottawa Scale) PARA COORTE/CASO-CONTROLE ===
+    // === AVALIAÃ‡ÃƒO NOS (Newcastle-Ottawa Scale) PARA COORTE/CASO-CONTROLE ===
     const handleNOSAssessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPro) {
             onOpenSubscription();
@@ -300,22 +300,22 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
 
         try {
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) throw new Error('API Key não configurada');
+            if (!apiKey) throw new Error('API Key nÃ£o configurada');
 
-            const prompt = `Você é um especialista em avaliação de evidências. Analise este estudo de coorte/caso-controle usando a Newcastle-Ottawa Scale (NOS).
+            const prompt = `VocÃª Ã© um especialista em avaliaÃ§Ã£o de evidÃªncias. Analise este estudo de coorte/caso-controle usando a Newcastle-Ottawa Scale (NOS).
 
-TÍTULO: ${title}
-RESUMO: ${abstractText || 'Não disponível'}
+TÃTULO: ${title}
+RESUMO: ${abstractText || 'NÃ£o disponÃ­vel'}
 
-Avalie os 3 domínios do NOS (total 9 estrelas):
-1. SELEÇÃO (4 estrelas): representatividade, seleção controles, definição exposição
+Avalie os 3 domÃ­nios do NOS (total 9 estrelas):
+1. SELEÃ‡ÃƒO (4 estrelas): representatividade, seleÃ§Ã£o controles, definiÃ§Ã£o exposiÃ§Ã£o
 2. COMPARABILIDADE (2 estrelas): controle de confundidores
-3. DESFECHO (3 estrelas): avaliação, seguimento adequado
+3. DESFECHO (3 estrelas): avaliaÃ§Ã£o, seguimento adequado
 
 RESPONDA EXATAMENTE NESTE FORMATO:
-SCORE: [número de 0 a 9]
+SCORE: [nÃºmero de 0 a 9]
 QUALIDADE: [Alta (7-9)/Moderada (4-6)/Baixa (0-3)]
-RESUMO: [1 frase sobre a qualidade metodológica]`;
+RESUMO: [1 frase sobre a qualidade metodolÃ³gica]`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
                 method: 'POST',
@@ -328,7 +328,7 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
             const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
-            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'AvaliaÃ§Ã£o concluÃ­da';
 
             setQualityAssessments(prev => ({ ...prev, [itemId]: { score, summary, loading: false } }));
         } catch (error) {
@@ -337,7 +337,7 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
         }
     };
 
-    // === AVALIAÇÃO AGREE II PARA GUIDELINES ===
+    // === AVALIAÃ‡ÃƒO AGREE II PARA GUIDELINES ===
     const handleAGREEIIAssessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPro) {
             onOpenSubscription();
@@ -347,24 +347,24 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
 
         try {
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) throw new Error('API Key não configurada');
+            if (!apiKey) throw new Error('API Key nÃ£o configurada');
 
-            const prompt = `Você é um especialista em avaliação de guidelines clínicas. Analise esta diretriz usando critérios do AGREE II.
+            const prompt = `VocÃª Ã© um especialista em avaliaÃ§Ã£o de guidelines clÃ­nicas. Analise esta diretriz usando critÃ©rios do AGREE II.
 
-TÍTULO: ${title}
-RESUMO: ${abstractText || 'Não disponível'}
+TÃTULO: ${title}
+RESUMO: ${abstractText || 'NÃ£o disponÃ­vel'}
 
-Avalie os 6 domínios do AGREE II:
-1. Escopo e Propósito
+Avalie os 6 domÃ­nios do AGREE II:
+1. Escopo e PropÃ³sito
 2. Envolvimento das Partes Interessadas
 3. Rigor do Desenvolvimento
-4. Clareza da Apresentação
+4. Clareza da ApresentaÃ§Ã£o
 5. Aplicabilidade
-6. Independência Editorial
+6. IndependÃªncia Editorial
 
 RESPONDA EXATAMENTE NESTE FORMATO:
-SCORE: [número de 1 a 7, onde 7=excelente]
-RECOMENDAÇÃO: [Fortemente Recomendada/Recomendada com Modificações/Não Recomendada]
+SCORE: [nÃºmero de 1 a 7, onde 7=excelente]
+RECOMENDAÃ‡ÃƒO: [Fortemente Recomendada/Recomendada com ModificaÃ§Ãµes/NÃ£o Recomendada]
 RESUMO: [1 frase sobre a qualidade da diretriz]`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
@@ -378,7 +378,7 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
             const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
-            const summary = summaryMatch ? summaryMatch[1].trim() : 'Avaliação concluída';
+            const summary = summaryMatch ? summaryMatch[1].trim() : 'AvaliaÃ§Ã£o concluÃ­da';
 
             setQualityAssessments(prev => ({ ...prev, [itemId]: { score, summary, loading: false } }));
         } catch (error) {
@@ -404,11 +404,11 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
             const searchData = await searchResponse.json();
 
             if (!searchData.results || searchData.results.length === 0) {
-                setDeepResearchInsight('Nenhum resultado encontrado para análise. Tente outro termo.');
+                setDeepResearchInsight('Nenhum resultado encontrado para anÃ¡lise. Tente outro termo.');
                 return;
             }
 
-            // 2. Formata os artigos para análise
+            // 2. Formata os artigos para anÃ¡lise
             const articlesForAnalysis = searchData.results.slice(0, 10).map((item: any) => ({
                 title: item.display_name || item.title,
                 year: item.publication_year,
@@ -419,25 +419,25 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
             // 3. Envia para o Gemini analisar
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
             if (!apiKey) {
-                setDeepResearchInsight('API Key do Gemini não configurada.');
+                setDeepResearchInsight('API Key do Gemini nÃ£o configurada.');
                 return;
             }
 
             const { GoogleGenAI } = await import('@google/genai');
             const ai = new GoogleGenAI({ apiKey });
 
-            const prompt = `Você é um pesquisador científico experiente. Analise estes artigos sobre "${query}" e forneça:
+            const prompt = `VocÃª Ã© um pesquisador cientÃ­fico experiente. Analise estes artigos sobre "${query}" e forneÃ§a:
 
 ARTIGOS ENCONTRADOS:
 ${JSON.stringify(articlesForAnalysis, null, 2)}
 
 TAREFA:
-1. Resuma em 2-3 frases o que a literatura científica diz sobre este tema.
+1. Resuma em 2-3 frases o que a literatura cientÃ­fica diz sobre este tema.
 2. Identifique os 3 principais consensos ou descobertas.
-3. Sugira 2-3 termos de busca mais específicos (em inglês) para encontrar estudos melhores.
-4. Indique se há alguma lacuna ou controvérsia no tema.
+3. Sugira 2-3 termos de busca mais especÃ­ficos (em inglÃªs) para encontrar estudos melhores.
+4. Indique se hÃ¡ alguma lacuna ou controvÃ©rsia no tema.
 
-Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 200 palavras.`;
+Responda de forma concisa e Ãºtil para um estudante. Use bullet points. MÃ¡ximo 200 palavras.`;
 
             const response = await ai.models.generateContent({
                 model: 'gemini-2.0-flash',
@@ -447,14 +447,14 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
             let insight = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
             setDeepResearchInsight(insight);
 
-            // 4. Também popula os resultados normais
+            // 4. TambÃ©m popula os resultados normais
             const formatted = searchData.results.map((item: any) => {
                 const reliability = calculateReliability(item.display_name || item.title, '', 'openalex');
                 return {
                     id: item.id,
                     title: item.display_name || item.title,
                     author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
-                    description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
+                    description: `Publicado em: ${item.publication_year}. CitaÃ§Ãµes: ${item.cited_by_count}.`,
                     url: item.doi || item.primary_location?.landing_page_url || `https://openalex.org/${item.id}`,
                     type: InputType.DOI,
                     reliabilityScore: reliability.score,
@@ -500,25 +500,25 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
         }
     };
 
-    // --- LÓGICA DE HIERARQUIA DE EVIDÊNCIA ---
+    // --- LÃ“GICA DE HIERARQUIA DE EVIDÃŠNCIA ---
     const calculateReliability = (title: string, abstract: string = '', source: string = ''): { score: number, label: string, isGuideline: boolean } => {
         const text = (title + ' ' + abstract).toLowerCase();
 
-        // Verifica se área do usuário é saúde
+        // Verifica se Ã¡rea do usuÃ¡rio Ã© saÃºde
         const profile = getProfile();
         const isHealthArea = profile?.studyArea === 'health';
 
-        // 1. GUIDELINES (TOPO) - Só para área de saúde
+        // 1. GUIDELINES (TOPO) - SÃ³ para Ã¡rea de saÃºde
         if (isHealthArea && (text.includes('guideline') || text.includes('diretriz') || text.includes('consensus') || text.includes('recommendation'))) {
-            return { score: 5, label: 'Diretriz Clínica (Guideline)', isGuideline: true };
+            return { score: 5, label: 'Diretriz ClÃ­nica (Guideline)', isGuideline: true };
         }
-        // 2. META-ANÁLISE / REVISÃO SISTEMÁTICA
-        if (text.includes('meta-analysis') || text.includes('systematic review') || text.includes('revisão sistemática')) {
-            return { score: 5, label: 'Revisão Sistemática / Meta-análise', isGuideline: false };
+        // 2. META-ANÃLISE / REVISÃƒO SISTEMÃTICA
+        if (text.includes('meta-analysis') || text.includes('systematic review') || text.includes('revisÃ£o sistemÃ¡tica')) {
+            return { score: 5, label: 'RevisÃ£o SistemÃ¡tica / Meta-anÃ¡lise', isGuideline: false };
         }
-        // 3. ENSAIO CLÍNICO RANDOMIZADO (RCT)
+        // 3. ENSAIO CLÃNICO RANDOMIZADO (RCT)
         if (text.includes('randomized') || text.includes('randomizado') || text.includes('clinical trial')) {
-            return { score: 4, label: 'Ensaio Clínico Randomizado (RCT)', isGuideline: false };
+            return { score: 4, label: 'Ensaio ClÃ­nico Randomizado (RCT)', isGuideline: false };
         }
         // 4. COORTE
         if (text.includes('cohort') || text.includes('coorte') || text.includes('longitudinal')) {
@@ -529,7 +529,7 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
             return { score: 2, label: 'Estudo Caso-Controle', isGuideline: false };
         }
         // 6. OUTROS
-        return { score: 1, label: 'Estudo Primário / Opinião', isGuideline: false };
+        return { score: 1, label: 'Estudo PrimÃ¡rio / OpiniÃ£o', isGuideline: false };
     };
 
     const handleSearch = async () => {
@@ -549,7 +549,7 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                         id: item.id,
                         title: item.volumeInfo.title,
                         author: item.volumeInfo.authors?.join(', ') || 'Autor Desconhecido',
-                        description: item.volumeInfo.description?.slice(0, 200) + '...' || 'Sem descrição.',
+                        description: item.volumeInfo.description?.slice(0, 200) + '...' || 'Sem descriÃ§Ã£o.',
                         url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
                         type: InputType.URL,
                         thumbnail: item.volumeInfo.imageLinks?.thumbnail
@@ -591,7 +591,7 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                                 id: item.id,
                                 title: item.display_name || item.title,
                                 author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
-                                description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
+                                description: `Publicado em: ${item.publication_year}. CitaÃ§Ãµes: ${item.cited_by_count}.`,
                                 url: item.doi || `https://openalex.org/${item.id}`,
                                 type: InputType.DOI,
                                 reliabilityScore: reliability.score,
@@ -607,36 +607,36 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                 } else {
                     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
                     if (!apiKey) {
-                        console.error('API Key não configurada');
+                        console.error('API Key nÃ£o configurada');
                         return;
                     }
 
                     const { GoogleGenAI } = await import('@google/genai');
                     const ai = new GoogleGenAI({ apiKey });
 
-                    const prompt = `Você é um assistente de pesquisa científica. Busque artigos científicos sobre: "${query}"
+                    const prompt = `VocÃª Ã© um assistente de pesquisa cientÃ­fica. Busque artigos cientÃ­ficos sobre: "${query}"
                 
-TAREFA: Encontre 10-15 artigos científicos relevantes (priorizando meta-análises, revisões sistemáticas e guidelines).
+TAREFA: Encontre 10-15 artigos cientÃ­ficos relevantes (priorizando meta-anÃ¡lises, revisÃµes sistemÃ¡ticas e guidelines).
 
 Para cada artigo encontrado, retorne um JSON com esta estrutura:
 {
   "articles": [
     {
-      "title": "Título do artigo",
-      "author": "Primeiro autor ou organização",
+      "title": "TÃ­tulo do artigo",
+      "author": "Primeiro autor ou organizaÃ§Ã£o",
       "year": 2024,
       "type": "meta-analysis" | "systematic-review" | "guideline" | "rct" | "cohort" | "other",
-      "description": "Breve descrição do que o estudo descobriu (1-2 frases)",
+      "description": "Breve descriÃ§Ã£o do que o estudo descobriu (1-2 frases)",
       "url": "URL do artigo ou DOI"
     }
   ]
 }
 
 IMPORTANTE: 
-- Priorize artigos de revistas científicas renomadas (Lancet, NEJM, JAMA, Cochrane, etc.)
-- Inclua o DOI ou link direto sempre que possível
-- Foque em estudos recentes (últimos 5-10 anos)
-- Retorne APENAS o JSON, sem markdown ou explicações`;
+- Priorize artigos de revistas cientÃ­ficas renomadas (Lancet, NEJM, JAMA, Cochrane, etc.)
+- Inclua o DOI ou link direto sempre que possÃ­vel
+- Foque em estudos recentes (Ãºltimos 5-10 anos)
+- Retorne APENAS o JSON, sem markdown ou explicaÃ§Ãµes`;
 
                     try {
                         const response = await ai.models.generateContent({
@@ -669,7 +669,7 @@ IMPORTANTE:
 
                                     return {
                                         id: `grounding-${idx}-${Date.now()}`,
-                                        title: item.title || 'Artigo sem título',
+                                        title: item.title || 'Artigo sem tÃ­tulo',
                                         author: item.author || 'Autor desconhecido',
                                         description: item.description || `Publicado em ${item.year || 'N/A'}`,
                                         url: item.url || item.doi || '#',
@@ -680,7 +680,7 @@ IMPORTANTE:
                                     };
                                 });
 
-                                // Ordena por relevância
+                                // Ordena por relevÃ¢ncia
                                 const sorted = formatted.sort((a, b) => {
                                     if (a.isGuideline && !b.isGuideline) return -1;
                                     if (!a.isGuideline && b.isGuideline) return 1;
@@ -701,7 +701,7 @@ IMPORTANTE:
                                         id: item.id,
                                         title: item.display_name || item.title,
                                         author: item.authorships?.[0]?.author?.display_name || 'Pesquisador',
-                                        description: `Publicado em: ${item.publication_year}. Citações: ${item.cited_by_count}.`,
+                                        description: `Publicado em: ${item.publication_year}. CitaÃ§Ãµes: ${item.cited_by_count}.`,
                                         url: item.doi || `https://openalex.org/${item.id}`,
                                         type: InputType.DOI,
                                         reliabilityScore: reliability.score,
@@ -739,7 +739,7 @@ IMPORTANTE:
         }
     };
 
-    // Lógica de Filtragem Visual
+    // LÃ³gica de Filtragem Visual
     const filteredResults = results.filter(r => {
         if (activeTab !== 'article') return true;
         if (filter === 'ALL') return true;
@@ -766,53 +766,53 @@ IMPORTANTE:
                             </div>
 
                             <div>
-                                <h2 className="text-xl font-bold mb-1">Guia de Pesquisa Científica</h2>
+                                <h2 className="text-xl font-bold mb-1">Guia de Pesquisa CientÃ­fica</h2>
                                 <p className="text-white/70 text-sm">
-                                    O NeuroStudy usa as melhores bases científicas do mundo
+                                    O NeuroStudy usa as melhores bases cientÃ­ficas do mundo
                                 </p>
                             </div>
 
                             {/* Cards das Fontes */}
                             <div className="grid grid-cols-3 gap-2 w-full">
                                 <div className="bg-green-500/20 border border-green-400/30 rounded-lg p-3 text-left">
-                                    <span className="text-green-300 font-bold text-sm flex items-center gap-1.5 mb-1">🏥 PubMed</span>
-                                    <p className="text-[11px] text-green-100/80 leading-relaxed">Padrão ouro para Saúde. RCTs, Meta-análises e Guidelines.</p>
+                                    <span className="text-green-300 font-bold text-sm flex items-center gap-1.5 mb-1">ðŸ¥ PubMed</span>
+                                    <p className="text-[11px] text-green-100/80 leading-relaxed">PadrÃ£o ouro para SaÃºde. RCTs, Meta-anÃ¡lises e Guidelines.</p>
                                 </div>
                                 <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-3 text-left">
-                                    <span className="text-blue-300 font-bold text-sm flex items-center gap-1.5 mb-1">📚 OpenAlex</span>
+                                    <span className="text-blue-300 font-bold text-sm flex items-center gap-1.5 mb-1">ðŸ“š OpenAlex</span>
                                     <p className="text-[11px] text-blue-100/80 leading-relaxed">Multidisciplinar. Direito, Engenharia, Humanas.</p>
                                 </div>
                                 <div className="bg-purple-500/20 border border-purple-400/30 rounded-lg p-3 text-left">
-                                    <span className="text-purple-300 font-bold text-sm flex items-center gap-1.5 mb-1">🌐 Web/IA</span>
-                                    <p className="text-[11px] text-purple-100/80 leading-relaxed">IA com Google Search. PDFs e artigos não indexados.</p>
+                                    <span className="text-purple-300 font-bold text-sm flex items-center gap-1.5 mb-1">ðŸŒ Web/IA</span>
+                                    <p className="text-[11px] text-purple-100/80 leading-relaxed">IA com Google Search. PDFs e artigos nÃ£o indexados.</p>
                                 </div>
                             </div>
 
-                            {/* Pirâmide de Evidência + Ferramentas */}
+                            {/* PirÃ¢mide de EvidÃªncia + Ferramentas */}
                             <div className="bg-black/30 p-4 rounded-xl w-full">
-                                <p className="font-bold text-sm mb-3 text-center">📊 Entendendo a Qualidade dos Estudos</p>
+                                <p className="font-bold text-sm mb-3 text-center">ðŸ“Š Entendendo a Qualidade dos Estudos</p>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    {/* Esquerda: Pirâmide Grande com Labels ao lado */}
+                                    {/* Esquerda: PirÃ¢mide Grande com Labels ao lado */}
                                     <div className="flex items-center justify-center gap-1">
                                         <svg width="100" height="110" viewBox="0 0 100 110">
                                             {/* Guideline - Estrela no topo */}
                                             <polygon points="50,5 53,12 60,12 55,17 57,24 50,20 43,24 45,17 40,12 47,12" fill="#9333ea" stroke="#fff" strokeWidth="0.5" />
-                                            {/* Nível 5 - Meta-análise */}
+                                            {/* NÃ­vel 5 - Meta-anÃ¡lise */}
                                             <polygon points="50,24 65,42 35,42" fill="#059669" stroke="#fff" strokeWidth="1" />
-                                            {/* Nível 4 - RCT */}
+                                            {/* NÃ­vel 4 - RCT */}
                                             <polygon points="35,42 65,42 75,58 25,58" fill="#22c55e" stroke="#fff" strokeWidth="1" />
-                                            {/* Nível 3 - Coorte */}
+                                            {/* NÃ­vel 3 - Coorte */}
                                             <polygon points="25,58 75,58 82,74 18,74" fill="#eab308" stroke="#fff" strokeWidth="1" />
-                                            {/* Nível 2 - Caso-Controle */}
+                                            {/* NÃ­vel 2 - Caso-Controle */}
                                             <polygon points="18,74 82,74 90,90 10,90" fill="#f97316" stroke="#fff" strokeWidth="1" />
-                                            {/* Nível 1 - Observacional */}
+                                            {/* NÃ­vel 1 - Observacional */}
                                             <polygon points="10,90 90,90 98,106 2,106" fill="#ef4444" stroke="#fff" strokeWidth="1" />
                                         </svg>
                                         {/* Labels ao lado */}
                                         <div className="text-[9px] space-y-2 text-left">
-                                            <div className="flex items-center gap-1 -mt-2"><span className="text-purple-400">★</span> <span className="text-purple-300 font-bold">Guideline</span></div>
-                                            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-600"></span> <span>Meta-análise</span></div>
+                                            <div className="flex items-center gap-1 -mt-2"><span className="text-purple-400">â˜…</span> <span className="text-purple-300 font-bold">Guideline</span></div>
+                                            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-600"></span> <span>Meta-anÃ¡lise</span></div>
                                             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500"></span> <span>RCT</span></div>
                                             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-500"></span> <span>Coorte</span></div>
                                             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-orange-500"></span> <span>Caso-Controle</span></div>
@@ -820,13 +820,13 @@ IMPORTANTE:
                                         </div>
                                     </div>
 
-                                    {/* Direita: Ferramentas de Avaliação */}
+                                    {/* Direita: Ferramentas de AvaliaÃ§Ã£o */}
                                     <div className="text-left">
-                                        <p className="text-[10px] text-gray-400 mb-2">Ferramentas de Avaliação</p>
+                                        <p className="text-[10px] text-gray-400 mb-2">Ferramentas de AvaliaÃ§Ã£o</p>
                                         <div className="space-y-2 text-[10px]">
                                             <div className="bg-white/5 p-2 rounded">
                                                 <p className="font-bold text-emerald-300">AMSTAR 2</p>
-                                                <p className="text-gray-300">Avalia meta-análises. Score de 0-16 pontos.</p>
+                                                <p className="text-gray-300">Avalia meta-anÃ¡lises. Score de 0-16 pontos.</p>
                                             </div>
                                             <div className="bg-white/5 p-2 rounded">
                                                 <p className="font-bold text-green-300">RoB 2 (Risk of Bias)</p>
@@ -841,7 +841,7 @@ IMPORTANTE:
                                 </div>
 
                                 <p className="text-[10px] text-gray-400 text-center mt-3 border-t border-white/10 pt-2">
-                                    ↑ Quanto mais alto na pirâmide + boa avaliação = maior confiabilidade
+                                    â†‘ Quanto mais alto na pirÃ¢mide + boa avaliaÃ§Ã£o = maior confiabilidade
                                 </p>
                             </div>
 
@@ -849,17 +849,17 @@ IMPORTANTE:
                             <div className="text-left bg-black/20 p-3 rounded-xl space-y-2 w-full border border-white/10">
                                 <div className="flex items-start gap-3">
                                     <span className="bg-emerald-500 w-2 h-2 rounded-full shrink-0 mt-1.5"></span>
-                                    <p className="text-xs"><span className="font-bold text-emerald-300">Seja Específico:</span> Use "Terapia Cognitiva Ansiedade" ao invés de "Ansiedade".</p>
+                                    <p className="text-xs"><span className="font-bold text-emerald-300">Seja EspecÃ­fico:</span> Use "Terapia Cognitiva Ansiedade" ao invÃ©s de "Ansiedade".</p>
                                 </div>
                                 <div className="flex items-start gap-3">
                                     <span className="bg-blue-500 w-2 h-2 rounded-full shrink-0 mt-1.5"></span>
-                                    <p className="text-xs"><span className="font-bold text-blue-300">Use Inglês:</span> 95% da ciência está em inglês. Use <span className="bg-white/20 px-1 py-0.5 rounded text-[10px] font-bold">🌐 PT→EN</span></p>
+                                    <p className="text-xs"><span className="font-bold text-blue-300">Use InglÃªs:</span> 95% da ciÃªncia estÃ¡ em inglÃªs. Use <span className="bg-white/20 px-1 py-0.5 rounded text-[10px] font-bold">ðŸŒ PTâ†’EN</span></p>
                                 </div>
                             </div>
 
                             <div className="flex gap-3 w-full pt-1">
                                 <button onClick={() => handleCloseTutorial(false)} className="flex-1 py-2.5 bg-white text-indigo-900 font-bold rounded-xl hover:bg-indigo-50 transition-colors">Entendi</button>
-                                <button onClick={() => handleCloseTutorial(true)} className="px-4 py-2.5 bg-transparent border border-white/30 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm">Não mostrar mais</button>
+                                <button onClick={() => handleCloseTutorial(true)} className="px-4 py-2.5 bg-transparent border border-white/30 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm">NÃ£o mostrar mais</button>
                             </div>
                         </div>
                     </div>
@@ -890,28 +890,28 @@ IMPORTANTE:
                     </div>
                 </div>
 
-                {/* Tabs & Search - Colapsável quando há resultados */}
+                {/* Tabs & Search - ColapsÃ¡vel quando hÃ¡ resultados */}
                 <div className={`bg-slate-50 border-b border-gray-200 shrink-0 transition-all duration-300 ${results.length > 0 ? 'p-3' : 'p-6 space-y-4'}`}>
 
-                    {/* Versão expandida (sem resultados) */}
+                    {/* VersÃ£o expandida (sem resultados) */}
                     {results.length === 0 && (
                         <>
                             <div className="flex gap-2 justify-center">
-                                <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4" /> Artigos Científicos</button>
+                                <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4" /> Artigos CientÃ­ficos</button>
                                 <button onClick={() => setActiveTab('book')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'book' ? 'bg-orange-500 text-white shadow-md ring-2 ring-orange-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><BookOpen className="w-4 h-4" /> Livros</button>
                                 <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4" /> Wiki / Conceitos</button>
                             </div>
 
-                            {/* Seletor de fonte (só para artigos) */}
+                            {/* Seletor de fonte (sÃ³ para artigos) */}
                             {activeTab === 'article' && (
                                 <div className="flex flex-col gap-3">
                                     <div className="flex items-center justify-center gap-2">
                                         <span className="text-xs text-gray-500 font-medium">Fonte:</span>
                                         {[
-                                            { key: 'auto', label: '✨ Automático', color: 'indigo' },
-                                            { key: 'pubmed', label: '🏥 PubMed', color: 'green' },
-                                            { key: 'openalex', label: '📚 OpenAlex', color: 'blue' },
-                                            { key: 'grounding', label: '🌐 Web/IA', color: 'purple' }
+                                            { key: 'auto', label: 'âœ¨ AutomÃ¡tico', color: 'indigo' },
+                                            { key: 'pubmed', label: 'ðŸ¥ PubMed', color: 'green' },
+                                            { key: 'openalex', label: 'ðŸ“š OpenAlex', color: 'blue' },
+                                            { key: 'grounding', label: 'ðŸŒ Web/IA', color: 'purple' }
                                         ].map(({ key, label, color }) => (
                                             <button
                                                 key={key}
@@ -930,10 +930,10 @@ IMPORTANTE:
                                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-lg p-2 flex items-center justify-center gap-4 text-xs">
                                         <span className="flex items-center gap-1.5 text-indigo-700">
                                             <Globe className="w-3.5 h-3.5" />
-                                            <span>Buscas em <b>Inglês</b> têm 10x mais resultados</span>
+                                            <span>Buscas em <b>InglÃªs</b> tÃªm 10x mais resultados</span>
                                         </span>
                                         <span className="text-purple-600 bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-[11px]">
-                                            Use o botão 🌐 PT→EN abaixo
+                                            Use o botÃ£o ðŸŒ PTâ†’EN abaixo
                                         </span>
                                     </div>
                                 </div>
@@ -945,7 +945,7 @@ IMPORTANTE:
                         <input
                             autoFocus
                             type="text"
-                            placeholder={activeTab === 'article' ? "Ex: 'Anxiety treatment systematic review' (Inglês é melhor)" : "Digite o tema..."}
+                            placeholder={activeTab === 'article' ? "Ex: 'Anxiety treatment systematic review' (InglÃªs Ã© melhor)" : "Digite o tema..."}
                             className="w-full pl-12 pr-36 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-lg shadow-sm transition-all"
                             value={query}
                             onChange={(e) => { setQuery(e.target.value); setTranslatedQuery(null); }}
@@ -953,18 +953,18 @@ IMPORTANTE:
                         />
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 group-focus-within:text-indigo-500 transition-colors" />
 
-                        {/* Botão de Tradução PT → EN */}
+                        {/* BotÃ£o de TraduÃ§Ã£o PT â†’ EN */}
                         {query.trim() && !translatedQuery && (
                             <button
                                 onClick={handleTranslate}
                                 disabled={translating}
                                 className="absolute right-28 top-2 bottom-2 px-3 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-lg transition-colors text-xs flex items-center gap-1"
-                                title="Traduzir para Inglês"
+                                title="Traduzir para InglÃªs"
                             >
                                 {translating ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    <>🌐 PT→EN</>
+                                    <>ðŸŒ PTâ†’EN</>
                                 )}
                             </button>
                         )}
@@ -972,7 +972,7 @@ IMPORTANTE:
                         {/* Indicador de que foi traduzido */}
                         {translatedQuery && (
                             <span className="absolute right-28 top-1/2 -translate-y-1/2 text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded">
-                                ✓ Traduzido
+                                âœ“ Traduzido
                             </span>
                         )}
 
@@ -985,7 +985,7 @@ IMPORTANTE:
                         </button>
                     </div>
 
-                    {/* Botão Deep Research (centralizado) */}
+                    {/* BotÃ£o Deep Research (centralizado) */}
                     {activeTab === 'article' && (
                         <div className="flex items-center justify-center">
                             <button
@@ -998,7 +998,7 @@ IMPORTANTE:
                                 {deepResearchLoading ? (
                                     <><Loader2 className="w-3 h-3 animate-spin" /> Analisando...</>
                                 ) : (
-                                    <>{!isPro && <Crown className="w-3 h-3" />} 🧠 Deep Research</>
+                                    <>{!isPro && <Crown className="w-3 h-3" />} ðŸ§  Deep Research</>
                                 )}
                             </button>
                         </div>
@@ -1009,10 +1009,10 @@ IMPORTANTE:
                         <div className="mt-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
                             <div className="flex items-start gap-3">
                                 <div className="bg-purple-600 text-white p-2 rounded-lg shrink-0">
-                                    🧠
+                                    ðŸ§ 
                                 </div>
                                 <div className="flex-1">
-                                    <h4 className="font-bold text-purple-800 text-sm mb-2">Análise Deep Research</h4>
+                                    <h4 className="font-bold text-purple-800 text-sm mb-2">AnÃ¡lise Deep Research</h4>
                                     <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                                         {deepResearchInsight}
                                     </div>
@@ -1042,7 +1042,7 @@ IMPORTANTE:
                                         </div>
                                     )}
 
-                                    {/* Header: Autor + Barra de Evidência */}
+                                    {/* Header: Autor + Barra de EvidÃªncia */}
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="flex items-center gap-2">
                                             <div className={`p-1.5 rounded-lg ${activeTab === 'book' ? 'bg-orange-100 text-orange-600' : activeTab === 'article' ? 'bg-blue-100 text-blue-600' : 'bg-indigo-100 text-indigo-600'}`}>
@@ -1055,13 +1055,13 @@ IMPORTANTE:
                                         )}
                                     </div>
 
-                                    {/* Título - mais espaço */}
+                                    {/* TÃ­tulo - mais espaÃ§o */}
                                     <h4 className="font-bold text-gray-900 leading-snug mb-2 text-sm line-clamp-3 group-hover:text-indigo-700 transition-colors" title={item.title}>{item.title}</h4>
 
-                                    {/* Descrição */}
+                                    {/* DescriÃ§Ã£o */}
                                     <p className="text-xs text-gray-600 line-clamp-2 mb-2 flex-1 leading-relaxed">{item.description}</p>
 
-                                    {/* Botão de Avaliação AMSTAR 2 (só para meta-análises) */}
+                                    {/* BotÃ£o de AvaliaÃ§Ã£o AMSTAR 2 (sÃ³ para meta-anÃ¡lises) */}
                                     {activeTab === 'article' && item.reliabilityScore === 5 && !item.isGuideline && (
                                         <div className="mb-2">
                                             {qualityAssessments[item.id]?.loading ? (
@@ -1072,7 +1072,7 @@ IMPORTANTE:
                                             ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
                                                 <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg py-2 px-3 text-xs">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-bold text-emerald-700">🔬 AMSTAR 2</span>
+                                                        <span className="font-bold text-emerald-700">ðŸ”¬ AMSTAR 2</span>
                                                         <span className={`font-bold ${qualityAssessments[item.id].score >= 12 ? 'text-emerald-600' : qualityAssessments[item.id].score >= 8 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {qualityAssessments[item.id].score}/16
                                                         </span>
@@ -1084,13 +1084,13 @@ IMPORTANTE:
                                                     onClick={() => handleQualityAssessment(item.id, item.title, item.description)}
                                                     className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    {isPro ? '🔬 Avaliar Qualidade (AMSTAR 2)' : <><Crown className="w-3 h-3" /> Avaliar (AMSTAR 2) - Pro</>}
+                                                    {isPro ? 'ðŸ”¬ Avaliar Qualidade (AMSTAR 2)' : <><Crown className="w-3 h-3" /> Avaliar (AMSTAR 2) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Botão de Avaliação RoB 2 (só para RCTs) */}
+                                    {/* BotÃ£o de AvaliaÃ§Ã£o RoB 2 (sÃ³ para RCTs) */}
                                     {activeTab === 'article' && item.reliabilityScore === 4 && (
                                         <div className="mb-2">
                                             {qualityAssessments[item.id]?.loading ? (
@@ -1101,7 +1101,7 @@ IMPORTANTE:
                                             ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
                                                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg py-2 px-3 text-xs">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-bold text-blue-700">⚖️ RoB 2</span>
+                                                        <span className="font-bold text-blue-700">âš–ï¸ RoB 2</span>
                                                         <span className={`font-bold ${qualityAssessments[item.id].score >= 4 ? 'text-green-600' : qualityAssessments[item.id].score >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {qualityAssessments[item.id].score >= 4 ? 'Baixo' : qualityAssessments[item.id].score >= 3 ? 'Moderado' : 'Alto'} Risco
                                                         </span>
@@ -1113,13 +1113,13 @@ IMPORTANTE:
                                                     onClick={() => handleRoB2Assessment(item.id, item.title, item.description)}
                                                     className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    {isPro ? '⚖️ Avaliar Risco de Viés (RoB 2)' : <><Crown className="w-3 h-3" /> Avaliar (RoB 2) - Pro</>}
+                                                    {isPro ? 'âš–ï¸ Avaliar Risco de ViÃ©s (RoB 2)' : <><Crown className="w-3 h-3" /> Avaliar (RoB 2) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Botão de Avaliação NOS (Coorte e Caso-Controle) */}
+                                    {/* BotÃ£o de AvaliaÃ§Ã£o NOS (Coorte e Caso-Controle) */}
                                     {activeTab === 'article' && (item.reliabilityScore === 3 || item.reliabilityScore === 2) && (
                                         <div className="mb-2">
                                             {qualityAssessments[item.id]?.loading ? (
@@ -1130,7 +1130,7 @@ IMPORTANTE:
                                             ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
                                                 <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg py-2 px-3 text-xs">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-bold text-yellow-700">⭐ NOS</span>
+                                                        <span className="font-bold text-yellow-700">â­ NOS</span>
                                                         <span className={`font-bold ${qualityAssessments[item.id].score >= 7 ? 'text-green-600' : qualityAssessments[item.id].score >= 4 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {qualityAssessments[item.id].score}/9 estrelas
                                                         </span>
@@ -1142,13 +1142,13 @@ IMPORTANTE:
                                                     onClick={() => handleNOSAssessment(item.id, item.title, item.description)}
                                                     className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    {isPro ? '⭐ Avaliar Qualidade (NOS)' : <><Crown className="w-3 h-3" /> Avaliar (NOS) - Pro</>}
+                                                    {isPro ? 'â­ Avaliar Qualidade (NOS)' : <><Crown className="w-3 h-3" /> Avaliar (NOS) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Botão de Avaliação AGREE II (Guidelines) */}
+                                    {/* BotÃ£o de AvaliaÃ§Ã£o AGREE II (Guidelines) */}
                                     {activeTab === 'article' && item.isGuideline && (
                                         <div className="mb-2">
                                             {qualityAssessments[item.id]?.loading ? (
@@ -1159,7 +1159,7 @@ IMPORTANTE:
                                             ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
                                                 <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-200 rounded-lg py-2 px-3 text-xs">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-bold text-purple-700">🏛️ AGREE II</span>
+                                                        <span className="font-bold text-purple-700">ðŸ›ï¸ AGREE II</span>
                                                         <span className={`font-bold ${qualityAssessments[item.id].score >= 5 ? 'text-green-600' : qualityAssessments[item.id].score >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {qualityAssessments[item.id].score}/7
                                                         </span>
@@ -1171,7 +1171,7 @@ IMPORTANTE:
                                                     onClick={() => handleAGREEIIAssessment(item.id, item.title, item.description)}
                                                     className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    {isPro ? '🏛️ Avaliar Guideline (AGREE II)' : <><Crown className="w-3 h-3" /> Avaliar (AGREE II) - Pro</>}
+                                                    {isPro ? 'ðŸ›ï¸ Avaliar Guideline (AGREE II)' : <><Crown className="w-3 h-3" /> Avaliar (AGREE II) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
@@ -1193,8 +1193,8 @@ IMPORTANTE:
                                     <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                                     </div>
-                                    <p className="text-indigo-600 font-bold mb-1">Filtrando o melhor conteúdo...</p>
-                                    <p className="text-xs">Priorizando Guidelines e Revisões Sistemáticas.</p>
+                                    <p className="text-indigo-600 font-bold mb-1">Filtrando o melhor conteÃºdo...</p>
+                                    <p className="text-xs">Priorizando Guidelines e RevisÃµes SistemÃ¡ticas.</p>
                                 </div>
                             ) : hasSearched ? (
                                 <div className="text-center max-w-md mx-auto">
@@ -1207,8 +1207,8 @@ IMPORTANTE:
                             ) : (
                                 <div className="text-center max-w-md mx-auto opacity-60">
                                     <Shield className="w-20 h-20 mx-auto mb-6 text-indigo-200" />
-                                    <h3 className="text-lg font-bold text-gray-600 mb-2">Pesquisa Baseada em Evidências</h3>
-                                    <p className="text-sm">Nossa IA organiza os resultados por confiabilidade. Guidelines e Meta-análises aparecem primeiro.</p>
+                                    <h3 className="text-lg font-bold text-gray-600 mb-2">Pesquisa Baseada em EvidÃªncias</h3>
+                                    <p className="text-sm">Nossa IA organiza os resultados por confiabilidade. Guidelines e Meta-anÃ¡lises aparecem primeiro.</p>
                                 </div>
                             )}
                         </div>

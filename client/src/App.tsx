@@ -26,13 +26,26 @@ import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Tras
 
 export function AppContent() {
     const { user, loading, signOut, isPro, limits, canCreateStudy, incrementUsage, usage } = useAuth();
-    const [view, setView] = useState<'landing' | 'app'>('landing');
+    // Vai direto para o app se o usuário já está logado
+    const [view, setView] = useState<'landing' | 'app'>(user ? 'app' : 'landing');
+
+    // Atualiza a view quando o usuário faz login
+    useEffect(() => {
+        if (user && view === 'landing') {
+            setView('app');
+        }
+    }, [user, view]);
     const [folders, setFolders] = useState<Folder[]>([]);
     const [studies, setStudies] = useState<StudySession[]>([]);
     const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
     const [targetFolderId, setTargetFolderId] = useState<string>('root-neuro');
 
     const handleRequestNewStudy = (folderId: string) => {
+        if (!isOnboardingComplete) {
+            setShowOnboarding(true);
+            return;
+        }
+
         setTargetFolderId(folderId);
 
         const isBook = folderId === 'root-books';
@@ -81,7 +94,9 @@ export function AppContent() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding());
+    const initialOnboardingComplete = hasCompletedOnboarding();
+    const [isOnboardingComplete, setIsOnboardingComplete] = useState(initialOnboardingComplete);
+    const [showOnboarding, setShowOnboarding] = useState(!initialOnboardingComplete);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
 
@@ -295,6 +310,11 @@ export function AppContent() {
     const handleSaveSourceRename = () => { if (!activeStudyId || !editingSourceId) return; setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: s.sources.map(src => src.id === editingSourceId ? { ...src, name: editSourceName } : src) }; return s; })); setEditingSourceId(null); setEditSourceName(''); };
 
     const handleQuickStart = async (content: string | File, type: InputType, mode: StudyMode = StudyMode.NORMAL, autoGenerate: boolean = false, isBook: boolean = false) => {
+        if (!isOnboardingComplete) {
+            setShowOnboarding(true);
+            return;
+        }
+
         let targetFolderId = 'root-neuro';
         if (isBook) targetFolderId = 'root-books';
         else if (mode === StudyMode.PARETO) targetFolderId = 'root-pareto';
@@ -400,6 +420,11 @@ export function AppContent() {
     const handleGenerateFlashcards = async () => { if (!activeStudy?.guide) return; setProcessingState({ isLoading: true, error: null, step: 'flashcards' }); try { const flashcards = await generateFlashcards(activeStudy.guide); setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, flashcards } : s)); } catch (err: any) { setProcessingState(prev => ({ ...prev, error: err.message })); } finally { setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' })); } };
     const handleClearQuiz = () => { if (!activeStudyId) return; setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz: null } : s)); };
     const handleStartSession = () => {
+        if (!isOnboardingComplete) {
+            setShowOnboarding(true);
+            return;
+        }
+
         const isBookContext = targetFolderId === 'root-books';
         const isParetoContext = targetFolderId === 'root-pareto';
 
@@ -419,6 +444,10 @@ export function AppContent() {
             const mode = isParetoContext ? StudyMode.PARETO : selectedMode;
             createStudy(targetFolderId, title, mode, isBookContext);
         }
+    };
+    const handleOnboardingCreateStudy = () => {
+        handleStartSession();
+        setShowSearchModal(true);
     };
     const handleFolderExam = (fid: string) => { /* ... */ };
 
@@ -878,8 +907,8 @@ export function AppContent() {
                 )}
                 {showOnboarding && (
                     <OnboardingModal
-                        onComplete={() => setShowOnboarding(false)}
-                        onCreateStudy={handleStartSession}
+                        onComplete={() => { setIsOnboardingComplete(true); setShowOnboarding(false); }}
+                        onCreateStudy={handleOnboardingCreateStudy}
                     />
                 )}
                 {showSubscriptionModal && (
