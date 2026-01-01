@@ -116,7 +116,7 @@ export const LABELS = {
     },
     purpose: {
         vestibular: '🎓 Vestibular',
-        exam: '📝 Provas/Concursos',
+        exam: '🏛️ Concursos',
         graduation: '🎒 Faculdade',
         postgrad: '📖 Pós-graduação',
         professional: '💼 Profissional'

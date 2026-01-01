@@ -256,7 +256,7 @@ export const Tomato = ({ className }: { className?: string }) => (
 export const NeuroLogo = ({ className, size = 40 }: { className?: string, size?: number }) => (
   <div className={className} style={{ height: size, width: size, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
     <img
-      src="https://i.ibb.co/rRD7bqP3/logogrande.png"
+      src="https://i.ibb.co/vxYqnFbR/psicohublogo.png"
       alt="NeuroStudy Architect"
       style={{
         height: '100%',
@@ -311,4 +311,13 @@ export const Chrome = ({ className }: { className?: string }) => (
 
 export const LogOut = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+);
+export const Crown = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z" /></svg>
+);
+export const FileDown = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3" /></svg>
+);
+export const Check = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>
 );

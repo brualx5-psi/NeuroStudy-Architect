@@ -19,12 +19,13 @@ import { NotificationCenter } from './components/NotificationCenter';
 import { SourcePreviewModal } from './components/SourcePreviewModal';
 import { SearchResourcesModal } from './components/SearchResourcesModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { SubscriptionModal } from './components/SubscriptionModal';
 import { useAuth, AuthProvider } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles, Loader2 } from './components/Icons';
 
 export function AppContent() {
-    const { user, loading, signOut } = useAuth();
+    const { user, loading, signOut, isPro, limits, canCreateStudy, incrementUsage, usage } = useAuth();
     const [view, setView] = useState<'landing' | 'app'>('landing');
     const [folders, setFolders] = useState<Folder[]>([]);
     const [studies, setStudies] = useState<StudySession[]>([]);
@@ -81,6 +82,7 @@ export function AppContent() {
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding());
+    const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
 
     // Se estiver carregando a sessão, mostra um loading bonito
@@ -167,6 +169,12 @@ export function AppContent() {
     const moveStudy = (studyId: string, targetFolderId: string) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, folderId: targetFolderId } : s)); };
 
     const createStudy = (folderId: string, title: string, mode: StudyMode = selectedMode, isBook: boolean = false) => {
+        // Verificação de limite de roteiros
+        if (!isPro && !canCreateStudy()) {
+            setShowSubscriptionModal(true);
+            return null;
+        }
+
         const newStudy: StudySession = {
             id: Date.now().toString(), folderId, title, sources: [], mode, isBook,
             guide: null, slides: null, quiz: null, flashcards: null, createdAt: Date.now(), updatedAt: Date.now(),
@@ -184,10 +192,28 @@ export function AppContent() {
     const updateStudyMode = (studyId: string, mode: StudyMode) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, mode: mode } : s)); };
     const handleSaveTitle = () => { if (activeStudyId && editTitleInput.trim()) { setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, title: editTitleInput } : s)); } setIsEditingTitle(false); };
     const addSourceToStudy = async () => {
-        if (!activeStudyId) return;
+        if (!activeStudyId || !activeStudy) return;
+
+        // Verificação de limite de fontes por roteiro
+        const maxSources = limits.sources_per_study;
+        if (activeStudy.sources.length >= maxSources) {
+            alert(`Limite de ${maxSources} fontes por roteiro atingido!`);
+            if (!isPro) setShowSubscriptionModal(true);
+            return;
+        }
+
         let content = ''; let mimeType = ''; let name = ''; let finalType = inputType;
         if (inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL) {
             if (!inputText.trim()) return;
+
+            // Verificação de limite de páginas para texto (Free: 30 pág ~ 75.000 chars)
+            const maxChars = limits.pages_per_source * 2500;
+            if (inputText.length > maxChars) {
+                alert(`Texto muito longo! Seu plano suporta até ${limits.pages_per_source} páginas (aprox. ${maxChars.toLocaleString()} caracteres).`);
+                if (!isPro) setShowSubscriptionModal(true);
+                return;
+            }
+
             content = inputText; mimeType = 'text/plain';
             if (inputType === InputType.DOI) name = `DOI: ${inputText.slice(0, 20)}...`;
             else if (inputType === InputType.URL) name = `Link: ${inputText.slice(0, 30)}...`;
@@ -197,6 +223,12 @@ export function AppContent() {
 
             // Lógica de Transcrição Automática para Vídeo/Áudio
             if (inputType === InputType.VIDEO) {
+                // Bloqueio de transcrição para usuários Free (ou verificar limite de minutos)
+                if (!isPro) {
+                    setShowSubscriptionModal(true);
+                    return;
+                }
+
                 setProcessingState({ isLoading: true, error: null, step: 'transcribing' });
                 try {
                     // Otimização: Upload direto do arquivo binário (sem converter para base64 antes)
@@ -211,6 +243,9 @@ export function AppContent() {
                     mimeType = 'text/plain';
                     name = `[Transcrição] ${selectedFile.name}`;
                     finalType = InputType.TEXT; // Muda para Texto pois agora é uma transcrição
+
+                    // Incrementar uso de YouTube (estimando 30min por arquivo por simplicidade)
+                    await incrementUsage('youtube', 30);
 
                     setProcessingState({ isLoading: false, error: null, step: 'idle' });
                 } catch (err: any) {
@@ -268,6 +303,7 @@ export function AppContent() {
         let title = isBook ? `Livro: ${fileName}` : mode === StudyMode.PARETO ? `Pareto 80/20: ${fileName}` : `Estudo: ${fileName}`;
 
         const newStudy = createStudy(targetFolderId, title, mode, isBook);
+        if (!newStudy) return; // Limite atingido, modal já exibido
 
         let sourceContent = ''; let mimeType = 'text/plain'; let name = '';
         if (content instanceof File) { sourceContent = await fileToBase64(content); mimeType = content.type; name = content.name; }
@@ -330,11 +366,36 @@ export function AppContent() {
 
     const handleGenerateGuide = async () => {
         if (!activeStudy || activeStudy.sources.length === 0) return;
-        // Agora passa TODAS as fontes. O serviço decide quem é primaria.
-        handleGenerateGuideForStudy(activeStudy.id, activeStudy.sources, activeStudy.mode, activeStudy.isBook || false);
+
+        // Verificação de limite de roteiros (incrementa uso ao gerar)
+        if (!isPro && !canCreateStudy()) {
+            setShowSubscriptionModal(true);
+            return;
+        }
+
+        await handleGenerateGuideForStudy(activeStudy.id, activeStudy.sources, activeStudy.mode, activeStudy.isBook || false);
+
+        // Incrementar uso após geração bem-sucedida
+        await incrementUsage('roadmap');
     };
 
-    const handleGenerateSlides = async () => { if (!activeStudy?.guide) return; setProcessingState({ isLoading: true, error: null, step: 'slides' }); try { const slides = await generateSlides(activeStudy.guide); setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, slides } : s)); } catch (err: any) { setProcessingState(prev => ({ ...prev, error: err.message })); } finally { setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' })); } };
+    const handleGenerateSlides = async () => {
+        // Slides é recurso PRO apenas
+        if (!isPro) {
+            setShowSubscriptionModal(true);
+            return;
+        }
+        if (!activeStudy?.guide) return;
+        setProcessingState({ isLoading: true, error: null, step: 'slides' });
+        try {
+            const slides = await generateSlides(activeStudy.guide);
+            setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, slides } : s));
+        } catch (err: any) {
+            setProcessingState(prev => ({ ...prev, error: err.message }));
+        } finally {
+            setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' }));
+        }
+    };
     const handleGenerateQuiz = async (config?: any) => { if (!activeStudy?.guide) return; setProcessingState({ isLoading: true, error: null, step: 'quiz' }); try { const quiz = await generateQuiz(activeStudy.guide, activeStudy.mode || StudyMode.NORMAL, config); setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz } : s)); } catch (err: any) { setProcessingState(prev => ({ ...prev, error: err.message })); } finally { setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' })); } };
     const handleGenerateFlashcards = async () => { if (!activeStudy?.guide) return; setProcessingState({ isLoading: true, error: null, step: 'flashcards' }); try { const flashcards = await generateFlashcards(activeStudy.guide); setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, flashcards } : s)); } catch (err: any) { setProcessingState(prev => ({ ...prev, error: err.message })); } finally { setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' })); } };
     const handleClearQuiz = () => { if (!activeStudyId) return; setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz: null } : s)); };
@@ -426,20 +487,6 @@ export function AppContent() {
             }
         }
     };
-
-    if (!isAuthorized) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-in fade-in zoom-in duration-300">
-                    <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6"><Lock className="w-8 h-8" /></div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
-                    <p className="text-gray-500 mb-6">Esta plataforma está em fase de testes fechados. Por favor, insira a senha de acesso.</p>
-                    <input type="password" placeholder="Senha de acesso" className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none mb-4" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} autoFocus />
-                    <button onClick={handleLogin} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">Entrar</button>
-                </div>
-            </div>
-        );
-    }
 
     if (view === 'landing') {
         return (
@@ -771,6 +818,7 @@ export function AppContent() {
                                                 isParetoOnly={activeStudy.mode === StudyMode.PARETO}
                                                 onScheduleReview={() => handleInitialSchedule(activeStudy.id)}
                                                 isReviewScheduled={!!activeStudy.nextReviewDate}
+                                                onOpenSubscription={() => setShowSubscriptionModal(true)}
                                             />
                                         )}
 
@@ -825,12 +873,19 @@ export function AppContent() {
                     <SearchResourcesModal
                         onClose={() => setShowSearchModal(false)}
                         onAddSource={handleAddSearchSource}
+                        onOpenSubscription={() => setShowSubscriptionModal(true)}
                     />
                 )}
                 {showOnboarding && (
                     <OnboardingModal
                         onComplete={() => setShowOnboarding(false)}
                         onCreateStudy={handleStartSession}
+                    />
+                )}
+                {showSubscriptionModal && (
+                    <SubscriptionModal
+                        isOpen={showSubscriptionModal}
+                        onClose={() => setShowSubscriptionModal(false)}
                     />
                 )}
             </div>

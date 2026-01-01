@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, HelpCircle, Shield } from './Icons';
+import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, HelpCircle, Shield, Crown } from './Icons';
+import { useAuth } from '../contexts/AuthContext';
 import { InputType } from '../types';
 import { searchPubMed } from '../services/pubmedService';
 import { getProfile, getPreferredSource } from '../services/userProfileService';
@@ -20,6 +21,7 @@ interface SearchResult {
 interface SearchResourcesModalProps {
     onClose: () => void;
     onAddSource: (name: string, content: string, type: InputType) => void;
+    onOpenSubscription: () => void;
 }
 
 // COMPONENTE VISUAL: Pirâmide de Evidência Interativa
@@ -99,7 +101,10 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
     );
 };
 
-export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onClose, onAddSource }) => {
+type SourceMode = 'auto' | 'pubmed' | 'openalex' | 'grounding';
+
+export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onClose, onAddSource, onOpenSubscription }) => {
+    const { isPro } = useAuth();
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'book' | 'article' | 'web'>('article');
     const [results, setResults] = useState<SearchResult[]>([]);
@@ -108,7 +113,13 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     const [hasSearched, setHasSearched] = useState(false);
 
     // Seletor de fonte (auto, pubmed, openalex, grounding)
-    const [sourceMode, setSourceMode] = useState<'auto' | 'pubmed' | 'openalex' | 'grounding'>('auto');
+    const [sourceMode, setSourceMode] = useState<SourceMode>('auto');
+    const sourceOptions: { value: SourceMode; label: string }[] = [
+        { value: 'auto', label: 'Automático (recomendado)' },
+        { value: 'pubmed', label: 'PubMed' },
+        { value: 'openalex', label: 'OpenAlex' },
+        { value: 'grounding', label: 'Web/Geral' }
+    ];
 
     // Controle do Tutorial
     const [showTutorial, setShowTutorial] = useState(false);
@@ -149,6 +160,10 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
 
     // === AVALIAÇÃO DE QUALIDADE AMSTAR 2 ===
     const handleQualityAssessment = async (itemId: string, title: string, abstractText: string) => {
+        if (!isPro) {
+            onOpenSubscription();
+            return;
+        }
         // Marca como loading
         setQualityAssessments(prev => ({
             ...prev,
@@ -214,6 +229,10 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
 
     // === AVALIAÇÃO RoB 2 (Risk of Bias) PARA RCTs ===
     const handleRoB2Assessment = async (itemId: string, title: string, abstractText: string) => {
+        if (!isPro) {
+            onOpenSubscription();
+            return;
+        }
         setQualityAssessments(prev => ({
             ...prev,
             [itemId]: { score: 0, summary: '', loading: true }
@@ -273,6 +292,10 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
 
     // === AVALIAÇÃO NOS (Newcastle-Ottawa Scale) PARA COORTE/CASO-CONTROLE ===
     const handleNOSAssessment = async (itemId: string, title: string, abstractText: string) => {
+        if (!isPro) {
+            onOpenSubscription();
+            return;
+        }
         setQualityAssessments(prev => ({ ...prev, [itemId]: { score: 0, summary: '', loading: true } }));
 
         try {
@@ -316,6 +339,10 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
 
     // === AVALIAÇÃO AGREE II PARA GUIDELINES ===
     const handleAGREEIIAssessment = async (itemId: string, title: string, abstractText: string) => {
+        if (!isPro) {
+            onOpenSubscription();
+            return;
+        }
         setQualityAssessments(prev => ({ ...prev, [itemId]: { score: 0, summary: '', loading: true } }));
 
         try {
@@ -361,6 +388,10 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
     };
 
     const handleDeepResearch = async () => {
+        if (!isPro) {
+            onOpenSubscription();
+            return;
+        }
         if (!query.trim()) return;
         setDeepResearchLoading(true);
         setDeepResearchInsight(null);
@@ -959,13 +990,15 @@ IMPORTANTE:
                         <div className="flex items-center justify-center">
                             <button
                                 onClick={handleDeepResearch}
-                                disabled={deepResearchLoading || !query.trim()}
-                                className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-full text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center gap-1"
+                                disabled={deepResearchLoading}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-md flex items-center gap-1 ${isPro
+                                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white'
+                                    : 'bg-white border-2 border-purple-100 text-purple-600 hover:border-purple-300'}`}
                             >
                                 {deepResearchLoading ? (
                                     <><Loader2 className="w-3 h-3 animate-spin" /> Analisando...</>
                                 ) : (
-                                    <>🧠 Deep Research</>
+                                    <>{!isPro && <Crown className="w-3 h-3" />} 🧠 Deep Research</>
                                 )}
                             </button>
                         </div>
@@ -1049,9 +1082,9 @@ IMPORTANTE:
                                             ) : (
                                                 <button
                                                     onClick={() => handleQualityAssessment(item.id, item.title, item.description)}
-                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all"
+                                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    🔬 Avaliar Qualidade (AMSTAR 2)
+                                                    {isPro ? '🔬 Avaliar Qualidade (AMSTAR 2)' : <><Crown className="w-3 h-3" /> Avaliar (AMSTAR 2) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
@@ -1078,9 +1111,9 @@ IMPORTANTE:
                                             ) : (
                                                 <button
                                                     onClick={() => handleRoB2Assessment(item.id, item.title, item.description)}
-                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all"
+                                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    ⚖️ Avaliar Risco de Viés (RoB 2)
+                                                    {isPro ? '⚖️ Avaliar Risco de Viés (RoB 2)' : <><Crown className="w-3 h-3" /> Avaliar (RoB 2) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
@@ -1107,9 +1140,9 @@ IMPORTANTE:
                                             ) : (
                                                 <button
                                                     onClick={() => handleNOSAssessment(item.id, item.title, item.description)}
-                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 transition-all"
+                                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    ⭐ Avaliar Qualidade (NOS)
+                                                    {isPro ? '⭐ Avaliar Qualidade (NOS)' : <><Crown className="w-3 h-3" /> Avaliar (NOS) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
@@ -1136,9 +1169,9 @@ IMPORTANTE:
                                             ) : (
                                                 <button
                                                     onClick={() => handleAGREEIIAssessment(item.id, item.title, item.description)}
-                                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all"
+                                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    🏛️ Avaliar Guideline (AGREE II)
+                                                    {isPro ? '🏛️ Avaliar Guideline (AGREE II)' : <><Crown className="w-3 h-3" /> Avaliar (AGREE II) - Pro</>}
                                                 </button>
                                             )}
                                         </div>

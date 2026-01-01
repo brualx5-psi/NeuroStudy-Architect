@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { FolderIcon, Plus, FileText, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target, LogOut, User } from './Icons';
+import { UsageCompactBar } from './UsageMeter';
 // ChevronRight agora é inline (SVG direto no JSX) para evitar problema de bundling
 
 interface SidebarProps {
@@ -43,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen = false,
   onClose
 }) => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isPro } = useAuth();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -346,7 +347,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
           {/* Perfil do Usuário */}
           {profile && (
-            <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-100 shadow-sm mb-2">
+            <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-100 shadow-sm mb-2 relative group">
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full border border-gray-200" />
               ) : (
@@ -355,7 +356,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-gray-900 truncate">{profile.full_name || 'Estudante'}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-gray-900 truncate">{profile.full_name || 'Estudante'}</p>
+                  {isPro && (
+                    <span className="bg-indigo-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Pro</span>
+                  )}
+                </div>
                 <p className="text-[10px] text-gray-500 truncate">{profile.email}</p>
               </div>
             </div>
@@ -364,6 +370,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button onClick={() => { onOpenMethodology(); onClose?.(); }} className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-2 rounded-lg text-xs shadow-sm shadow-indigo-50/50">
             <GraduationCap className="w-3 h-3" /> Método e Instruções
           </button>
+
+          {/* Barra de Consumo Mensal */}
+          <UsageCompactBar />
 
           <div className="flex gap-2">
             {/* Botão Recolher */}

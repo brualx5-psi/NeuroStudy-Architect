@@ -5,9 +5,10 @@ import { generateTool, generateDiagram } from '../services/geminiService';
 import {
     CheckCircle, BookOpen, Brain, Target,
     Smile, RefreshCw, Layers, Calendar, Clock,
-    ChevronDown, ChevronRight, PenTool, Zap, Lightbulb
+    ChevronDown, ChevronRight, PenTool, Zap, Lightbulb, Crown, FileDown, Rocket as NotionIcon
 } from './Icons';
 import { MermaidEditor } from './MermaidEditor';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ResultsViewProps {
     guide: StudyGuide;
@@ -18,11 +19,14 @@ interface ResultsViewProps {
     isParetoOnly?: boolean;
     onScheduleReview?: (studyId: string) => void;
     isReviewScheduled?: boolean;
+    onOpenSubscription: () => void;
 }
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
-    guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled
+    guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled, onOpenSubscription
 }) => {
+    const { isPro, canUseFeynman, incrementUsage, usage } = useAuth();
+
     // Estado para controlar qual conceito está carregando/expandido
     const [insightLoading, setInsightLoading] = useState<number | null>(null);
     const [expandedConcepts, setExpandedConcepts] = useState<Set<number>>(new Set());
@@ -32,7 +36,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const [loadingDiagramForCheckpoint, setLoadingDiagramForCheckpoint] = useState<string | null>(null);
     const [isCelebrating, setIsCelebrating] = useState(false); // Estado para animação de celebração
 
-    // Função "Insight Cerebral": Gera Feynman e Exemplo juntos ao clicar no cérebro
     // Função "Insight Cerebral": Apenas expande a visualização. A geração agora é sob demanda (lazy).
     const handleInsightClick = (index: number) => {
         const newExpanded = new Set(expandedConcepts);
@@ -40,13 +43,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             newExpanded.delete(index);
         } else {
             newExpanded.add(index);
-            // NÃO define aba padrão, espera o usuário clicar
-            if (activeInsightTab[index]) {
-                // Se já tinha aba ativa, mantém
-            } else {
-                // Estado inicial: nenhuma aba selecionada ou apenas visualização
-                // Ouvindo o pedido do usuário: "vai aparecer icone... só gerar quando clicar"
-            }
         }
         setExpandedConcepts(newExpanded);
     };
@@ -71,7 +67,15 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         setInsightLoading(index);
         try {
             let toolType: 'explainLikeIm5' | 'realWorldApplication' | 'interdisciplinary';
-            if (tab === 'feynman') toolType = 'explainLikeIm5';
+
+            if (tab === 'feynman') {
+                if (!canUseFeynman()) {
+                    onOpenSubscription();
+                    setInsightLoading(null);
+                    return;
+                }
+                toolType = 'explainLikeIm5';
+            }
             else if (tab === 'example') toolType = 'realWorldApplication';
             else toolType = 'interdisciplinary';
 
@@ -80,7 +84,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             const newConcepts = [...(guide.coreConcepts || [])];
             if (!newConcepts[index].tools) newConcepts[index].tools = {};
 
-            if (tab === 'feynman') newConcepts[index].tools!.feynman = content;
+            if (tab === 'feynman') {
+                newConcepts[index].tools!.feynman = content;
+                await incrementUsage('feynman');
+            }
             else if (tab === 'example') newConcepts[index].tools!.example = content;
             else newConcepts[index].tools!.interdisciplinary = content;
 
@@ -195,7 +202,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     <Target className="w-5 h-5 text-red-500" /> Pontos Chave Resumidos
                                 </h3>
                                 <ul className="space-y-4">
-                                    {guide.coreConcepts.map((concept, i) => (
+                                    {guide.coreConcepts.map((concept: any, i: number) => (
                                         <li key={i} className="text-gray-700">
                                             <strong className="text-gray-900 block mb-1">{concept.concept}</strong>
                                             {concept.definition}
@@ -230,7 +237,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
                     <div className="grid grid-cols-1 gap-6">
                         {/* Lista de Conceitos com Insight Cerebral (Reutilizada lógica existente) */}
-                        {guide.coreConcepts.map((concept, idx) => (
+                        {guide.coreConcepts.map((concept: any, idx: number) => (
                             <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all relative group">
                                 <div className="flex justify-between items-start mb-4 pr-8">
                                     <div className="flex items-center gap-4">
@@ -251,7 +258,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     <div className="mt-6 pl-0 md:pl-[3.5rem] animate-in fade-in slide-in-from-top-2">
 
                                         <div className="flex gap-2 mb-4 border-b border-gray-100 pb-2 overflow-x-auto">
-                                            <button onClick={() => handleInsightTabClick(idx, 'feynman', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'feynman' ? 'bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200' : 'text-gray-400 hover:bg-gray-50'}`}><Smile className="w-4 h-4" /> Feynman</button>
+                                            <button onClick={() => handleInsightTabClick(idx, 'feynman', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'feynman' ? 'bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200' : 'text-gray-400 hover:bg-gray-50'}`}>
+                                                <Smile className="w-4 h-4" />
+                                                Feynman
+                                                {!isPro && <span className="text-[9px] bg-slate-100 px-1 rounded ml-1">{(usage?.feynman_used || 0)}/3</span>}
+                                            </button>
                                             <button onClick={() => handleInsightTabClick(idx, 'example', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'example' ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-gray-400 hover:bg-gray-50'}`}><Target className="w-4 h-4" /> Aplicação</button>
                                             <button onClick={() => handleInsightTabClick(idx, 'interdisciplinary', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'interdisciplinary' ? 'bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-200' : 'text-gray-400 hover:bg-gray-50'}`}><Layers className="w-4 h-4" /> Conexão</button>
                                         </div>
@@ -306,7 +317,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {guide.supportConcepts.map((concept, idx) => (
+                        {guide.supportConcepts.map((concept: any, idx: number) => (
                             <div key={idx} className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50 hover:bg-amber-50 transition-colors">
                                 <h3 className="font-bold text-gray-800 mb-1 text-sm flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
@@ -328,7 +339,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">
-                        {guide.bookChapters.map((chapter, i) => (
+                        {guide.bookChapters.map((chapter: any, i: number) => (
                             <details key={i} className={`group p-6 rounded-2xl border-l-4 shadow-sm transition-all ${chapter.completed ? 'bg-green-50 border-green-500' : 'bg-white border-orange-400 open:ring-2 open:ring-orange-100'}`}>
                                 <summary className="flex flex-col gap-4 cursor-pointer list-none outline-none">
                                     <div className="flex justify-between items-start">
@@ -374,7 +385,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
                                             <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Target className="w-5 h-5 text-indigo-600" /> Conceitos Chave deste Capítulo</h4>
                                             <div className="grid grid-cols-1 gap-4">
-                                                {chapter.coreConcepts.map((concept, idx) => (
+                                                {chapter.coreConcepts.map((concept: any, idx: number) => (
                                                     <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                                                         <strong className="text-indigo-700 block mb-1">{concept.concept}</strong>
                                                         <p className="text-sm text-gray-600">{concept.definition}</p>
@@ -401,7 +412,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         <div className="border-t border-gray-100 pt-6">
                                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 block">Material Complementar</span>
                                             <div className="grid grid-cols-1 gap-3">
-                                                {chapter.supportConcepts.map((sc, idx) => (
+                                                {chapter.supportConcepts.map((sc: any, idx: number) => (
                                                     <div key={idx} className="flex items-start gap-2 text-sm text-gray-500">
                                                         <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
                                                         <span><strong className="text-gray-700">{sc.concept}:</strong> {sc.definition}</span>
@@ -420,13 +431,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             {/* SEÇÃO CHECKPOINTS: SÓ MOSTRA SE NÃO FOR LIVRO E NÃO FOR PARETO PURO */}
             {!isBook && !isParetoOnly && guide.checkpoints && guide.checkpoints.length > 0 && (
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm mt-8">
-                    {/* ... (Todo o conteúdo de Checkpoints original) ... */}
                     <div className="bg-gray-50 p-6 border-b border-gray-200">
                         <h2 className="font-bold text-gray-900 flex items-center gap-2 text-xl"><Target className="w-6 h-6 text-red-500" /> Checkpoints de Aprendizado</h2>
                         <p className="text-sm text-gray-500 mt-1">Pontos chave para verificar se você realmente aprendeu.</p>
                     </div>
                     <div className="p-6 space-y-6">
-                        {guide.checkpoints.map((checkpoint) => (
+                        {guide.checkpoints.map((checkpoint: any) => (
                             <div key={checkpoint.id}
                                 className={`flex flex-col md:flex-row gap-6 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md ${checkpoint.completed ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-gray-100 hover:border-indigo-100'}`}
                             >
@@ -505,6 +515,24 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                 {isReviewScheduled ? <><Calendar className="w-5 h-5" /> Revisão Agendada</> : <><Clock className="w-5 h-5" /> Agendar Revisão</>}
                             </button>
                         )}
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button
+                                onClick={onOpenSubscription}
+                                className="flex-1 sm:flex-none border-2 border-slate-200 bg-white text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                            >
+                                <FileDown className="w-4 h-4" />
+                                <span className="text-xs">Exportar PDF</span>
+                                {!isPro && <Crown className="w-3 h-3 text-indigo-600" />}
+                            </button>
+                            <button
+                                onClick={onOpenSubscription}
+                                className="flex-1 sm:flex-none border-2 border-slate-200 bg-white text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                            >
+                                <NotionIcon className="w-4 h-4" />
+                                <span className="text-xs">Notion</span>
+                                {!isPro && <Crown className="w-3 h-3 text-indigo-600" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
