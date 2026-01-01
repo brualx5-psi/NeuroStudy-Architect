@@ -100,31 +100,7 @@ export function AppContent() {
     const paretoInputRef = useRef<HTMLInputElement>(null);
     const bookInputRef = useRef<HTMLInputElement>(null);
 
-    // Se estiver carregando a sessão, mostra um loading bonito
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-                <div className="bg-white p-4 rounded-2xl shadow-xl shadow-indigo-100/50">
-                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-                </div>
-                <p className="text-slate-400 font-bold animate-pulse">Sincronizando neurônios...</p>
-            </div>
-        );
-    }
-
-    // Se não houver usuário, redireciona para o login
-    if (!user) {
-        return <LoginPage />;
-    }
-
-    const activeStudy = studies.find(s => s.id === activeStudyId) || null;
-    const isParetoStudy = activeStudy?.mode === StudyMode.PARETO;
-
-    const totalCheckpoints = activeStudy?.guide?.checkpoints?.length || 0;
-    const completedCheckpoints = activeStudy?.guide?.checkpoints?.filter(c => c.completed).length || 0;
-    const isGuideComplete = totalCheckpoints > 0 && totalCheckpoints === completedCheckpoints;
-    const dueReviewsCount = studies.filter(s => s.nextReviewDate && s.nextReviewDate <= Date.now()).length;
-
+    // TODOS os useEffect precisam vir antes de qualquer return condicional
     useEffect(() => {
         const load = async () => {
             const data = await loadUserData();
@@ -151,6 +127,31 @@ export function AppContent() {
         setIsMobileMenuOpen(false);
         setEditingSourceId(null);
     }, [activeStudyId]);
+
+    // Se estiver carregando a sessão, mostra um loading bonito
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+                <div className="bg-white p-4 rounded-2xl shadow-xl shadow-indigo-100/50">
+                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+                </div>
+                <p className="text-slate-400 font-bold animate-pulse">Sincronizando neurônios...</p>
+            </div>
+        );
+    }
+
+    // Se não houver usuário, redireciona para o login
+    if (!user) {
+        return <LoginPage />;
+    }
+
+    const activeStudy = studies.find(s => s.id === activeStudyId) || null;
+    const isParetoStudy = activeStudy?.mode === StudyMode.PARETO;
+
+    const totalCheckpoints = activeStudy?.guide?.checkpoints?.length || 0;
+    const completedCheckpoints = activeStudy?.guide?.checkpoints?.filter(c => c.completed).length || 0;
+    const isGuideComplete = totalCheckpoints > 0 && totalCheckpoints === completedCheckpoints;
+    const dueReviewsCount = studies.filter(s => s.nextReviewDate && s.nextReviewDate <= Date.now()).length;
 
 
 
