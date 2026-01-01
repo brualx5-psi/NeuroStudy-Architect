@@ -1,58 +1,31 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { User } from '@supabase/supabase-js';
+import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
-interface UserProfile {
+// Definição dos tipos
+type UserProfile = {
     id: string;
     email: string;
-    full_name?: string;
-    avatar_url?: string;
-    study_area?: string;
-    subscription_status?: 'free' | 'trial' | 'active' | 'cancelled';
-    onboarding_completed?: boolean;
-}
-
-interface UserUsage {
-    roadmaps_created: number;          // Free: max 3, Pro: max 50
-    feynman_used: number;              // Free: max 3, Pro: max 100
-    pdf_exports: number;               // Free: max 1, Pro: max 50
-    youtube_minutes_used: number;      // Free: max 30, Pro: max 600
-    web_research_used: number;         // Free: max 1, Pro: max 200
-    chat_messages: number;             // Free: max 50/mês, Pro: max 500/mês
-}
-
-// ====================================================================
-// LIMITES POR PLANO (Seguros e Sustentáveis)
-// ====================================================================
-const LIMITS = {
-    FREE: {
-        roadmaps: 3,
-        feynman: 3,
-        pdf_exports: 1,               // 1x/mês com marca d'água
-        youtube_minutes: 30,          // 1 vídeo curto
-        web_research: 1,              // 1 busca/mês (teaser)
-        chat_messages: 50,            // 50 mensagens/mês
-        pages_per_source: 30,
-        sources_per_study: 2,
-        total_pages_per_study: 60,    // 30 x 2 = airbag
-        flashcards_per_study: 15,
-    },
-    PRO: {
-        roadmaps: 50,
-        feynman: 100,                 // Alto, mas não ilimitado
-        pdf_exports: 30,              // Conservador: suficiente para uso normal
-        youtube_minutes: 600,         // 10 horas/mês
-        web_research: 100,            // Conservador: buscas combinam múltiplas fontes
-        chat_messages: 500,           // 500 mensagens/mês
-        pages_per_source: 300,        // Conservador: cobre maioria dos livros
-        sources_per_study: 10,
-        total_pages_per_study: 1500,  // Airbag: máx 1500 páginas equiv. por roteiro
-        flashcards_per_study: 100,
-    }
+    full_name: string | null;
+    avatar_url: string | null;
+    study_area: string | null;
+    study_purpose: string | null;
+    subscription_status: 'free' | 'premium';
+    created_at: string;
 };
 
-// Exportar limites para uso em outros componentes
-export { LIMITS };
+type UserUsage = {
+    user_id: string;
+    month: string;
+    roadmaps_created: number;
+    feynman_used: number;
+    pdf_exports: number;
+    youtube_minutes_used: number;
+    web_research_used: number;
+    chat_messages: number;
+    updated_at: string;
+};
 
 interface AuthContextType {
     user: User | null;
@@ -61,21 +34,16 @@ interface AuthContextType {
     loading: boolean;
     signOut: () => Promise<void>;
     refreshProfile: () => Promise<void>;
-    isPro: boolean;
-    limits: typeof LIMITS.FREE | typeof LIMITS.PRO;
-    // Verificações de limite
-    canCreateStudy: () => boolean;
-    canUseFeynman: () => boolean;
-    canExportPDF: () => boolean;
-    canTranscribeYoutube: (minutes?: number) => boolean;
-    canUseWebResearch: () => boolean;
-    canSendChatMessage: () => boolean;
-    getRemainingYoutubeMinutes: () => number;
-    // Incrementadores
-    incrementUsage: (type: 'roadmap' | 'feynman' | 'pdf_export' | 'youtube' | 'web_research' | 'chat', amount?: number) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+    user: null,
+    profile: null,
+    usage: null,
+    loading: true,
+    signOut: async () => { },
+    refreshProfile: async () => { },
+});
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -91,12 +59,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return supabase;
     };
 
-    // Sincroniza dados do Google OAuth com a tabela users
     const syncGoogleProfile = async (authUser: User) => {
         const client = getSupabaseClient();
         if (!client) return;
 
-        // Extrai dados do Google OAuth
         const googleName = authUser.user_metadata?.full_name ||
             authUser.user_metadata?.name ||
             authUser.email?.split('@')[0];
@@ -104,62 +70,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             authUser.user_metadata?.picture;
         const googleEmail = authUser.email;
 
-        if (!googleName && !googleAvatar) return; // Nada para sincronizar
-
         try {
-            // Verifica se o perfil já existe
-            const { data: existingProfile, error: fetchError } = await client
+            const { data: existingProfile } = await client
                 .from('users')
                 .select('id, full_name, avatar_url')
                 .eq('id', authUser.id)
                 .single();
 
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                console.error('Erro ao verificar perfil para sync:', fetchError);
-                return;
-            }
-
-            // Se o perfil não existe, criar um novo
             if (!existingProfile) {
                 console.log('Criando novo perfil com dados do Google...');
-                const { error: insertError } = await client
-                    .from('users')
-                    .insert({
-                        id: authUser.id,
-                        email: googleEmail,
-                        full_name: googleName,
-                        avatar_url: googleAvatar,
-                        subscription_status: 'free'
-                    });
-
-                if (insertError) {
-                    console.error('Erro ao criar perfil:', insertError);
-                }
+                await client.from('users').insert({
+                    id: authUser.id,
+                    email: googleEmail,
+                    full_name: googleName,
+                    avatar_url: googleAvatar,
+                    subscription_status: 'free'
+                });
                 return;
             }
 
-            // Se o perfil existe mas tem campos NULL, atualizar
             const updates: Record<string, string> = {};
-            if (!existingProfile.full_name && googleName) {
-                updates.full_name = googleName;
-            }
-            if (!existingProfile.avatar_url && googleAvatar) {
-                updates.avatar_url = googleAvatar;
-            }
+            if (!existingProfile.full_name && googleName) updates.full_name = googleName;
+            if (!existingProfile.avatar_url && googleAvatar) updates.avatar_url = googleAvatar;
 
             if (Object.keys(updates).length > 0) {
                 console.log('Atualizando perfil com dados do Google:', updates);
-                const { error: updateError } = await client
-                    .from('users')
-                    .update(updates)
-                    .eq('id', authUser.id);
-
-                if (updateError) {
-                    console.error('Erro ao atualizar perfil:', updateError);
-                }
+                await client.from('users').update(updates).eq('id', authUser.id);
             }
         } catch (error) {
-            console.error('Erro ao sincronizar perfil Google:', error);
+            console.error('Erro ao sincronizar perfil Google (ignorado):', error);
+        }
+    };
+
+    const fetchUsage = async (userId: string) => {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        try {
+            let { data, error } = await client
+                .from('user_usage')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('month', currentMonth)
+                .single();
+
+            if (error && error.code === 'PGRST116') {
+                const { data: newData, error: insertError } = await client
+                    .from('user_usage')
+                    .insert([{ user_id: userId, month: currentMonth }])
+                    .select()
+                    .single();
+
+                if (!insertError) data = newData;
+            }
+
+            if (data) setUsage(data);
+            else setUsage(null);
+        } catch (error) {
+            console.error('Erro ao buscar consumo:', error);
+            setUsage(null);
         }
     };
 
@@ -174,25 +144,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .eq('id', userId)
                 .single();
 
-            if (error) {
-                // Se o usuário não existe na tabela, criar um perfil básico
-                if (error.code === 'PGRST116') {
-                    console.log('Perfil não encontrado, criando novo perfil...');
-                    // Perfil não existe, definir como null - o app continua funcionando
-                    setProfile(null);
-                } else {
-                    console.error('Erro ao buscar perfil:', error);
-                    setProfile(null);
-                }
-            } else {
+            if (data) {
                 setProfile(data);
-            }
-
-            // Tenta buscar uso, mas não bloqueia se falhar
-            try {
                 await fetchUsage(userId);
-            } catch (usageError) {
-                console.error('Erro ao buscar uso, continuando sem dados de uso:', usageError);
+            } else {
+                setProfile(null);
                 setUsage(null);
             }
         } catch (error) {
@@ -202,163 +158,93 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const fetchUsage = async (userId: string) => {
-        const client = getSupabaseClient();
-        if (!client) return;
-
-        const currentMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
-        try {
-            let { data, error } = await client
-                .from('user_usage')
-                .select('roadmaps_created, feynman_used, pdf_exports, youtube_minutes_used, web_research_used, chat_messages')
-                .eq('user_id', userId)
-                .eq('month', currentMonth)
-                .single();
-
-            if (error && error.code === 'PGRST116') {
-                // Não encontrou uso para este mês, tentar criar um novo
-                try {
-                    const { data: newData, error: insertError } = await client
-                        .from('user_usage')
-                        .insert([{ user_id: userId, month: currentMonth }])
-                        .select()
-                        .single();
-
-                    if (insertError) {
-                        console.error('Erro ao criar registro de uso, continuando sem:', insertError);
-                        setUsage(null);
-                        return;
-                    }
-                    data = newData;
-                } catch (insertErr) {
-                    console.error('Erro ao inserir uso:', insertErr);
-                    setUsage(null);
-                    return;
-                }
-            } else if (error) {
-                // Tabela pode não existir ou outro erro
-                console.error('Erro ao buscar uso (tabela pode não existir):', error);
-                setUsage(null);
-                return;
-            }
-
-            setUsage(data);
-        } catch (error) {
-            console.error('Erro ao buscar consumo:', error);
-            setUsage(null);
-        }
-    };
-
     useEffect(() => {
-        // Se não tiver supabase, não faz nada
+        console.log('🔵 [Auth] useEffect iniciado (Manual + Listener)');
         const client = getSupabaseClient();
+
         if (!client) {
+            console.log('🔴 [Auth] Sem cliente, finalizando');
             setLoading(false);
             return;
         }
 
-        const persistSessionFromUrl = async () => {
-            // Fluxo PKCE: Supabase devolve ?code=...
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
-            if (code) {
-                try {
-                    const { data, error } = await client.auth.exchangeCodeForSession(code);
-                    if (error) throw error;
-                    if (data?.session?.user) {
-                        await syncGoogleProfile(data.session.user);
-                        await fetchProfile(data.session.user.id);
-                    }
-                } catch (err) {
-                    console.error('Erro ao trocar code por sessao:', err);
-                } finally {
-                    // Limpa a URL
+        // Teste de Conectividade
+        console.log('🔵 [Debug] Testando conexão com banco de dados...');
+        // Teste de Conectividade
+        console.log('🔵 [Debug] Testando conexão com banco de dados...');
+        (async () => {
+            try {
+                const { count, error } = await client.from('users').select('count', { count: 'exact', head: true });
+                if (error) console.error('🔴 [Debug] Erro de conexão DB:', error);
+                else console.log('🟢 [Debug] Conexão DB OK! Count:', count);
+            } catch (err: any) {
+                console.error('🔴 [Debug] Exceção na conexão DB:', err);
+            }
+        })();
+
+        // Timeout de segurança (3s)
+        const authTimeout = setTimeout(() => {
+            console.warn('⚠️ [Auth] Timeout de segurança atingido. Liberando app.');
+            setLoading(false);
+        }, 3000);
+
+        // 1. Tentar parsear o hash manualmente (Google OAuth)
+        // Isso é necessário se o listener não disparar automaticamente
+        const hash = window.location.hash;
+        if (hash && hash.includes('access_token')) {
+            console.log('🔵 [Auth] Hash encontrado, tentando setar sessão manualmente...');
+            const params = new URLSearchParams(hash.substring(1)); // remove #
+            const access_token = params.get('access_token');
+            const refresh_token = params.get('refresh_token');
+
+            if (access_token && refresh_token) {
+                // NÃO usamos await aqui para não bloquear a UI if travar
+                client.auth.setSession({ access_token, refresh_token })
+                    .then(({ data, error }) => {
+                        if (error) {
+                            console.error('🔴 [Auth] Erro ao setar sessão manual:', error);
+                        } else {
+                            console.log('🟢 [Auth] Sessão manual definida com sucesso:', data.session?.user?.email);
+                            // O listener abaixo vai pegar a mudança de estado
+                        }
+                    })
+                    .catch(err => console.error('🔴 [Auth] Exceção no setSession:', err));
+            }
+        }
+
+        // 2. Listener oficial
+        const { data: { subscription } } = client.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+            console.log('🔔 [Auth] Evento:', event, session?.user?.email ?? 'sem usuário');
+
+            // Cancela timeout se tivermos resposta
+            clearTimeout(authTimeout);
+
+            if (session?.user) {
+                setUser(session.user);
+
+                // Limpa hash da URL para ficar bonito
+                if (window.location.hash && window.location.hash.includes('access_token')) {
                     window.history.replaceState(null, '', window.location.pathname);
                 }
-                return;
-            }
 
-            // Fluxo antigo: tokens no hash
-            if (!window.location.hash) return;
-            const hash = window.location.hash.substring(1);
-            const hashParams = new URLSearchParams(hash);
-            const accessToken = hashParams.get('access_token');
-            const refreshToken = hashParams.get('refresh_token');
-            if (!accessToken || !refreshToken) return;
-
-            try {
-                const { error } = await client.auth.setSession({
-                    access_token: accessToken,
-                    refresh_token: refreshToken,
-                });
-                if (error) throw error;
-            } catch (err) {
-                console.error('Erro ao definir sessao (hash):', err);
-            } finally {
-                window.history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
-        };
-
-        const initAuth = async () => {
-            try {
-                await persistSessionFromUrl();
-                const { data: { session }, error } = await client.auth.getSession();
-                if (error) throw error;
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    // Sync é opcional - não deve bloquear
-                    try {
-                        await syncGoogleProfile(session.user);
-                    } catch (syncError) {
-                        console.error('Erro no sync (ignorado):', syncError);
-                    }
-                    // Fetch perfil é opcional - não deve bloquear
-                    try {
-                        await fetchProfile(session.user.id);
-                    } catch (profileError) {
-                        console.error('Erro ao buscar perfil (ignorado):', profileError);
-                    }
-                }
-            } catch (err) {
-                console.error('Erro ao inicializar auth:', err);
-                setUser(null);
-                setProfile(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        initAuth();
-
-        const { data: { subscription } } = client.auth.onAuthStateChange(async (event, session) => {
-            try {
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    // Sync é opcional - não deve bloquear
-                    try {
-                        await syncGoogleProfile(session.user);
-                    } catch (syncError) {
-                        console.error('Erro no sync (ignorado):', syncError);
-                    }
-                    // Fetch perfil é opcional - não deve bloquear
-                    try {
-                        await fetchProfile(session.user.id);
-                    } catch (profileError) {
-                        console.error('Erro ao buscar perfil (ignorado):', profileError);
-                    }
-                } else {
+                // Carrega dados em background
+                syncGoogleProfile(session.user)
+                    .then(() => fetchProfile(session.user.id))
+                    .finally(() => setLoading(false));
+            } else {
+                // Só desloga se não estivermos processando um hash
+                // Se tiver hash, esperamos o setSession manual resolver (ou o timeout)
+                if (!window.location.hash.includes('access_token')) {
+                    setUser(null);
                     setProfile(null);
+                    setUsage(null);
+                    setLoading(false);
                 }
-            } catch (err) {
-                console.error('Erro no onAuthStateChange:', err);
-                setUser(null);
-                setProfile(null);
-            } finally {
-                setLoading(false);
             }
         });
 
         return () => {
+            clearTimeout(authTimeout);
             subscription.unsubscribe();
         };
     }, []);
@@ -366,123 +252,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signOut = async () => {
         const client = getSupabaseClient();
         if (!client) return;
+        setLoading(true);
         await client.auth.signOut();
         setUser(null);
         setProfile(null);
+        setUsage(null);
+        setLoading(false);
     };
 
     const refreshProfile = async () => {
         if (user) await fetchProfile(user.id);
     };
 
-    const isPro = profile?.subscription_status === 'active' || profile?.subscription_status === 'trial';
-    const limits = isPro ? LIMITS.PRO : LIMITS.FREE;
-
-    // ====== VERIFICAÇÕES DE LIMITE ======
-
-    const canCreateStudy = () => {
-        const max = isPro ? LIMITS.PRO.roadmaps : LIMITS.FREE.roadmaps;
-        return (usage?.roadmaps_created ?? 0) < max;
-    };
-
-    const canUseFeynman = () => {
-        const max = isPro ? LIMITS.PRO.feynman : LIMITS.FREE.feynman;
-        return (usage?.feynman_used ?? 0) < max;
-    };
-
-    const canExportPDF = () => {
-        const max = isPro ? LIMITS.PRO.pdf_exports : LIMITS.FREE.pdf_exports;
-        return (usage?.pdf_exports ?? 0) < max;
-    };
-
-    const canTranscribeYoutube = (additionalMinutes: number = 0) => {
-        const max = isPro ? LIMITS.PRO.youtube_minutes : LIMITS.FREE.youtube_minutes;
-        return ((usage?.youtube_minutes_used ?? 0) + additionalMinutes) <= max;
-    };
-
-    const getRemainingYoutubeMinutes = () => {
-        const max = isPro ? LIMITS.PRO.youtube_minutes : LIMITS.FREE.youtube_minutes;
-        return max - (usage?.youtube_minutes_used ?? 0);
-    };
-
-    const canUseWebResearch = () => {
-        const max = isPro ? LIMITS.PRO.web_research : LIMITS.FREE.web_research;
-        return (usage?.web_research_used ?? 0) < max;
-    };
-
-    const canSendChatMessage = () => {
-        const max = isPro ? LIMITS.PRO.chat_messages : LIMITS.FREE.chat_messages;
-        return (usage?.chat_messages ?? 0) < max;
-    };
-
-    // ====== INCREMENTADORES ======
-
-    const incrementUsage = async (type: 'roadmap' | 'feynman' | 'pdf_export' | 'youtube' | 'web_research' | 'chat', amount: number = 1) => {
-        if (!user || !usage) return;
-
-        const currentMonth = new Date().toISOString().substring(0, 7);
-
-        const columnMap: Record<string, keyof UserUsage> = {
-            roadmap: 'roadmaps_created',
-            feynman: 'feynman_used',
-            pdf_export: 'pdf_exports',
-            youtube: 'youtube_minutes_used',
-            web_research: 'web_research_used',
-            chat: 'chat_messages'
-        };
-
-        const column = columnMap[type];
-        const newValue = (usage[column] || 0) + amount;
-
-        const client = getSupabaseClient();
-        if (!client) return;
-
-        try {
-            const { error } = await client
-                .from('user_usage')
-                .update({ [column]: newValue })
-                .eq('user_id', user.id)
-                .eq('month', currentMonth);
-
-            if (error) throw error;
-
-            setUsage(prev => prev ? {
-                ...prev,
-                [column]: newValue
-            } : null);
-        } catch (error) {
-            console.error('Erro ao incrementar uso:', error);
-        }
-    };
-
     return (
-        <AuthContext.Provider value={{
-            user,
-            profile,
-            usage,
-            loading,
-            signOut,
-            refreshProfile,
-            isPro,
-            limits,
-            canCreateStudy,
-            canUseFeynman,
-            canExportPDF,
-            canTranscribeYoutube,
-            canUseWebResearch,
-            canSendChatMessage,
-            getRemainingYoutubeMinutes,
-            incrementUsage
-        }}>
+        <AuthContext.Provider value={{ user, profile, usage, loading, signOut, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-    }
-    return context;
-};
+export const useAuth = () => useContext(AuthContext);

@@ -12,7 +12,13 @@ console.log('Supabase Key:', supabaseKey ? 'configurado' : 'NÃO ENCONTRADO');
 let supabase: SupabaseClient | null = null;
 
 if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
+  supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
   console.log('✅ Cliente Supabase criado com sucesso');
 } else {
   console.error('❌ Variáveis de ambiente do Supabase não encontradas!');
