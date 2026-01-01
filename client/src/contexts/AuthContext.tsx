@@ -130,23 +130,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
+        // Se não tiver supabase, não faz nada
+        if (!supabase) {
+            setLoading(false);
+            return;
+        }
+
         const persistSessionFromHash = async () => {
-            if (!supabase) return;
             if (!window.location.hash) return;
 
             const hash = window.location.hash.substring(1);
             const params = new URLSearchParams(hash);
             const accessToken = params.get('access_token');
             const refreshToken = params.get('refresh_token');
-            const tokenType = params.get('token_type') || 'bearer';
-            const expiresIn = params.get('expires_in');
-            const expiresAt = params.get('expires_at');
 
             if (!accessToken || !refreshToken) return;
 
-            const computedExpiresAt = expiresAt
-                ? Number(expiresAt)
-                : Math.floor(Date.now() / 1000) + Number(expiresIn || 3600);
+            console.log('🔑 Tokens encontrados na URL, persistindo sessão...');
 
             try {
                 const { error } = await supabase.auth.setSession({
@@ -159,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     return;
                 }
 
+                console.log('✅ Sessão persistida com sucesso!');
                 // Limpa o hash da URL
                 window.history.replaceState(null, '', window.location.pathname + window.location.search);
             } catch (error) {
@@ -166,17 +167,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
 
-        persistSessionFromHash().finally(() => {
-            supabase?.auth.getSession().then(({ data: { session } }) => {
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    fetchProfile(session.user.id);
-                }
-                setLoading(false);
-            });
-        });
+        const initAuth = async () => {
+            await persistSessionFromHash();
 
-        const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            setUser(session?.user ?? null);
+            if (session?.user) {
+                await fetchProfile(session.user.id);
+            }
+            setLoading(false);
+        };
+
+        initAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event);
             setUser(session?.user ?? null);
             if (session?.user) {
                 await fetchProfile(session.user.id);

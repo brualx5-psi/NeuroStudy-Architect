@@ -1,13 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Essas variáveis vêm do Vercel/Netlify quando a flag VITE_SUPABASE_URL está configurada.
-// Caso contrário, são undefined e o cliente não é criado (modo local).
-// @ts-ignore: O Vite injeta estes tipos
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-// @ts-ignore
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Essas variáveis vêm do Vite quando configuradas no .env
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-// Só cria o cliente Supabase se as variáveis de ambiente existirem (Modo Nuvem Ativado)
-export const supabase = (supabaseUrl && supabaseKey) 
-  ? createClient(supabaseUrl, supabaseKey) 
-  : null;
+// Log para debug
+console.log('Supabase URL:', supabaseUrl ? 'configurado' : 'NÃO ENCONTRADO');
+console.log('Supabase Key:', supabaseKey ? 'configurado' : 'NÃO ENCONTRADO');
+
+// Só cria o cliente Supabase se as variáveis de ambiente existirem
+let supabase: SupabaseClient | null = null;
+
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('✅ Cliente Supabase criado com sucesso');
+} else {
+  console.error('❌ Variáveis de ambiente do Supabase não encontradas!');
+  console.error('Certifique-se de que o arquivo .env existe na raiz do projeto com:');
+  console.error('VITE_SUPABASE_URL=https://seu-projeto.supabase.co');
+  console.error('VITE_SUPABASE_ANON_KEY=sua-chave-anon');
+}
+
+export { supabase };
