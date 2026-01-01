@@ -26,15 +26,11 @@ import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Tras
 
 export function AppContent() {
     const { user, loading, signOut, isPro, limits, canCreateStudy, incrementUsage, usage } = useAuth();
-    // Vai direto para o app se o usuário já está logado
-    const [view, setView] = useState<'landing' | 'app'>(user ? 'app' : 'landing');
+    // Estado da view - começa como 'app' se usuário logado
+    const [view, setView] = useState<'landing' | 'app'>('landing');
 
-    // Atualiza a view quando o usuário faz login
-    useEffect(() => {
-        if (user && view === 'landing') {
-            setView('app');
-        }
-    }, [user, view]);
+    // Força ir para 'app' quando usuário está logado
+    const effectiveView = user ? 'app' : view;
     const [folders, setFolders] = useState<Folder[]>([]);
     const [studies, setStudies] = useState<StudySession[]>([]);
     const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
@@ -517,7 +513,7 @@ export function AppContent() {
         }
     };
 
-    if (view === 'landing') {
+    if (effectiveView === 'landing') {
         return (
             <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
                 <header className="px-8 py-6 flex justify-between items-center bg-white border-b border-gray-200">
