@@ -306,8 +306,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (error) throw error;
                 setUser(session?.user ?? null);
                 if (session?.user) {
-                    await syncGoogleProfile(session.user);
-                    await fetchProfile(session.user.id);
+                    // Sync é opcional - não deve bloquear
+                    try {
+                        await syncGoogleProfile(session.user);
+                    } catch (syncError) {
+                        console.error('Erro no sync (ignorado):', syncError);
+                    }
+                    // Fetch perfil é opcional - não deve bloquear
+                    try {
+                        await fetchProfile(session.user.id);
+                    } catch (profileError) {
+                        console.error('Erro ao buscar perfil (ignorado):', profileError);
+                    }
                 }
             } catch (err) {
                 console.error('Erro ao inicializar auth:', err);
@@ -324,8 +334,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 setUser(session?.user ?? null);
                 if (session?.user) {
-                    await syncGoogleProfile(session.user);
-                    await fetchProfile(session.user.id);
+                    // Sync é opcional - não deve bloquear
+                    try {
+                        await syncGoogleProfile(session.user);
+                    } catch (syncError) {
+                        console.error('Erro no sync (ignorado):', syncError);
+                    }
+                    // Fetch perfil é opcional - não deve bloquear
+                    try {
+                        await fetchProfile(session.user.id);
+                    } catch (profileError) {
+                        console.error('Erro ao buscar perfil (ignorado):', profileError);
+                    }
                 } else {
                     setProfile(null);
                 }
