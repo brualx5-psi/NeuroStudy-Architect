@@ -130,12 +130,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
-        supabase?.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id);
+        const persistSessionFromHash = async () => {
+            if (!supabase) return;
+            if (!window.location.hash) return;
+
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+            const tokenType = params.get('token_type') || 'bearer';
+            const expiresIn = params.get('expires_in');
+            const expiresAt = params.get('expires_at');
+
+            if (!accessToken || !refreshToken) return;
+
+            const computedExpiresAt = expiresAt
+                ? Number(expiresAt)
+                : Math.floor(Date.now() / 1000) + Number(expiresIn || 3600);
+
+            try {
+                await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                    token_type: tokenType,
+                    expires_at: computedExpiresAt
+                });
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            } catch (error) {
+                console.error('Erro ao persistir sessao:', error);
             }
-            setLoading(false);
+        };
+
+        persistSessionFromHash().finally(() => {
+            supabase?.auth.getSession().then(({ data: { session } }) => {
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    fetchProfile(session.user.id);
+                }
+                setLoading(false);
+            });
         });
 
         const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
