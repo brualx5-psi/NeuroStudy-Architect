@@ -149,13 +149,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 : Math.floor(Date.now() / 1000) + Number(expiresIn || 3600);
 
             try {
-                await supabase.auth.setSession({
+                const { error } = await supabase.auth.setSession({
                     access_token: accessToken,
                     refresh_token: refreshToken,
-                    token_type: tokenType,
-                    expires_at: computedExpiresAt
                 });
-                history.replaceState(null, '', window.location.pathname + window.location.search);
+
+                if (error) {
+                    console.error('Erro ao definir sessão:', error);
+                    return;
+                }
+
+                // Limpa o hash da URL
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
             } catch (error) {
                 console.error('Erro ao persistir sessao:', error);
             }
