@@ -83,9 +83,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [usage, setUsage] = useState<UserUsage | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const getSupabaseClient = () => {
+        if (!supabase) {
+            console.error('Supabase não configurado');
+            return null;
+        }
+        return supabase;
+    };
+
     const fetchProfile = async (userId: string) => {
+        const client = getSupabaseClient();
+        if (!client) return;
+
         try {
-            const { data, error } = await supabase!
+            const { data, error } = await client
                 .from('users')
                 .select('*')
                 .eq('id', userId)
@@ -100,9 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const fetchUsage = async (userId: string) => {
+        const client = getSupabaseClient();
+        if (!client) return;
+
         const currentMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
         try {
-            let { data, error } = await supabase!
+            let { data, error } = await client
                 .from('user_usage')
                 .select('roadmaps_created, feynman_used, pdf_exports, youtube_minutes_used, web_research_used, chat_messages')
                 .eq('user_id', userId)
@@ -111,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (error && error.code === 'PGRST116') {
                 // Não encontrou uso para este mês, criar um novo
-                const { data: newData, error: insertError } = await supabase!
+                const { data: newData, error: insertError } = await client
                     .from('user_usage')
                     .insert([{ user_id: userId, month: currentMonth }])
                     .select()
@@ -131,64 +145,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         // Se não tiver supabase, não faz nada
-        if (!supabase) {
+        const client = getSupabaseClient();
+        if (!client) {
             setLoading(false);
             return;
         }
 
-        const persistSessionFromHash = async () => {
+        const persistSessionFromUrl = async () => {
+            // Fluxo PKCE: Supabase devolve ?code=...
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+                try {
+                    const { data, error } = await client.auth.exchangeCodeForSession(code);
+                    if (error) throw error;
+                    if (data?.session?.user) {
+                        await fetchProfile(data.session.user.id);
+                    }
+                } catch (err) {
+                    console.error('Erro ao trocar code por sessao:', err);
+                } finally {
+                    // Limpa a URL
+                    window.history.replaceState(null, '', window.location.pathname);
+                }
+                return;
+            }
+
+            // Fluxo antigo: tokens no hash
             if (!window.location.hash) return;
-
             const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            const accessToken = params.get('access_token');
-            const refreshToken = params.get('refresh_token');
-
+            const hashParams = new URLSearchParams(hash);
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
             if (!accessToken || !refreshToken) return;
 
-            console.log('🔑 Tokens encontrados na URL, persistindo sessão...');
-
             try {
-                const { error } = await supabase!.auth.setSession({
+                const { error } = await client.auth.setSession({
                     access_token: accessToken,
                     refresh_token: refreshToken,
                 });
-
-                if (error) {
-                    console.error('Erro ao definir sessão:', error);
-                    return;
-                }
-
-                console.log('✅ Sessão persistida com sucesso!');
-                // Limpa o hash da URL
+                if (error) throw error;
+            } catch (err) {
+                console.error('Erro ao definir sessao (hash):', err);
+            } finally {
                 window.history.replaceState(null, '', window.location.pathname + window.location.search);
-            } catch (error) {
-                console.error('Erro ao persistir sessao:', error);
             }
         };
 
         const initAuth = async () => {
-            await persistSessionFromHash();
-
-            const { data: { session } } = await supabase!.auth.getSession();
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                await fetchProfile(session.user.id);
+            try {
+                await persistSessionFromUrl();
+                const { data: { session }, error } = await client.auth.getSession();
+                if (error) throw error;
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    await fetchProfile(session.user.id);
+                }
+            } catch (err) {
+                console.error('Erro ao inicializar auth:', err);
+                setUser(null);
+                setProfile(null);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         initAuth();
 
-        const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                await fetchProfile(session.user.id);
-            } else {
+        const { data: { subscription } } = client.auth.onAuthStateChange(async (event, session) => {
+            try {
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    await fetchProfile(session.user.id);
+                } else {
+                    setProfile(null);
+                }
+            } catch (err) {
+                console.error('Erro no onAuthStateChange:', err);
+                setUser(null);
                 setProfile(null);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         });
 
         return () => {
@@ -197,7 +235,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const signOut = async () => {
-        await supabase?.auth.signOut();
+        const client = getSupabaseClient();
+        if (!client) return;
+        await client.auth.signOut();
         setUser(null);
         setProfile(null);
     };
@@ -265,8 +305,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const column = columnMap[type];
         const newValue = (usage[column] || 0) + amount;
 
+        const client = getSupabaseClient();
+        if (!client) return;
+
         try {
-            const { error } = await supabase!
+            const { error } = await client
                 .from('user_usage')
                 .update({ [column]: newValue })
                 .eq('user_id', user.id)
