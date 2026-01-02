@@ -32,6 +32,8 @@ type UsageLimits = {
     youtube_minutes: number;
     web_research: number;
     chat_messages: number;
+    sources_per_study: number;
+    pages_per_source: number;
 };
 
 interface AuthContextType {
@@ -41,6 +43,8 @@ interface AuthContextType {
     loading: boolean;
     isPro: boolean;
     limits: UsageLimits;
+    canCreateStudy: () => boolean;
+    incrementUsage: (type: keyof UserUsage) => Promise<void>;
     signOut: () => Promise<void>;
     refreshProfile: () => Promise<void>;
 }
@@ -49,14 +53,18 @@ const FREE_LIMITS: UsageLimits = {
     roadmaps: 3,
     youtube_minutes: 30,
     web_research: 10,
-    chat_messages: 20
+    chat_messages: 20,
+    sources_per_study: 3,
+    pages_per_source: 50
 };
 
 const PRO_LIMITS: UsageLimits = {
     roadmaps: 1000,
     youtube_minutes: 10000,
     web_research: 1000,
-    chat_messages: 10000
+    chat_messages: 10000,
+    sources_per_study: 20,
+    pages_per_source: 500
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -66,6 +74,8 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     isPro: false,
     limits: FREE_LIMITS,
+    canCreateStudy: () => true,
+    incrementUsage: async () => { },
     signOut: async () => { },
     refreshProfile: async () => { },
 });
@@ -279,12 +289,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
     };
 
+
     const refreshProfile = async () => {
         if (user) await fetchProfile(user.id);
     };
 
+    const canCreateStudy = () => {
+        if (!usage) return true;
+        return usage.roadmaps_created < limits.roadmaps;
+    };
+
+    const incrementUsage = async (type: keyof UserUsage) => {
+        const client = getSupabaseClient();
+        if (!client || !user || !usage) return;
+
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        const currentValue = (usage[type] as number) || 0;
+
+        try {
+            await client
+                .from('user_usage')
+                .update({ [type]: currentValue + 1 })
+                .eq('user_id', user.id)
+                .eq('month', currentMonth);
+
+            // Atualizar estado local
+            setUsage(prev => prev ? { ...prev, [type]: currentValue + 1 } : prev);
+        } catch (error) {
+            console.error('Erro ao incrementar uso:', error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, profile, usage, loading, isPro, limits, signOut, refreshProfile }}>
+        <AuthContext.Provider value={{ user, profile, usage, loading, isPro, limits, canCreateStudy, incrementUsage, signOut, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

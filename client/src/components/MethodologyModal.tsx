@@ -64,9 +64,6 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
 
               {/* ANALOGIA DO PERSONAL TRAINER */}
               <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 opacity-10">
-                  <BrainCircuit className="w-32 h-32" />
-                </div>
                 <h3 className="text-2xl font-bold mb-3">🧠 NeuroStudy é como um Personal Trainer para o cérebro</h3>
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div className="bg-black/20 p-4 rounded-xl">
@@ -178,7 +175,7 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
               {/* CARRO CHEFE: NEUROSTUDY */}
               <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-8 shadow-xl text-white relative overflow-hidden transform hover:scale-[1.01] transition-transform">
                 <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-20">
-                  <BrainCircuit className="w-64 h-64" />
+                  <img src="/logo.png" alt="" className="w-64 h-64" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start">
                   <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm">
@@ -233,20 +230,20 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
                 </div>
 
                 {/* Modo Pareto Strict */}
-                <div className="bg-gray-50 rounded-xl p-6 border border-gray-200 relative overflow-hidden group hover:border-gray-400 transition-colors">
+                <div className="bg-red-50 rounded-xl p-6 border border-red-100 relative overflow-hidden group hover:border-red-300 transition-colors">
                   <div className="flex items-start gap-4 z-10 relative">
-                    <div className="bg-white text-gray-700 p-3 rounded-xl shadow-sm shrink-0">
+                    <div className="bg-white text-red-600 p-3 rounded-xl shadow-sm shrink-0">
                       <Target className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-xl text-gray-900 mb-2">🔥 Modo Pareto (Strict)</h4>
-                      <p className="text-sm text-gray-600 mb-3">
+                      <h4 className="font-bold text-xl text-red-900 mb-2">🔥 Modo Pareto (Strict)</h4>
+                      <p className="text-sm text-red-800 mb-3">
                         Para consultas rápidas, dúvidas pontuais ou resumos executivos.
                       </p>
                       <div className="space-y-2">
-                        <div className="text-xs bg-white p-2 rounded text-gray-700 border border-gray-100"><strong>Estilo Jornalístico:</strong> Direto ao ponto.</div>
-                        <div className="text-xs bg-white p-2 rounded text-gray-700 border border-gray-100"><strong>Sem "Lero-Lero":</strong> Apenas a resposta crua.</div>
-                        <div className="text-xs bg-white p-2 rounded text-gray-700 border border-gray-100"><strong>Velocidade:</strong> Para quem tem pressa.</div>
+                        <div className="text-xs bg-white/60 p-2 rounded text-red-900 border border-red-100"><strong>Estilo Jornalístico:</strong> Direto ao ponto.</div>
+                        <div className="text-xs bg-white/60 p-2 rounded text-red-900 border border-red-100"><strong>Sem "Lero-Lero":</strong> Apenas a resposta crua.</div>
+                        <div className="text-xs bg-white/60 p-2 rounded text-red-900 border border-red-100"><strong>Velocidade:</strong> Para quem tem pressa.</div>
                       </div>
                     </div>
                   </div>
@@ -443,7 +440,7 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="bg-white border border-gray-100 p-4 rounded-lg shadow-sm">
                         <strong className="text-indigo-600 flex items-center gap-2 mb-2"><Eye className="w-4 h-4" /> 1. ASSISTA (5-7 min)</strong>
-                        <p className="text-xs text-gray-500">Rode o vídeo. Quando o assunto do checkpoint começar, <strong>foco total</strong>.</p>
+                        <p className="text-xs text-gray-500">Inicie o conteúdo. Quando o assunto do checkpoint começar, <strong>foco total</strong>.</p>
                       </div>
                       <div className="bg-white border border-gray-100 p-4 rounded-lg shadow-sm">
                         <strong className="text-red-500 flex items-center gap-2 mb-2"><Activity className="w-4 h-4" /> 2. PAUSE (2-3 min)</strong>

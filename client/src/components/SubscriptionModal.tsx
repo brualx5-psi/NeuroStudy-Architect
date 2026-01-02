@@ -15,8 +15,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             {/* Backdrop */}
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
 
-            {/* Modal */}
-            <div className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            {/* Modal - Restored size but fits in viewport */}
+            <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col md:flex-row">
                 <button
                     onClick={onClose}
                     className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-10"
@@ -26,20 +26,20 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
                 <div className="flex flex-col md:flex-row h-full">
                     {/* Left Side: Pro Benefits */}
-                    <div className="flex-1 p-8 md:p-12 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 text-white relative overflow-hidden">
+                    <div className="md:w-[45%] p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 text-white relative flex flex-col justify-center">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
                         <div className="relative z-10">
-                            <div className="inline-flex p-3 bg-white/20 rounded-2xl mb-6 backdrop-blur-md">
-                                <Crown className="w-8 h-8 text-amber-300" />
+                            <div className="inline-flex p-2.5 bg-white/20 rounded-xl mb-4 backdrop-blur-md">
+                                <Crown className="w-6 h-6 text-amber-300" />
                             </div>
-                            <h2 className="text-3xl md:text-4xl font-black mb-3 tracking-tight leading-tight">
+                            <h2 className="text-2xl md:text-3xl font-black mb-2 tracking-tight leading-tight">
                                 Qualidade Garantida<br />+ Capacidade Total
                             </h2>
-                            <p className="text-indigo-100 text-base md:text-lg mb-8 leading-relaxed font-medium">
+                            <p className="text-indigo-100 text-sm mb-6 leading-relaxed font-medium">
                                 Quiz e Flashcards com IA Pro. Mais páginas, mais vídeos, mais resultados.
                             </p>
 
-                            <ul className="space-y-4">
+                            <ul className="space-y-3">
                                 <li className="flex items-start gap-3">
                                     <div className="bg-white/20 p-1.5 rounded-full mt-0.5 shrink-0"><Check className="w-4 h-4" /></div>
                                     <div>
@@ -79,7 +79,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     </div>
 
                     {/* Right Side: Plans */}
-                    <div className="flex-[1.2] p-8 md:p-12 bg-white flex flex-col justify-center">
+                    <div className="flex-1 p-6 bg-white flex flex-col justify-center">
                         <div className="grid grid-cols-1 gap-6">
                             {/* Plan Card: PRO */}
                             <div className="relative p-6 rounded-3xl border-2 border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 group transition-all">

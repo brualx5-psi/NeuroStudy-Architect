@@ -20,6 +20,7 @@ import { SourcePreviewModal } from './components/SourcePreviewModal';
 import { SearchResourcesModal } from './components/SearchResourcesModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { UsageBadge } from './components/UsageBadge';
 import { useAuth, AuthProvider } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles, Loader2 } from './components/Icons';
@@ -447,7 +448,10 @@ export function AppContent() {
         handleStartSession();
         setShowSearchModal(true);
     };
-    const handleFolderExam = (fid: string) => { /* ... */ };
+    const handleFolderExam = (fid: string) => {
+        // Feature "Provão" (Folder Exam) placeholder
+        alert('🚀 Provão Geral: Em breve você poderá gerar simulados de pastas inteiras! Estamos finalizando esta IA.');
+    };
 
     const handleMarkReviewDone = (studyId: string) => {
         setStudies(prev => prev.map(s => {
@@ -613,9 +617,10 @@ export function AppContent() {
                                 </div>
                                 <p className="text-xs text-gray-500">Atualizado em {new Date(activeStudy.updatedAt).toLocaleDateString()}</p>
                             </div>
-                        ) : (<h1 className="text-xl font-bold text-gray-400 flex items-center gap-2"><NeuroLogo size={24} className="grayscale opacity-50" /> Criar Novo Estudo</h1>)}
+                        ) : (<h1 className="text-xl font-bold text-gray-400">Criar Novo Estudo</h1>)}
                     </div>
                     <div className="flex items-center gap-3">
+                        <UsageBadge />
                         <div className="relative">
                             <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" onClick={() => setShowNotifications(!showNotifications)}>
                                 <Bell className="w-5 h-5" />
@@ -864,21 +869,30 @@ export function AppContent() {
                                 </div>
                             ))
                     ) : (
-                        <div className="flex flex-col h-full bg-slate-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-4">
-                            <div className="max-w-4xl mx-auto w-full p-6 space-y-8">
-                                <div className="text-center pt-8">
-                                    <NeuroLogo size={60} className="mx-auto mb-4 text-indigo-600" />
+                        <div className="flex flex-col h-full bg-slate-50 items-center justify-center animate-in fade-in slide-in-from-bottom-4">
+                            <div className="max-w-4xl mx-auto w-full px-6 py-4 space-y-6">
+                                <div className="text-center">
+                                    <img src="/logo.png" alt="NeuroStudy" className="w-16 h-16 mx-auto mb-3" />
                                     <h2 className="text-3xl font-bold text-gray-900">Novo Estudo</h2>
                                     <p className="text-gray-500">Escolha o nível de profundidade e sua fonte para começar.</p>
+                                </div>
+                                <div className="max-w-md mx-auto">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do estudo (opcional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: Anatomia do Sistema Nervoso"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                        id="study-name-input"
+                                    />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <button onClick={() => setSelectedMode(StudyMode.SURVIVAL)} className={`p-4 rounded-xl border-2 transition-all flex flex-col gap-2 text-left ${selectedMode === StudyMode.SURVIVAL ? 'border-green-500 bg-green-50 shadow-md ring-1 ring-green-200' : 'border-gray-200 bg-white hover:border-green-300 hover:bg-green-50/50'}`}><div className="bg-green-100 w-10 h-10 rounded-lg flex items-center justify-center text-green-600"><BatteryCharging className="w-6 h-6" /></div><div><span className="block font-bold text-gray-900">Sobrevivência</span><span className="text-xs text-gray-500">Apenas o essencial. Rápido e direto.</span></div></button>
                                     <button onClick={() => setSelectedMode(StudyMode.NORMAL)} className={`p-4 rounded-xl border-2 transition-all flex flex-col gap-2 text-left ${selectedMode === StudyMode.NORMAL ? 'border-indigo-500 bg-indigo-50 shadow-md ring-1 ring-indigo-200' : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50'}`}><div className="bg-indigo-100 w-10 h-10 rounded-lg flex items-center justify-center text-indigo-600"><Activity className="w-6 h-6" /></div><div><span className="block font-bold text-gray-900">Normal</span><span className="text-xs text-gray-500">Equilíbrio ideal entre teoria e prática.</span></div></button>
                                     <button onClick={() => setSelectedMode(StudyMode.HARD)} className={`p-4 rounded-xl border-2 transition-all flex flex-col gap-2 text-left ${selectedMode === StudyMode.HARD ? 'border-purple-500 bg-purple-50 shadow-md ring-1 ring-purple-200' : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'}`}><div className="bg-purple-100 w-10 h-10 rounded-lg flex items-center justify-center text-purple-600"><Rocket className="w-6 h-6" /></div><div><span className="block font-bold text-gray-900">Hard</span><span className="text-xs text-gray-500">Profundidade máxima e detalhes.</span></div></button>
                                 </div>
-                                <div className="pt-8">
+                                <div className="pt-4">
                                     <button onClick={handleStartSession} className="w-full bg-indigo-600 text-white px-6 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 flex items-center justify-center gap-2">Escolher fontes</button>
-                                    <p className="text-center text-gray-400 text-xs mt-3">Você poderá adicionar PDFs, Vídeos e Textos na próxima etapa.</p>
+                                    <p className="text-center text-gray-400 text-xs mt-2">Você poderá adicionar PDFs, Vídeos e Textos na próxima etapa.</p>
                                 </div>
                             </div>
                         </div>

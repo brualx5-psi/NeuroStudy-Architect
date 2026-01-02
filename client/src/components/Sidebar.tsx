@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Folder, StudySession } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { FolderIcon, Plus, FileText, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target, LogOut, User } from './Icons';
-import { UsageCompactBar } from './UsageMeter';
 // ChevronRight agora é inline (SVG direto no JSX) para evitar problema de bundling
 
 interface SidebarProps {
@@ -57,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Estado para seções recolhíveis (NeuroStudy, Biblioteca, Pareto)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -236,26 +236,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const SectionHeader = ({ id, title, icon: Icon, colorClass, rootId }: any) => {
     const isExpanded = expandedSections[rootId] ?? true;
+    const isCollapsed = !isOpen && !isHovered;
 
     return (
       <div className="mb-2">
         <div
-          className={`flex items-center justify-between px-3 py-2 ${colorClass} bg-opacity-10 rounded-lg cursor-pointer hover:bg-opacity-20 transition-all`}
+          className={`flex items-center px-3 py-2 ${colorClass} bg-opacity-10 rounded-lg cursor-pointer hover:bg-opacity-20 transition-all ${isCollapsed ? 'md:justify-center md:px-2' : 'justify-between'}`}
           onClick={() => toggleSection(rootId)}
         >
-          <div className="flex items-center gap-2 font-bold text-sm">
-            {/* Ícone de toggle ▶ / ▼ */}
-            {isExpanded ? (
-              <ChevronDown className={`w-4 h-4 ${colorClass.replace('bg-', 'text-').replace('-50', '-500')} transition-transform`} />
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${colorClass.replace('bg-', 'text-').replace('-50', '-500')}`}>
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            )}
-            <Icon className={`w-4 h-4 ${colorClass.replace('bg-', 'text-')}`} />
-            <span className={colorClass.replace('bg-', 'text-').replace('-50', '-700')}>{title}</span>
+          <div className={`flex items-center gap-2 font-bold text-sm ${isCollapsed ? 'md:gap-0' : ''}`}>
+            {/* Ícone de toggle ▶ / ▼ - hidden when collapsed */}
+            <span className={`transition-opacity duration-200 ${isCollapsed ? 'md:hidden' : ''}`}>
+              {isExpanded ? (
+                <ChevronDown className={`w-4 h-4 ${colorClass.replace('bg-', 'text-').replace('-50', '-500')} transition-transform`} />
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${colorClass.replace('bg-', 'text-').replace('-50', '-500')}`}>
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              )}
+            </span>
+            <Icon className={`w-5 h-5 ${colorClass.replace('bg-', 'text-').replace('-50', '-500')} ${isCollapsed ? 'md:w-6 md:h-6' : ''}`} />
+            <span className={`transition-opacity duration-200 ${colorClass.replace('bg-', 'text-').replace('-50', '-700')} ${isCollapsed ? 'md:hidden' : ''}`}>{title}</span>
           </div>
-          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <div className={`flex gap-1 transition-opacity duration-200 ${isCollapsed ? 'md:hidden' : ''}`} onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => { onRequestNewStudy(rootId); onClose?.(); }}
               className={`p-1 rounded hover:bg-white ${colorClass.replace('bg-', 'text-').replace('-50', '-600')}`}
@@ -273,8 +276,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Conteúdo da seção - só mostra se expandido */}
-        {isExpanded && (
+        {/* Conteúdo da seção - só mostra se expandido E não está collapsed */}
+        {isExpanded && !isCollapsed && (
           <>
             {creatingRootFolderIn === rootId && (
               <div className="flex items-center gap-2 p-2 mx-2 bg-white border rounded shadow-sm my-2 animate-fade-in">
@@ -311,19 +314,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       {/* Sidebar Container */}
-      <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-gray-50 border-r border-gray-200 h-screen flex flex-col flex-shrink-0
-        transition-transform duration-300 ease-in-out
-        md:translate-x-0 md:static
-        ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
-      `}>
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-50 bg-gray-50 border-r border-gray-200 h-screen flex flex-col flex-shrink-0
+          transition-all duration-300 ease-in-out
+          md:static
+          ${isOpen ? 'translate-x-0 shadow-2xl w-64' : '-translate-x-full md:translate-x-0'}
+          ${!isOpen && !isHovered ? 'md:w-16' : 'md:w-64'}
+        `}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <div
           className="p-4 border-b border-gray-200 flex items-center justify-between"
           onDragOver={(e) => handleDragOver(e)} onDrop={(e) => handleDrop(e)}
         >
           <button onClick={onGoToHome} className="text-left flex items-center gap-2 px-2" title="Início">
-            <NeuroLogo size={35} className="text-indigo-600 shrink-0" />
-            <span className="font-bold text-indigo-900 text-lg">NeuroStudy</span>
+            <img src="/logo.png" alt="NeuroStudy" className="w-8 h-8 shrink-0" />
+            <span className={`font-bold text-indigo-900 text-lg whitespace-nowrap transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>NeuroStudy</span>
           </button>
           {/* Close Button Mobile */}
           <button onClick={onClose} className="md:hidden p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100">
@@ -331,76 +339,68 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        <div className="px-4 pt-4 pb-2">
+        {/* Search - hidden when collapsed */}
+        <div className={`px-4 pt-4 pb-2 transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:hidden' : ''}`}>
           <div className="relative">
             <Search className="w-3 h-3 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input type="text" placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-8 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none" />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 scrollbar-thin space-y-6">
+        <div className={`flex-1 overflow-hidden p-2 ${!isOpen && !isHovered ? 'md:flex md:flex-col md:justify-around' : 'space-y-6'}`}>
           <SectionHeader id="neuro" title="NeuroStudy" icon={Layers} colorClass="bg-indigo-50" rootId="root-neuro" />
           <SectionHeader id="books" title="Biblioteca" icon={BookOpen} colorClass="bg-orange-50" rootId="root-books" />
           <SectionHeader id="pareto" title="Pareto 80/20" icon={Target} colorClass="bg-red-50" rootId="root-pareto" />
         </div>
 
-        <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
+        <div className="p-3 border-t border-gray-200 bg-gray-50 space-y-2">
           {/* Perfil do Usuário */}
           {profile && (
-            <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-100 shadow-sm mb-2 relative group">
+            <div className={`flex items-center gap-2 p-1.5 bg-white rounded-lg border border-gray-100 shadow-sm relative group ${!isOpen && !isHovered ? 'md:justify-center' : ''}`}>
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full border border-gray-200" />
+                <img src={profile.avatar_url} alt="Avatar" className="w-6 h-6 rounded-full border border-gray-200 shrink-0" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                  <User className="w-4 h-4" />
+                <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                  <User className="w-3 h-3" />
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-bold text-gray-900 truncate">{profile.full_name || 'Estudante'}</p>
+              <div className={`flex-1 min-w-0 transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:hidden' : ''}`}>
+                <div className="flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-gray-900 truncate">{profile.full_name || 'Estudante'}</p>
                   {isPro && (
-                    <span className="bg-indigo-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Pro</span>
+                    <span className="bg-indigo-600 text-white text-[7px] font-black px-1 rounded uppercase tracking-tighter">Pro</span>
                   )}
                 </div>
-                <p className="text-[10px] text-gray-500 truncate">{profile.email}</p>
+                <p className="text-[9px] text-gray-400 truncate leading-tight">{profile.email}</p>
               </div>
             </div>
           )}
 
-          <button onClick={() => { onOpenMethodology(); onClose?.(); }} className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-2 rounded-lg text-xs shadow-sm shadow-indigo-50/50">
-            <GraduationCap className="w-3 h-3" /> Método e Instruções
+          {/* Methodology button - icon only when collapsed */}
+          <button
+            onClick={() => { onOpenMethodology(); onClose?.(); }}
+            className={`w-full flex items-center gap-1.5 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-1.5 rounded text-[10px] shadow-sm shadow-indigo-50/50 ${!isOpen && !isHovered ? 'md:justify-center' : 'justify-center'}`}
+            title="Método e Instruções"
+          >
+            <GraduationCap className="w-3 h-3 shrink-0" />
+            <span className={`transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:hidden' : ''}`}>Método e Instruções</span>
           </button>
 
-          {/* Barra de Consumo Mensal */}
-          <UsageCompactBar />
+          {/* Sair button - icon only when collapsed */}
+          <button
+            onClick={() => {
+              if (confirm('Deseja sair da sua conta?')) {
+                signOut();
+              }
+            }}
+            className={`w-full flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded text-[10px] transition-colors ${!isOpen && !isHovered ? 'md:justify-center' : 'justify-center'}`}
+            title="Sair"
+          >
+            <LogOut className="w-3 h-3 shrink-0" />
+            <span className={`transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:hidden' : ''}`}>Sair</span>
+          </button>
 
-          <div className="flex gap-2">
-            {/* Botão Recolher */}
-            <button
-              onClick={onClose}
-              className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-500 py-2 rounded-lg text-xs transition-colors"
-              title="Recolher Sidebar"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h7" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-              Recolher
-            </button>
-
-            {/* Botão Sair */}
-            <button
-              onClick={() => {
-                if (confirm('Deseja sair da sua conta?')) {
-                  signOut();
-                }
-              }}
-              className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-xs transition-colors"
-              title="Sair"
-            >
-              <LogOut className="w-3 h-3" />
-              Sair
-            </button>
-          </div>
-
-          <p className="text-[10px] text-gray-400 text-center font-medium">Versão Beta</p>
+          <p className={`text-[9px] text-gray-300 text-center font-medium transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:hidden' : ''}`}>Versão Beta 0.9</p>
         </div>
       </div>
     </>

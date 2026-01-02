@@ -50,62 +50,60 @@ export const ReviewSchedulerModal: React.FC<ReviewSchedulerModalProps> = ({ onCl
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300">
 
-        {/* Header */}
-        <div className="bg-indigo-600 p-6 text-white text-center relative">
-          <button onClick={onClose} className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-            <Calendar className="w-6 h-6 text-white" />
+        {/* Header Compacto */}
+        <div className="bg-indigo-600 p-4 text-white text-center relative">
+          <button onClick={onClose} className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 backdrop-blur-md">
+            <Calendar className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-xl font-bold">Agendar Revisão Espaçada</h3>
-          <p className="text-indigo-100 text-xs mt-1 max-w-xs mx-auto">Baseado na Curva de Esquecimento. Escolha o próximo intervalo ideal para {studyTitle || 'este estudo'}.</p>
+          <h3 className="text-lg font-bold">Agendar Revisão</h3>
+          <p className="text-indigo-100 text-[10px] mt-1 max-w-xs mx-auto">Escolha o intervalo ideal.</p>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-3">
+        {/* Body Compacto */}
+        <div className="p-4 space-y-2">
           {strategies.map((strategy) => (
             <button
               key={strategy.days}
               onClick={() => setSelectedOption(strategy.days)}
-              className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all group ${selectedOption === strategy.days ? 'border-indigo-600 ring-1 ring-indigo-200 shadow-md' : `border-transparent ${strategy.color}`}`}
+              className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all group ${selectedOption === strategy.days ? 'border-indigo-600 ring-1 ring-indigo-200 shadow-sm' : `border-transparent ${strategy.color}`}`}
             >
               <div className="flex items-center gap-3 text-left">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white/60 font-bold text-sm shadow-sm`}>{strategy.days}d</div>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center bg-white/60 font-bold text-xs shadow-sm`}>{strategy.days}d</div>
                 <div>
-                  <span className="block font-bold text-sm">{strategy.label}</span>
-                  <span className="block text-[10px] opacity-80">{strategy.desc}</span>
+                  <span className="block font-bold text-xs">{strategy.label}</span>
+                  <span className="block text-[9px] opacity-80 leading-tight">{strategy.desc}</span>
                 </div>
               </div>
-              {selectedOption === strategy.days && <CheckCircle className="w-5 h-5 text-indigo-600 animate-in zoom-in" />}
+              {selectedOption === strategy.days && <CheckCircle className="w-4 h-4 text-indigo-600 animate-in zoom-in" />}
             </button>
           ))}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-100 flex flex-col gap-3 bg-gray-50">
-
-          {/* Toggle Calendar */}
-          <div className="flex items-center justify-between px-2">
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+        {/* Footer Compacto */}
+        <div className="p-3 border-t border-gray-100 flex flex-col gap-2 bg-gray-50">
+          <div className="flex items-center justify-between px-1">
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={addToCalendar}
                 onChange={(e) => setAddToCalendar(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all"
+                className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all"
               />
               Abrir Google Agenda
             </label>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-gray-500 font-bold text-sm hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose} className="px-3 py-1.5 text-gray-500 font-bold text-xs hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
             <button
               onClick={handleConfirm}
               disabled={selectedOption === null}
-              className="px-6 py-2 bg-indigo-600 text-white font-bold text-sm rounded-lg hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
-              Confirmar Agendamento <ChevronRight className="w-4 h-4" />
+              Confirmar <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
