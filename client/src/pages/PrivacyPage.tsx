@@ -211,7 +211,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onBack }) => {
                         <p className="text-slate-600">
                             Para exercer seus direitos ou esclarecer dúvidas:<br />
                             <strong>Responsável:</strong> Bruno Alexandre<br />
-                            <strong>Email:</strong> <span className="text-indigo-600">(em breve)</span>
+                            <strong>Email:</strong> <a href="mailto:suporte@neurostudy.com.br" className="text-indigo-600 hover:underline">suporte@neurostudy.com.br</a>
                         </p>
                     </section>
 

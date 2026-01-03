@@ -178,7 +178,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                         <p className="text-slate-600">
                             Para dúvidas sobre estes termos, entre em contato:<br />
                             <strong>Desenvolvedor:</strong> Bruno Alexandre<br />
-                            <strong>Email:</strong> <span className="text-indigo-600">(em breve)</span>
+                            <strong>Email:</strong> <a href="mailto:contato@neurostudy.com.br" className="text-indigo-600 hover:underline">contato@neurostudy.com.br</a>
                         </p>
                     </section>
 

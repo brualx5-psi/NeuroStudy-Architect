@@ -267,6 +267,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
             </div>
           )}
 
+          {activeTab === 'appearance' && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-bold text-gray-800 dark:text-slate-100 mb-3">Tema</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { value: 'light', label: '☀️ Claro', desc: 'Modo claro' },
+                    { value: 'dark', label: '🌙 Escuro', desc: 'Modo escuro' },
+                    { value: 'system', label: '💻 Sistema', desc: 'Segue o SO' }
+                  ] as { value: 'light' | 'dark' | 'system'; label: string; desc: string }[]).map(opt => (
+                    <label
+                      key={opt.value}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border cursor-pointer transition-all ${theme === opt.value
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 ring-1 ring-indigo-300'
+                          : 'border-gray-200 dark:border-slate-600 hover:border-indigo-300 bg-white dark:bg-slate-700'
+                        }`}
+                    >
+                      <input
+                        type="radio"
+                        name="theme"
+                        value={opt.value}
+                        checked={theme === opt.value}
+                        onChange={() => setTheme(opt.value)}
+                        className="sr-only"
+                      />
+                      <span className="text-2xl">{opt.label.split(' ')[0]}</span>
+                      <span className="font-bold text-sm text-gray-800 dark:text-slate-100">{opt.label.split(' ')[1]}</span>
+                      <span className="text-xs text-gray-500 dark:text-slate-400">{opt.desc}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-2">A mudança será aplicada ao salvar.</p>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'notifications' && (
             <div className="space-y-4">
               <div className="p-4 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700">
