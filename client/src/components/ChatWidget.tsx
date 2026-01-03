@@ -3,12 +3,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, Sparkles } from './Icons';
 import { ChatMessage, StudyGuide } from '../types';
 import { sendChatMessage } from '../services/geminiService';
+import { useAuth } from '../contexts/AuthContext';
+import { canPerformAction, LimitReason } from '../services/usageLimits';
 
 interface ChatWidgetProps {
   studyGuide: StudyGuide | null;
+  onUsageLimit?: (reason: LimitReason) => void;
 }
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide }) => {
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, onUsageLimit }) => {
+  const { planName, usage, incrementUsage } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +26,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide }) => {
   const handleSend = async (textOverride?: string) => {
     const textToSend = textOverride || input;
     if (!textToSend.trim() || isLoading) return;
+    const chatCheck = canPerformAction(planName, usage, [], 'chat', { textInput: textToSend, chatHistory: messages });
+    if (!chatCheck.allowed) {
+      onUsageLimit?.(chatCheck.reason || 'monthly_tokens_exhausted');
+      return;
+    }
+    const estimatedTokens = chatCheck.estimatedTokens || 0;
     const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: textToSend, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
@@ -30,6 +40,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide }) => {
       const responseText = await sendChatMessage(messages, textToSend, studyGuide);
       const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: responseText, timestamp: Date.now() };
       setMessages(prev => [...prev, botMsg]);
+      await incrementUsage({ chat_messages: 1, chat_tokens_used: estimatedTokens, monthly_tokens_used: estimatedTokens });
     } catch (error) { console.error(error); } finally { setIsLoading(false); }
   };
 
