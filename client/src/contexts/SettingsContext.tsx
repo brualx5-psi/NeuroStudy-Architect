@@ -10,6 +10,16 @@ type SearchSettings = {
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
+const applyTheme = (mode: ThemeMode) => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const prefersDark = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+  root.classList.toggle('dark', isDark);
+};
+
 type PomodoroSettings = {
   focusMinutes: number;
   breakMinutes: number;
@@ -127,15 +137,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Aplica tema no documento
   useEffect(() => {
-    const applyTheme = (mode: ThemeMode) => {
-      const root = document.documentElement;
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
-      root.classList.toggle('dark', isDark);
-    };
-
     applyTheme(settings.theme);
 
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const listener = () => {
       if (settings.theme === 'system') applyTheme('system');
@@ -191,15 +195,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
 
       saveLocalSettings(next);
+      applyTheme(next.theme);
 
       if (user && supabase) {
-        supabase.from('users')
-          .update({ preferences: next })
-          .eq('id', user.id)
-          .then(({ error }) => {
+        (async () => {
+          try {
+            const { error } = await supabase
+              .from('users')
+              .update({ preferences: next })
+              .eq('id', user.id);
             if (error) console.warn('[Settings] Erro ao salvar no Supabase (ignorado):', error.message);
-          })
-          .catch(err => console.warn('[Settings] Exceção ao salvar no Supabase (ignorado):', err.message));
+          } catch (err: any) {
+            console.warn('[Settings] Excecao ao salvar no Supabase (ignorado):', err.message);
+          }
+        })();
       }
 
       return next;
