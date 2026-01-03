@@ -105,6 +105,8 @@ export interface StudySource {
   type: InputType;
   name: string;
   content: string;
+  textContent?: string;
+  durationMinutes?: number;
   mimeType?: string;
   dateAdded: number;
   isPrimary?: boolean;

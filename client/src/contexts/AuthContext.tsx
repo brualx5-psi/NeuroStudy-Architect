@@ -2,8 +2,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { PLAN_LABELS, PLAN_LIMITS, PlanLimits, PlanName } from '../config/planLimits';
 
 // Definição dos tipos
+type SubscriptionStatus = 'free' | 'starter' | 'pro' | 'premium';
+
 type UserProfile = {
     id: string;
     email: string;
@@ -11,7 +14,7 @@ type UserProfile = {
     avatar_url: string | null;
     study_area: string | null;
     study_purpose: string | null;
-    subscription_status: 'free' | 'premium';
+    subscription_status: SubscriptionStatus;
     created_at: string;
 };
 
@@ -24,57 +27,47 @@ type UserUsage = {
     youtube_minutes_used: number;
     web_research_used: number;
     chat_messages: number;
+    monthly_tokens_used: number;
+    chat_tokens_used: number;
     updated_at: string;
 };
 
-type UsageLimits = {
-    roadmaps: number;
-    youtube_minutes: number;
-    web_research: number;
-    chat_messages: number;
-    sources_per_study: number;
-    pages_per_source: number;
-};
+type UsageLimits = PlanLimits;
+
+type UsageMetric = keyof UserUsage;
 
 interface AuthContextType {
     user: User | null;
     profile: UserProfile | null;
     usage: UserUsage | null;
     loading: boolean;
+    planName: PlanName;
+    planLabel: string;
+    isPaid: boolean;
     isPro: boolean;
     limits: UsageLimits;
     canCreateStudy: () => boolean;
-    incrementUsage: (type: keyof UserUsage) => Promise<void>;
+    canUseFeynman: () => boolean;
+    incrementUsage: (updates: Partial<Record<UsageMetric, number>>) => Promise<void>;
     signOut: () => Promise<void>;
     refreshProfile: () => Promise<void>;
 }
 
-const FREE_LIMITS: UsageLimits = {
-    roadmaps: 3,
-    youtube_minutes: 30,
-    web_research: 10,
-    chat_messages: 20,
-    sources_per_study: 3,
-    pages_per_source: 50
-};
-
-const PRO_LIMITS: UsageLimits = {
-    roadmaps: 1000,
-    youtube_minutes: 10000,
-    web_research: 1000,
-    chat_messages: 10000,
-    sources_per_study: 20,
-    pages_per_source: 500
-};
+const USAGE_STORAGE_PREFIX = 'neurostudy_usage';
+// TODO: localStorage é apenas fallback e não é seguro para planos pagos.
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     profile: null,
     usage: null,
     loading: true,
+    planName: 'free',
+    planLabel: PLAN_LABELS.free,
+    isPaid: false,
     isPro: false,
-    limits: FREE_LIMITS,
+    limits: PLAN_LIMITS.free,
     canCreateStudy: () => true,
+    canUseFeynman: () => true,
     incrementUsage: async () => { },
     signOut: async () => { },
     refreshProfile: async () => { },
@@ -86,9 +79,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [usage, setUsage] = useState<UserUsage | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Derivados
-    const isPro = profile?.subscription_status === 'premium';
-    const limits = isPro ? PRO_LIMITS : FREE_LIMITS;
+    const resolvePlanName = (status?: SubscriptionStatus | null): PlanName => {
+        if (status === 'starter' || status === 'pro' || status === 'free') return status;
+        if (status === 'premium') return 'pro';
+        return 'free';
+    };
+
+    const planName = resolvePlanName(profile?.subscription_status);
+    const limits = PLAN_LIMITS[planName];
+    const planLabel = PLAN_LABELS[planName];
+    const isPaid = planName !== 'free';
+    const isPro = planName === 'pro';
+
+    const getCurrentMonth = () => new Date().toISOString().substring(0, 7);
+
+    const createEmptyUsage = (userId: string, month: string): UserUsage => ({
+        user_id: userId,
+        month,
+        roadmaps_created: 0,
+        feynman_used: 0,
+        pdf_exports: 0,
+        youtube_minutes_used: 0,
+        web_research_used: 0,
+        chat_messages: 0,
+        monthly_tokens_used: 0,
+        chat_tokens_used: 0,
+        updated_at: new Date().toISOString()
+    });
+
+    const normalizeUsage = (data: Partial<UserUsage> | null, userId: string, month: string) => ({
+        ...createEmptyUsage(userId, month),
+        ...(data || {})
+    });
+
+    const getUsageStorageKey = (userId: string, month: string) => `${USAGE_STORAGE_PREFIX}:${userId}:${month}`;
+
+    const loadLocalUsage = (userId: string, month: string): UserUsage | null => {
+        const raw = localStorage.getItem(getUsageStorageKey(userId, month));
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw) as UserUsage;
+        } catch {
+            return null;
+        }
+    };
+
+    const saveLocalUsage = (data: UserUsage) => {
+        localStorage.setItem(getUsageStorageKey(data.user_id, data.month), JSON.stringify(data));
+    };
 
     const getSupabaseClient = () => {
         if (!supabase) {
@@ -143,9 +181,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchUsage = async (userId: string) => {
         const client = getSupabaseClient();
-        if (!client) return;
+        const currentMonth = getCurrentMonth();
 
-        const currentMonth = new Date().toISOString().substring(0, 7);
+        if (!client) {
+            const localUsage = loadLocalUsage(userId, currentMonth);
+            setUsage(normalizeUsage(localUsage, userId, currentMonth));
+            return;
+        }
+
         try {
             let { data, error } = await client
                 .from('user_usage')
@@ -157,18 +200,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (error && error.code === 'PGRST116') {
                 const { data: newData, error: insertError } = await client
                     .from('user_usage')
-                    .insert([{ user_id: userId, month: currentMonth }])
+                    .insert([createEmptyUsage(userId, currentMonth)])
                     .select()
                     .single();
 
                 if (!insertError) data = newData;
             }
 
-            if (data) setUsage(data);
-            else setUsage(null);
+            if (data) {
+                const normalized = normalizeUsage(data, userId, currentMonth);
+                setUsage(normalized);
+                saveLocalUsage(normalized);
+            } else {
+                setUsage(normalizeUsage(null, userId, currentMonth));
+            }
         } catch (error) {
             console.error('Erro ao buscar consumo:', error);
-            setUsage(null);
+            const localUsage = loadLocalUsage(userId, currentMonth);
+            setUsage(normalizeUsage(localUsage, userId, currentMonth));
         }
     };
 
@@ -299,29 +348,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return usage.roadmaps_created < limits.roadmaps;
     };
 
-    const incrementUsage = async (type: keyof UserUsage) => {
-        const client = getSupabaseClient();
-        if (!client || !user || !usage) return;
+    const canUseFeynman = () => {
+        if (isPaid) return true;
+        if (!usage) return true;
+        return usage.feynman_used < 3;
+    };
 
-        const currentMonth = new Date().toISOString().substring(0, 7);
-        const currentValue = (usage[type] as number) || 0;
+    const incrementUsage = async (updates: Partial<Record<UsageMetric, number>>) => {
+        if (!user) return;
+        const client = getSupabaseClient();
+        const currentMonth = getCurrentMonth();
+        const current = normalizeUsage(usage, user.id, currentMonth);
+        const updatedAt = new Date().toISOString();
+
+        const nextUsage = { ...current, updated_at: updatedAt };
+        Object.entries(updates).forEach(([key, value]) => {
+            if (typeof value !== 'number') return;
+            const typedKey = key as UsageMetric;
+            const currentValue = (nextUsage[typedKey] as number) || 0;
+            nextUsage[typedKey] = currentValue + value;
+        });
+
+        setUsage(nextUsage);
+        saveLocalUsage(nextUsage);
+
+        if (!client) return;
 
         try {
+            const updateFields: Record<string, number | string> = { updated_at: updatedAt };
+            Object.keys(updates).forEach((key) => {
+                const typedKey = key as UsageMetric;
+                updateFields[typedKey] = nextUsage[typedKey] as number;
+            });
             await client
                 .from('user_usage')
-                .update({ [type]: currentValue + 1 })
+                .update(updateFields)
                 .eq('user_id', user.id)
                 .eq('month', currentMonth);
-
-            // Atualizar estado local
-            setUsage(prev => prev ? { ...prev, [type]: currentValue + 1 } : prev);
         } catch (error) {
             console.error('Erro ao incrementar uso:', error);
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, profile, usage, loading, isPro, limits, canCreateStudy, incrementUsage, signOut, refreshProfile }}>
+        <AuthContext.Provider value={{ user, profile, usage, loading, planName, planLabel, isPaid, isPro, limits, canCreateStudy, canUseFeynman, incrementUsage, signOut, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

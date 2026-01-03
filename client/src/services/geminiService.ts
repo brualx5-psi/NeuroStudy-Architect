@@ -257,12 +257,14 @@ export const generateStudyGuide = async (sources: StudySource[], mode: StudyMode
   const MAX_CHARS_PER_COMPLEMENT = 50000; // Limite de segurança
   let combinedContext = `FONTE PRINCIPAL (Use esta estrutura como base):\n`;
   combinedContext += `[ID: PRIMARY, NOME: ${primarySource.name}, TIPO: ${primarySource.type}]\n`;
-  combinedContext += `${primarySource.content.slice(0, 100000)}\n\n`; // Limite maior para principal
+  const primaryText = primarySource.textContent || primarySource.content;
+  combinedContext += `${primaryText.slice(0, 100000)}\n\n`; // Limite maior para principal
 
   if (complementarySources.length > 0) {
     combinedContext += `FONTES COMPLEMENTARES (Use apenas para enriquecer/aprofundar):\n`;
     complementarySources.forEach((src, idx) => {
-      combinedContext += `[ID: REF_${idx + 1}, NOME: ${src.name}]\n${src.content.slice(0, MAX_CHARS_PER_COMPLEMENT)}...\n\n`;
+      const sourceText = src.textContent || src.content;
+      combinedContext += `[ID: REF_${idx + 1}, NOME: ${src.name}]\n${sourceText.slice(0, MAX_CHARS_PER_COMPLEMENT)}...\n\n`;
     });
   }
 
