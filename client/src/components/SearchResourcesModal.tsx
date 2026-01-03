@@ -106,7 +106,7 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
 
                 {/* Tooltip expandido ao hover */}
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50 w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl">
-                    <div className="font-bold text-xs mb-1">{isGuideline ? 'ðŸ›ï¸ Guideline' : `📊 ${currentLevel.name}`}</div>
+                    <div className="font-bold text-xs mb-1">{isGuideline ? '🏛️ Guideline' : `📊 ${currentLevel.name}`}</div>
                     <div className="text-gray-300 mb-1">{isGuideline ? 'Diretriz clínica oficial' : currentLevel.fullName}</div>
                     <div className="text-gray-400 border-t border-gray-700 pt-1 mt-1">
                         Ferramenta: {isGuideline ? 'AGREE II' : currentLevel.tool}
@@ -187,7 +187,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
     const [deepResearchLoading, setDeepResearchLoading] = useState(false);
     const [deepResearchInsight, setDeepResearchInsight] = useState<string | null>(null);
 
-    // === AVALIAÃ‡ÃƒO DE QUALIDADE AMSTAR 2 ===
+    // === AVALIAÇÃO DE QUALIDADE AMSTAR 2 ===
     const handleQualityAssessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPaid) {
             onOpenSubscription();
@@ -207,7 +207,7 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
 
             const prompt = `Você é um especialista em avaliação de evidências científicas. Analise esta meta-análise/revisão sistemática usando critérios simplificados do AMSTAR 2.
 
-TÃTULO: ${title}
+TÍTULO: ${title}
 RESUMO: ${abstractText || 'Não disponível'}
 
 Baseado nas informações disponíveis, avalie de 0-16 pontos considerando:
@@ -256,7 +256,7 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
         }
     };
 
-    // === AVALIAÃ‡ÃƒO RoB 2 (Risk of Bias) PARA RCTs ===
+    // === AVALIAÇÃO RoB 2 (Risk of Bias) PARA RCTs ===
     const handleRoB2Assessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPaid) {
             onOpenSubscription();
@@ -273,7 +273,7 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
 
             const prompt = `Você é um especialista em avaliação de evidências científicas. Analise este Ensaio Clínico Randomizado (RCT) usando os domínios do RoB 2 (Risk of Bias 2).
 
-TÃTULO: ${title}
+TÍTULO: ${title}
 RESUMO: ${abstractText || 'Não disponível'}
 
 Avalie os 5 domínios do RoB 2:
@@ -319,7 +319,7 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
         }
     };
 
-    // === AVALIAÃ‡ÃƒO NOS (Newcastle-Ottawa Scale) PARA COORTE/CASO-CONTROLE ===
+    // === AVALIAÇÃO NOS (Newcastle-Ottawa Scale) PARA COORTE/CASO-CONTROLE ===
     const handleNOSAssessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPaid) {
             onOpenSubscription();
@@ -333,11 +333,11 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
 
             const prompt = `Você é um especialista em avaliação de evidências. Analise este estudo de coorte/caso-controle usando a Newcastle-Ottawa Scale (NOS).
 
-TÃTULO: ${title}
+TÍTULO: ${title}
 RESUMO: ${abstractText || 'Não disponível'}
 
 Avalie os 3 domínios do NOS (total 9 estrelas):
-1. SELEÃ‡ÃƒO (4 estrelas): representatividade, seleção controles, definição exposição
+1. SELEÇÃO (4 estrelas): representatividade, seleção controles, definição exposição
 2. COMPARABILIDADE (2 estrelas): controle de confundidores
 3. DESFECHO (3 estrelas): avaliação, seguimento adequado
 
@@ -366,7 +366,7 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
         }
     };
 
-    // === AVALIAÃ‡ÃƒO AGREE II PARA GUIDELINES ===
+    // === AVALIAÇÃO AGREE II PARA GUIDELINES ===
     const handleAGREEIIAssessment = async (itemId: string, title: string, abstractText: string) => {
         if (!isPaid) {
             onOpenSubscription();
@@ -380,7 +380,7 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
 
             const prompt = `Você é um especialista em avaliação de guidelines clínicas. Analise esta diretriz usando critérios do AGREE II.
 
-TÃTULO: ${title}
+TÍTULO: ${title}
 RESUMO: ${abstractText || 'Não disponível'}
 
 Avalie os 6 domínios do AGREE II:
@@ -393,7 +393,7 @@ Avalie os 6 domínios do AGREE II:
 
 RESPONDA EXATAMENTE NESTE FORMATO:
 SCORE: [número de 1 a 7, onde 7=excelente]
-RECOMENDAÃ‡ÃƒO: [Fortemente Recomendada/Recomendada com Modificações/Não Recomendada]
+RECOMENDAÇÃO: [Fortemente Recomendada/Recomendada com Modificações/Não Recomendada]
 RESUMO: [1 frase sobre a qualidade da diretriz]`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
@@ -555,11 +555,11 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
         if (isHealthArea && (text.includes('guideline') || text.includes('diretriz') || text.includes('consensus') || text.includes('recommendation'))) {
             return { score: 5, label: 'Diretriz Clínica (Guideline)', isGuideline: true };
         }
-        // 2. META-ANÃLISE / REVISÃƒO SISTEMÃTICA
+        // 2. META-ANÁLISE / REVISÃO SISTEMÁTICA
         if (text.includes('meta-analysis') || text.includes('systematic review') || text.includes('revisão sistemática')) {
             return { score: 5, label: 'Revisão Sistemática / Meta-análise', isGuideline: false };
         }
-        // 3. ENSAIO CLÃNICO RANDOMIZADO (RCT)
+        // 3. ENSAIO CLÍNICO RANDOMIZADO (RCT)
         if (text.includes('randomized') || text.includes('randomizado') || text.includes('clinical trial')) {
             return { score: 4, label: 'Ensaio Clínico Randomizado (RCT)', isGuideline: false };
         }
@@ -905,7 +905,7 @@ IMPORTANTE:
                                 </div>
                                 <div className="flex items-start gap-3">
                                     <span className="bg-blue-500 w-2 h-2 rounded-full shrink-0 mt-1.5"></span>
-                                    <p className="text-xs"><span className="font-bold text-blue-300">Use Inglês:</span> 95% da ciência está em inglês. Use <span className="bg-white/20 px-1 py-0.5 rounded text-[10px] font-bold">ðŸŒ PT→EN</span></p>
+                                    <p className="text-xs"><span className="font-bold text-blue-300">Use Inglês:</span> 95% da ciência está em inglês. Use <span className="bg-white/20 px-1 py-0.5 rounded text-[10px] font-bold">🌐 PT→EN</span></p>
                                 </div>
                             </div>
 

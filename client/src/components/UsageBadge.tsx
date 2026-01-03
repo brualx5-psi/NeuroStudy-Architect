@@ -33,10 +33,10 @@ export const UsageBadge: React.FC = () => {
     };
 
     const items = [
-        { icon: 'ðŸ“š', label: 'Roteiros', used: usage.roadmaps_created, max: limits.roadmaps },
-        { icon: 'ðŸ“¹', label: 'YouTube', used: usage.youtube_minutes_used, max: limits.youtube_minutes, unit: 'min' },
-        { icon: 'ðŸ§ ', label: 'Feynman', used: usage.feynman_used, max: isPaid ? 100 : 3 },
-        { icon: 'ðŸ”', label: 'Pesquisa Web', used: usage.web_research_used, max: limits.web_research },
+        { icon: '📚', label: 'Roteiros', used: usage.roadmaps_created, max: limits.roadmaps },
+        { icon: '📹', label: 'YouTube', used: usage.youtube_minutes_used, max: limits.youtube_minutes, unit: 'min' },
+        { icon: '🧠', label: 'Feynman', used: usage.feynman_used, max: isPaid ? 100 : 3 },
+        { icon: '🔍', label: 'Pesquisa Web', used: usage.web_research_used, max: limits.web_research },
     ];
 
     return (
@@ -48,7 +48,7 @@ export const UsageBadge: React.FC = () => {
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all hover:scale-105 ${getBadgeColor()}`}
                     title="Ver limites de uso"
                 >
-                    <span>ðŸ“š</span>
+                    <span>📚</span>
                     <span>{roadmapsMax - roadmapsUsed}</span>
                     <svg
                         className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}

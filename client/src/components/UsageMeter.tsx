@@ -17,38 +17,38 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({ type, showLabel = true, 
             label: 'Roteiros',
             used: usage.roadmaps_created,
             max: limits.roadmaps,
-            icon: 'ðŸ“š'
+            icon: '📚'
         },
         feynman: {
             label: 'Feynman',
             used: usage.feynman_used,
             max: isPaid ? 100 : 3,
-            icon: 'ðŸ§ '
+            icon: '🧠'
         },
         youtube: {
             label: 'YouTube',
             used: usage.youtube_minutes_used,
             max: limits.youtube_minutes,
-            icon: 'ðŸ“¹',
+            icon: '📹',
             unit: 'min'
         },
         pdf: {
             label: 'Exportar PDF',
             used: usage.pdf_exports,
             max: isPaid ? 30 : 1,
-            icon: 'ðŸ“„'
+            icon: '📄'
         },
         web_research: {
             label: 'Pesquisa Web',
             used: usage.web_research_used,
             max: limits.web_research,
-            icon: 'ðŸ”'
+            icon: '🔍'
         },
         chat: {
             label: 'Chat',
             used: usage.chat_messages,
             max: limits.chat_messages,
-            icon: 'ðŸ’¬',
+            icon: '💬',
             unit: 'msg'
         }
     };
@@ -110,12 +110,12 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({ type, showLabel = true, 
             </div>
             {isLow && !isExhausted && (
                 <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
-                    âš ï¸ Restam apenas {remaining} {unit || 'usos'}
+                    ⚠️ Restam apenas {remaining} {unit || 'usos'}
                 </p>
             )}
             {isExhausted && (
                 <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
-                    ðŸš« Limite atingido! FaÃ§a upgrade para continuar.
+                    🚫 Limite atingido! Faça upgrade para continuar.
                 </p>
             )}
         </div>

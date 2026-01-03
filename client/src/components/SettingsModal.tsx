@@ -374,7 +374,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                   <li><strong>Web research:</strong> {limits.web_research}</li>
                   <li><strong>Chat msgs:</strong> {limits.chat_messages}</li>
                   <li><strong>YouTube minutos:</strong> {limits.youtube_minutes}</li>
-                  <li><strong>YouTube por vÃ­deo:</strong> {limits.youtube_minutes_per_video} min</li>
+                  <li><strong>YouTube por vídeo:</strong> {limits.youtube_minutes_per_video} min</li>
                   <li><strong>Tokens mensais:</strong> {limits.monthly_tokens.toLocaleString()}</li>
                 </ul>
 
