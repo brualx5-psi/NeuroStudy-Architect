@@ -1,9 +1,34 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, FileText, Plus, X, Globe, Loader2, HelpCircle, Shield, Crown } from './Icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { InputType } from '../types';
 import { searchPubMed } from '../services/pubmedService';
 import { getProfile, getPreferredSource } from '../services/userProfileService';
+
+// Simple markdown parser for Deep Research output
+const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
+    const lines = text.split('\n');
+    return lines.map((line, idx) => {
+        // Parse bold **text**
+        let parsed = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // Parse italic *text* (but not bullets)
+        parsed = parsed.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+        // Check if line is a bullet point
+        const isBullet = line.trim().startsWith('* ') || line.trim().startsWith('- ');
+        const cleanLine = isBullet ? parsed.replace(/^[\s]*[\*\-]\s/, '') : parsed;
+
+        if (isBullet) {
+            return (
+                <li key={idx} className="ml-4 mb-1" dangerouslySetInnerHTML={{ __html: cleanLine }} />
+            );
+        }
+        return (
+            <p key={idx} className="mb-2" dangerouslySetInnerHTML={{ __html: parsed }} />
+        );
+    });
+};
 
 interface SearchResult {
     id: string;
@@ -89,9 +114,9 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
             </div>
 
             {/* Label */}
-            <div className="flex flex-col">
-                <span className={`text-[10px] font-bold ${isGuideline ? 'text-purple-700' : score >= 4 ? 'text-emerald-700' : score >= 3 ? 'text-yellow-700' : 'text-gray-600'}`}>
-                    {isGuideline ? 'ðŸ›ï¸ Guideline' : currentLevel.name}
+            <div className="flex flex-col max-w-[60px] overflow-hidden">
+                <span className={`text-[9px] font-bold truncate ${isGuideline ? 'text-purple-700' : score >= 4 ? 'text-emerald-700' : score >= 3 ? 'text-yellow-700' : 'text-gray-600'}`}>
+                    {isGuideline ? 'Guideline' : currentLevel.name}
                 </span>
                 <span className="text-[8px] text-gray-400">
                     Nível {score}/5
@@ -105,6 +130,7 @@ type SourceMode = 'auto' | 'pubmed' | 'openalex' | 'grounding';
 
 export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onClose, onAddSource, onOpenSubscription }) => {
     const { isPro } = useAuth();
+    const { settings } = useSettings();
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'book' | 'article' | 'web'>('article');
     const [results, setResults] = useState<SearchResult[]>([]);
@@ -485,6 +511,13 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
             setShowTutorial(true);
         }
     }, []);
+
+    // Aplica preferências do Settings (fonte padrão)
+    useEffect(() => {
+        if (settings?.search?.defaultSource) {
+            setSourceMode(settings.search.defaultSource as SourceMode);
+        }
+    }, [settings?.search?.defaultSource]);
 
     // AUTO-BUSCA AO TROCAR DE ABA
     useEffect(() => {
@@ -868,165 +901,201 @@ IMPORTANTE:
 
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden relative">
 
-                {/* Header */}
-                <div className="bg-white border-b border-gray-100 p-4 flex justify-between items-center shrink-0">
+                {/* Header - Compacto quando há resultados */}
+                <div className={`bg-white border-b border-gray-100 flex justify-between items-center shrink-0 transition-all ${results.length > 0 ? 'p-2 px-4' : 'p-4'}`}>
                     <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Globe className="w-5 h-5 text-indigo-600" /> Pesquisar Fontes</h3>
-
-                        {/* FILTROS (CHIPS) */}
-                        {activeTab === 'article' && results.length > 0 && (
-                            <div className="hidden md:flex items-center gap-2 ml-4 animate-in fade-in slide-in-from-left-4">
-                                <span className="text-xs font-bold text-gray-400 uppercase mr-1">Filtrar:</span>
-                                <button onClick={() => setFilter('ALL')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${filter === 'ALL' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Todos</button>
-                                <button onClick={() => setFilter('GUIDELINE')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${filter === 'GUIDELINE' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-100'}`}><Shield className="w-3 h-3" /> Diretrizes</button>
-                                <button onClick={() => setFilter('META')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${filter === 'META' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>Meta-Review</button>
-                                <button onClick={() => setFilter('RCT')} className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${filter === 'RCT' ? 'bg-green-500 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>RCTs</button>
+                        {results.length > 0 ? (
+                            /* Versão compacta: mostra busca atual + botão nova busca */
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setResults([])}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium text-gray-700 transition-all"
+                                >
+                                    <Search className="w-4 h-4" />
+                                    <span className="max-w-[200px] truncate">"{query}"</span>
+                                    <span className="text-gray-400 text-xs">• Editar</span>
+                                </button>
+                                {/* Filtros compactos */}
+                                {activeTab === 'article' && (
+                                    <div className="hidden md:flex items-center gap-1">
+                                        <button onClick={() => setFilter('ALL')} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${filter === 'ALL' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}>Todos</button>
+                                        <button onClick={() => setFilter('GUIDELINE')} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${filter === 'GUIDELINE' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-600'}`}>Diretrizes</button>
+                                        <button onClick={() => setFilter('META')} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${filter === 'META' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600'}`}>Meta</button>
+                                        <button onClick={() => setFilter('RCT')} className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${filter === 'RCT' ? 'bg-green-500 text-white' : 'bg-green-50 text-green-600'}`}>RCTs</button>
+                                    </div>
+                                )}
                             </div>
+                        ) : (
+                            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Globe className="w-5 h-5 text-indigo-600" /> Pesquisar Fontes</h3>
                         )}
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setShowTutorial(true)} className="text-gray-400 hover:text-indigo-600 transition-colors" title="Como pesquisar?"><HelpCircle className="w-5 h-5" /></button>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
+                        {results.length === 0 && <button onClick={() => setShowTutorial(true)} className="text-gray-400 hover:text-indigo-600 transition-colors" title="Como pesquisar?"><HelpCircle className="w-5 h-5" /></button>}
+                        <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
                     </div>
                 </div>
 
-                {/* Tabs & Search - Colapsável quando há resultados */}
-                <div className={`bg-slate-50 border-b border-gray-200 shrink-0 transition-all duration-300 ${results.length > 0 ? 'p-3' : 'p-6 space-y-4'}`}>
-
-                    {/* Versão expandida (sem resultados) */}
-                    {results.length === 0 && (
-                        <>
-                            <div className="flex gap-2 justify-center">
-                                <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4" /> Artigos Científicos</button>
-                                <button onClick={() => setActiveTab('book')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'book' ? 'bg-orange-500 text-white shadow-md ring-2 ring-orange-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><BookOpen className="w-4 h-4" /> Livros</button>
-                                <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4" /> Wiki / Conceitos</button>
-                            </div>
-
-                            {/* Seletor de fonte (só para artigos) */}
-                            {activeTab === 'article' && (
-                                <div className="flex flex-col gap-3">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <span className="text-xs text-gray-500 font-medium">Fonte:</span>
-                                        {[
-                                            { key: 'auto', label: '✨ Automático', color: 'indigo' },
-                                            { key: 'pubmed', label: '🏥 PubMed', color: 'green' },
-                                            { key: 'openalex', label: '📚 OpenAlex', color: 'blue' },
-                                            { key: 'grounding', label: '🌐 Web/IA', color: 'purple' }
-                                        ].map(({ key, label, color }) => (
-                                            <button
-                                                key={key}
-                                                onClick={() => setSourceMode(key as any)}
-                                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sourceMode === key
-                                                    ? `bg-${color}-600 text-white shadow-md`
-                                                    : `bg-white border border-gray-200 text-gray-600 hover:border-${color}-300`
-                                                    }`}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Dica compacta */}
-                                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-lg p-2 flex items-center justify-center gap-4 text-xs">
-                                        <span className="flex items-center gap-1.5 text-indigo-700">
-                                            <Globe className="w-3.5 h-3.5" />
-                                            <span>Buscas em <b>Inglês</b> têm 10x mais resultados</span>
-                                        </span>
-                                        <span className="text-purple-600 bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-[11px]">
-                                            Use o botão 🌐 PT→EN abaixo
-                                        </span>
-                                    </div>
+                {/* Tabs & Search - ESCONDE quando há resultados */}
+                {results.length === 0 && (
+                    <div className="bg-slate-50 border-b border-gray-200 shrink-0 p-6 space-y-4">
+                        {results.length === 0 && (
+                            <>
+                                <div className="flex gap-2 justify-center">
+                                    <button onClick={() => setActiveTab('article')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'article' ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><FileText className="w-4 h-4" /> Artigos Científicos</button>
+                                    <button onClick={() => setActiveTab('book')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'book' ? 'bg-orange-500 text-white shadow-md ring-2 ring-orange-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><BookOpen className="w-4 h-4" /> Livros</button>
+                                    <button onClick={() => setActiveTab('web')} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all ${activeTab === 'web' ? 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}><Globe className="w-4 h-4" /> Wiki / Conceitos</button>
                                 </div>
+
+                                {/* Seletor de fonte (só para artigos) */}
+                                {activeTab === 'article' && (
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span className="text-xs text-gray-500 font-medium">Fonte:</span>
+                                            {[
+                                                { key: 'auto', label: '✨ Automático', color: 'indigo' },
+                                                { key: 'pubmed', label: '🏥 PubMed', color: 'green' },
+                                                { key: 'openalex', label: '📚 OpenAlex', color: 'blue' },
+                                                { key: 'grounding', label: '🌐 Web/IA', color: 'purple' }
+                                            ].map(({ key, label, color }) => (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => setSourceMode(key as any)}
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sourceMode === key
+                                                        ? `bg-${color}-600 text-white shadow-md`
+                                                        : `bg-white border border-gray-200 text-gray-600 hover:border-${color}-300`
+                                                        }`}
+                                                >
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Dica compacta */}
+                                        {settings.search.preferPtEnHint && (
+                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-lg p-2 flex items-center justify-center gap-4 text-xs">
+                                                <span className="flex items-center gap-1.5 text-indigo-700">
+                                                    <Globe className="w-3.5 h-3.5" />
+                                                    <span>Buscas em <b>Inglês</b> têm 10x mais resultados</span>
+                                                </span>
+                                                <span className="text-purple-600 bg-white px-2 py-0.5 rounded border border-purple-200 font-bold text-[11px]">
+                                                    Use o botão ?? PT→EN abaixo
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        <div className="relative max-w-2xl mx-auto group">
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder={activeTab === 'article' ? "Ex: 'Anxiety treatment systematic review' (Inglês é melhor)" : "Digite o tema..."}
+                                className="w-full pl-12 pr-36 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-lg shadow-sm transition-all"
+                                value={query}
+                                onChange={(e) => { setQuery(e.target.value); setTranslatedQuery(null); }}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 group-focus-within:text-indigo-500 transition-colors" />
+
+                            {/* Botão de Tradução PT → EN */}
+                            {query.trim() && !translatedQuery && (
+                                <button
+                                    onClick={handleTranslate}
+                                    disabled={translating}
+                                    className="absolute right-28 top-2 bottom-2 px-3 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-lg transition-colors text-xs flex items-center gap-1"
+                                    title="Traduzir para Inglês"
+                                >
+                                    {translating ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <>🌐 PT→EN</>
+                                    )}
+                                </button>
                             )}
-                        </>
-                    )}
 
-                    <div className="relative max-w-2xl mx-auto group">
-                        <input
-                            autoFocus
-                            type="text"
-                            placeholder={activeTab === 'article' ? "Ex: 'Anxiety treatment systematic review' (Inglês é melhor)" : "Digite o tema..."}
-                            className="w-full pl-12 pr-36 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-lg shadow-sm transition-all"
-                            value={query}
-                            onChange={(e) => { setQuery(e.target.value); setTranslatedQuery(null); }}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        />
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 group-focus-within:text-indigo-500 transition-colors" />
+                            {/* Indicador de que foi traduzido */}
+                            {translatedQuery && (
+                                <span className="absolute right-28 top-1/2 -translate-y-1/2 text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded">
+                                    ✓ Traduzido
+                                </span>
+                            )}
 
-                        {/* Botão de Tradução PT → EN */}
-                        {query.trim() && !translatedQuery && (
                             <button
-                                onClick={handleTranslate}
-                                disabled={translating}
-                                className="absolute right-28 top-2 bottom-2 px-3 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-lg transition-colors text-xs flex items-center gap-1"
-                                title="Traduzir para Inglês"
+                                onClick={handleSearch}
+                                disabled={loading || !query.trim()}
+                                className="absolute right-2 top-2 bottom-2 px-6 bg-slate-900 hover:bg-black text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                             >
-                                {translating ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <>🌐 PT→EN</>
-                                )}
-                            </button>
-                        )}
-
-                        {/* Indicador de que foi traduzido */}
-                        {translatedQuery && (
-                            <span className="absolute right-28 top-1/2 -translate-y-1/2 text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded">
-                                ✓ Traduzido
-                            </span>
-                        )}
-
-                        <button
-                            onClick={handleSearch}
-                            disabled={loading || !query.trim()}
-                            className="absolute right-2 top-2 bottom-2 px-6 bg-slate-900 hover:bg-black text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                        >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buscar'}
-                        </button>
-                    </div>
-
-                    {/* Botão Deep Research (centralizado) */}
-                    {activeTab === 'article' && (
-                        <div className="flex items-center justify-center">
-                            <button
-                                onClick={handleDeepResearch}
-                                disabled={deepResearchLoading}
-                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-md flex items-center gap-1 ${isPro
-                                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white'
-                                    : 'bg-white border-2 border-purple-100 text-purple-600 hover:border-purple-300'}`}
-                            >
-                                {deepResearchLoading ? (
-                                    <><Loader2 className="w-3 h-3 animate-spin" /> Analisando...</>
-                                ) : (
-                                    <>{!isPro && <Crown className="w-3 h-3" />} 🧠 Deep Research</>
-                                )}
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buscar'}
                             </button>
                         </div>
-                    )}
 
-                    {/* Painel de Insights do Deep Research */}
-                    {deepResearchInsight && (
-                        <div className="mt-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex items-start gap-3">
-                                <div className="bg-purple-600 text-white p-2 rounded-lg shrink-0">
-                                    ðŸ§
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-purple-800 text-sm mb-2">Análise Deep Research</h4>
-                                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                                        {deepResearchInsight}
-                                    </div>
-                                </div>
+                        {/* Botão Deep Research (centralizado) - Esconde quando tem resultados */}
+                        {activeTab === 'article' && results.length === 0 && (
+                            <div className="flex items-center justify-center">
                                 <button
-                                    onClick={() => setDeepResearchInsight(null)}
-                                    className="text-gray-400 hover:text-gray-600"
+                                    onClick={handleDeepResearch}
+                                    disabled={deepResearchLoading}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-md flex items-center gap-1 ${isPro
+                                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white'
+                                        : 'bg-white border-2 border-purple-100 text-purple-600 hover:border-purple-300'}`}
                                 >
-                                    <X className="w-4 h-4" />
+                                    {deepResearchLoading ? (
+                                        <><Loader2 className="w-3 h-3 animate-spin" /> Analisando...</>
+                                    ) : (
+                                        <>{!isPro && <Crown className="w-3 h-3" />} 🧠 Deep Research</>
+                                    )}
                                 </button>
                             </div>
+                        )}
+
+                        {/* Painel de Insights do Deep Research - Colapsável */}
+                        {deepResearchInsight && (
+                            <div className="group mt-2 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-md">
+                                {/* Header sempre visível */}
+                                <div className="flex items-center gap-2 p-2 px-3">
+                                    <div className="bg-purple-600 text-white p-1.5 rounded-lg shrink-0 text-sm">
+                                        🧠
+                                    </div>
+                                    <span className="font-bold text-purple-800 text-xs flex-1">Análise Deep Research</span>
+                                    <span className="text-[10px] text-purple-500 group-hover:hidden">Passe o mouse para expandir</span>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setDeepResearchInsight(null); }}
+                                        className="text-gray-400 hover:text-red-500 p-1"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                                {/* Conteúdo expandido no hover */}
+                                <div className="max-h-0 group-hover:max-h-[250px] overflow-hidden group-hover:overflow-y-auto transition-all duration-300 px-3 pb-0 group-hover:pb-3">
+                                    <div className="text-sm text-gray-700 leading-relaxed">
+                                        {parseSimpleMarkdown(deepResearchInsight)}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Deep Research Panel - show even with results */}
+                {deepResearchInsight && results.length > 0 && (
+                    <div className="group bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200 overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-md">
+                        <div className="flex items-center gap-2 p-2 px-4">
+                            <div className="bg-purple-600 text-white p-1 rounded text-xs">🧠</div>
+                            <span className="font-bold text-purple-800 text-xs flex-1">Deep Research</span>
+                            <span className="text-[10px] text-purple-500 group-hover:hidden">Hover para ver</span>
+                            <button onClick={() => setDeepResearchInsight(null)} className="text-gray-400 hover:text-red-500 p-1">
+                                <X className="w-3 h-3" />
+                            </button>
                         </div>
-                    )}
-                </div>
+                        <div className="max-h-0 group-hover:max-h-[200px] overflow-hidden group-hover:overflow-y-auto transition-all duration-300 px-4 pb-0 group-hover:pb-3">
+                            <div className="text-xs text-gray-700 leading-relaxed">
+                                {parseSimpleMarkdown(deepResearchInsight)}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Results */}
                 <div className="flex-1 overflow-y-auto p-6 bg-slate-100/50">
@@ -1072,7 +1141,7 @@ IMPORTANTE:
                                             ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
                                                 <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg py-2 px-3 text-xs">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-bold text-emerald-700">ðŸ”¬ AMSTAR 2</span>
+                                                        <span className="font-bold text-emerald-700">🔬 AMSTAR 2</span>
                                                         <span className={`font-bold ${qualityAssessments[item.id].score >= 12 ? 'text-emerald-600' : qualityAssessments[item.id].score >= 8 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {qualityAssessments[item.id].score}/16
                                                         </span>
@@ -1084,7 +1153,7 @@ IMPORTANTE:
                                                     onClick={() => handleQualityAssessment(item.id, item.title, item.description)}
                                                     className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    {isPro ? 'ðŸ”¬ Avaliar Qualidade (AMSTAR 2)' : <><Crown className="w-3 h-3" /> Avaliar (AMSTAR 2) - Pro</>}
+                                                    {isPro ? '🔬 Avaliar Qualidade (AMSTAR 2)' : <><Crown className="w-3 h-3" /> Avaliar (AMSTAR 2) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
@@ -1130,7 +1199,7 @@ IMPORTANTE:
                                             ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
                                                 <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg py-2 px-3 text-xs">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-bold text-yellow-700">â­ NOS</span>
+                                                        <span className="font-bold text-yellow-700">⭐ NOS</span>
                                                         <span className={`font-bold ${qualityAssessments[item.id].score >= 7 ? 'text-green-600' : qualityAssessments[item.id].score >= 4 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {qualityAssessments[item.id].score}/9 estrelas
                                                         </span>
@@ -1142,7 +1211,7 @@ IMPORTANTE:
                                                     onClick={() => handleNOSAssessment(item.id, item.title, item.description)}
                                                     className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    {isPro ? 'â­ Avaliar Qualidade (NOS)' : <><Crown className="w-3 h-3" /> Avaliar (NOS) - Pro</>}
+                                                    {isPro ? '⭐ Avaliar Qualidade (NOS)' : <><Crown className="w-3 h-3" /> Avaliar (NOS) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
@@ -1159,7 +1228,7 @@ IMPORTANTE:
                                             ) : qualityAssessments[item.id]?.score !== undefined && qualityAssessments[item.id]?.score >= 0 ? (
                                                 <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-200 rounded-lg py-2 px-3 text-xs">
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="font-bold text-purple-700">ðŸ›ï¸ AGREE II</span>
+                                                        <span className="font-bold text-purple-700">🏛️ AGREE II</span>
                                                         <span className={`font-bold ${qualityAssessments[item.id].score >= 5 ? 'text-green-600' : qualityAssessments[item.id].score >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {qualityAssessments[item.id].score}/7
                                                         </span>
@@ -1171,7 +1240,7 @@ IMPORTANTE:
                                                     onClick={() => handleAGREEIIAssessment(item.id, item.title, item.description)}
                                                     className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all ${isPro ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}
                                                 >
-                                                    {isPro ? 'ðŸ›ï¸ Avaliar Guideline (AGREE II)' : <><Crown className="w-3 h-3" /> Avaliar (AGREE II) - Pro</>}
+                                                    {isPro ? '🏛️ Avaliar Guideline (AGREE II)' : <><Crown className="w-3 h-3" /> Avaliar (AGREE II) - Pro</>}
                                                 </button>
                                             )}
                                         </div>
@@ -1218,3 +1287,4 @@ IMPORTANTE:
         </div>
     );
 };
+

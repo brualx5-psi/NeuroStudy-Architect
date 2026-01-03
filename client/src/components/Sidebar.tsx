@@ -316,7 +316,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar Container */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 bg-gray-50 border-r border-gray-200 h-screen flex flex-col flex-shrink-0
+          fixed inset-y-0 left-0 z-50 bg-gray-50 dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 h-screen flex flex-col flex-shrink-0
           transition-all duration-300 ease-in-out
           md:static
           ${isOpen ? 'translate-x-0 shadow-2xl w-64' : '-translate-x-full md:translate-x-0'}
@@ -326,12 +326,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div
-          className="p-4 border-b border-gray-200 flex items-center justify-between"
+          className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between"
           onDragOver={(e) => handleDragOver(e)} onDrop={(e) => handleDrop(e)}
         >
           <button onClick={onGoToHome} className="text-left flex items-center gap-2 px-2" title="Início">
             <img src="/logo.png" alt="NeuroStudy" className="w-8 h-8 shrink-0" />
-            <span className={`font-bold text-indigo-900 text-lg whitespace-nowrap transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>NeuroStudy</span>
+            <span className={`font-bold text-indigo-900 dark:text-indigo-200 text-lg whitespace-nowrap transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>NeuroStudy</span>
           </button>
           {/* Close Button Mobile */}
           <button onClick={onClose} className="md:hidden p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100">
@@ -343,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={`px-4 pt-4 pb-2 transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:hidden' : ''}`}>
           <div className="relative">
             <Search className="w-3 h-3 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-8 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none" />
+            <input type="text" placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-8 pr-2 py-1.5 text-xs bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 dark:text-slate-100 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none dark:placeholder-slate-400" />
           </div>
         </div>
 
@@ -353,10 +353,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <SectionHeader id="pareto" title="Pareto 80/20" icon={Target} colorClass="bg-red-50" rootId="root-pareto" />
         </div>
 
-        <div className="p-3 border-t border-gray-200 bg-gray-50 space-y-2">
+        <div className="p-3 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 space-y-2">
           {/* Perfil do Usuário */}
           {profile && (
-            <div className={`flex items-center gap-2 p-1.5 bg-white rounded-lg border border-gray-100 shadow-sm relative group ${!isOpen && !isHovered ? 'md:justify-center' : ''}`}>
+            <div className={`flex items-center gap-2 p-1.5 bg-white dark:bg-slate-700 rounded-lg border border-gray-100 dark:border-slate-600 shadow-sm relative group ${!isOpen && !isHovered ? 'md:justify-center' : ''}`}>
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt="Avatar" className="w-6 h-6 rounded-full border border-gray-200 shrink-0" />
               ) : (
@@ -366,12 +366,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
               <div className={`flex-1 min-w-0 transition-opacity duration-200 ${!isOpen && !isHovered ? 'md:hidden' : ''}`}>
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] font-bold text-gray-900 truncate">{profile.full_name || 'Estudante'}</p>
+                  <p className="text-[10px] font-bold text-gray-900 dark:text-slate-100 truncate">{profile.full_name || 'Estudante'}</p>
                   {isPro && (
                     <span className="bg-indigo-600 text-white text-[7px] font-black px-1 rounded uppercase tracking-tighter">Pro</span>
                   )}
                 </div>
-                <p className="text-[9px] text-gray-400 truncate leading-tight">{profile.email}</p>
+                <p className="text-[9px] text-gray-400 dark:text-slate-400 truncate leading-tight">{profile.email}</p>
               </div>
             </div>
           )}
@@ -379,7 +379,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Methodology button - icon only when collapsed */}
           <button
             onClick={() => { onOpenMethodology(); onClose?.(); }}
-            className={`w-full flex items-center gap-1.5 bg-white border border-gray-200 hover:border-indigo-300 text-gray-600 font-medium py-1.5 rounded text-[10px] shadow-sm shadow-indigo-50/50 ${!isOpen && !isHovered ? 'md:justify-center' : 'justify-center'}`}
+            className={`w-full flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:border-indigo-300 text-gray-600 dark:text-slate-200 font-medium py-1.5 rounded text-[10px] shadow-sm shadow-indigo-50/50 ${!isOpen && !isHovered ? 'md:justify-center' : 'justify-center'}`}
             title="Método e Instruções"
           >
             <GraduationCap className="w-3 h-3 shrink-0" />

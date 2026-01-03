@@ -1,6 +1,6 @@
 ﻿/**
- * ServiÃ§o centralizado para gerenciar perfil do usuÃ¡rio
- * Facilita migraÃ§Ã£o para Supabase depois
+ * Serviço centralizado para gerenciar perfil do usuário
+ * Facilita migração para Supabase depois
  */
 
 import { UserProfile, StudyArea, Purpose, ExamType, SourceType, PreferredSource } from '../types';
@@ -9,7 +9,7 @@ const STORAGE_KEY = 'neurostudy_user_profile';
 const CURRENT_VERSION = 1;
 
 /**
- * ObtÃ©m o perfil do usuÃ¡rio do localStorage
+ * Obtém o perfil do usuário do localStorage
  */
 export const getProfile = (): UserProfile | null => {
     try {
@@ -18,10 +18,10 @@ export const getProfile = (): UserProfile | null => {
 
         const profile = JSON.parse(stored) as UserProfile;
 
-        // Valida versÃ£o do perfil
+        // Valida versão do perfil
         if (profile.profileVersion !== CURRENT_VERSION) {
-            console.warn('[UserProfile] VersÃ£o desatualizada, migrando...');
-            // Aqui poderia ter lÃ³gica de migraÃ§Ã£o
+            console.warn('[UserProfile] Versão desatualizada, migrando...');
+            // Aqui poderia ter lógica de migração
         }
 
         return profile;
@@ -32,7 +32,7 @@ export const getProfile = (): UserProfile | null => {
 };
 
 /**
- * Salva o perfil do usuÃ¡rio no localStorage
+ * Salva o perfil do usuário no localStorage
  */
 export const saveProfile = (profile: Partial<UserProfile>): UserProfile => {
     const existing = getProfile();
@@ -55,7 +55,7 @@ export const saveProfile = (profile: Partial<UserProfile>): UserProfile => {
 };
 
 /**
- * Limpa o perfil do usuÃ¡rio
+ * Limpa o perfil do usuário
  */
 export const clearProfile = (): void => {
     try {
@@ -82,7 +82,7 @@ export const completeOnboarding = (): void => {
 };
 
 /**
- * ObtÃ©m a fonte preferida (com fallback automÃ¡tico baseado na Ã¡rea)
+ * Obtém a fonte preferida (com fallback automático baseado na área)
  */
 export const getPreferredSource = (): PreferredSource => {
     const profile = getProfile();
@@ -90,13 +90,13 @@ export const getPreferredSource = (): PreferredSource => {
     if (!profile) return 'auto';
     if (profile.preferredSource !== 'auto') return profile.preferredSource;
 
-    // LÃ³gica automÃ¡tica baseada na Ã¡rea
+    // Lógica automática baseada na área
     if (profile.studyArea === 'health') return 'pubmed';
     return 'grounding';
 };
 
 /**
- * ObtÃ©m o nome do usuÃ¡rio (ou null se nÃ£o definido)
+ * Obtém o nome do usuário (ou null se não definido)
  */
 export const getUserName = (): string | null => {
     const profile = getProfile();
@@ -104,40 +104,40 @@ export const getUserName = (): string | null => {
 };
 
 /**
- * Labels para exibiÃ§Ã£o na UI
+ * Labels para exibição na UI
  */
 export const LABELS = {
     studyArea: {
-        health: 'ðŸ¥ SaÃºde/Medicina',
-        engineering: 'âš™ï¸ Engenharia/Exatas',
-        law: 'âš–ï¸ Direito',
-        marketing: 'ðŸ“Š Marketing/NegÃ³cios',
-        general: 'ðŸ“š Geral'
+        health: '🏥 Saúde/Medicina',
+        engineering: '⚙️ Engenharia/Exatas',
+        law: '⚖️ Direito',
+        marketing: '📊 Marketing/Negócios',
+        general: '📚 Geral'
     },
     purpose: {
-        vestibular: 'ðŸŽ“ Vestibular',
-        exam: 'Concursos',
-        graduation: 'ðŸŽ’ Faculdade',
-        postgrad: 'ðŸ“– PÃ³s-graduaÃ§Ã£o',
-        professional: 'ðŸ’¼ Profissional'
+        vestibular: '🎓 Vestibular',
+        exam: '📝 Concursos',
+        graduation: '🎒 Faculdade',
+        postgrad: '📖 Pós-graduação',
+        professional: '💼 Profissional'
     },
     examType: {
         oab: 'OAB',
-        concursos: 'Concursos PÃºblicos',
+        concursos: 'Concursos Públicos',
         enem: 'ENEM',
-        residencia: 'ResidÃªncia MÃ©dica',
+        residencia: 'Residência Médica',
         none: 'Outro'
     },
     primarySourceType: {
-        video: 'ðŸŽ¬ VÃ­deos',
-        pdf: 'ðŸ“„ PDFs/Livros',
-        text: 'ðŸ“ Textos/Artigos',
-        mixed: 'ðŸ”€ Misto'
+        video: '🎬 Vídeos',
+        pdf: '📄 PDFs/Livros',
+        text: '📝 Textos/Artigos',
+        mixed: '🔀 Misto'
     },
     preferredSource: {
-        auto: 'âœ¨ AutomÃ¡tico (Recomendado)',
-        pubmed: 'ðŸ¥ PubMed (SaÃºde)',
-        openalex: 'ðŸ“š OpenAlex (AcadÃªmico)',
-        grounding: 'ðŸŒ Web/Geral'
+        auto: '✨ Automático (Recomendado)',
+        pubmed: '🏥 PubMed (Saúde)',
+        openalex: '📚 OpenAlex (Acadêmico)',
+        grounding: '🌐 Web/Geral'
     }
 };

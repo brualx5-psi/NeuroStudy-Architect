@@ -20,13 +20,16 @@ import { SourcePreviewModal } from './components/SourcePreviewModal';
 import { SearchResourcesModal } from './components/SearchResourcesModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { SettingsModal } from './components/SettingsModal';
 import { UsageBadge } from './components/UsageBadge';
 import { useAuth, AuthProvider } from './contexts/AuthContext';
+import { useSettings, SettingsProvider } from './contexts/SettingsContext';
 import { LoginPage } from './pages/LoginPage';
 import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles, Loader2 } from './components/Icons';
 
 export function AppContent() {
     const { user, loading, signOut, isPro, limits, canCreateStudy, incrementUsage, usage } = useAuth();
+    const { settings } = useSettings();
     // Estado da view - começa como 'app' se usuário logado
     const [view, setView] = useState<'landing' | 'app'>('landing');
 
@@ -95,6 +98,8 @@ export function AppContent() {
     const [isOnboardingComplete, setIsOnboardingComplete] = useState(initialOnboardingComplete);
     const [showOnboarding, setShowOnboarding] = useState(!initialOnboardingComplete);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [initialSettingsTab, setInitialSettingsTab] = useState<'search' | 'productivity' | 'account'>('search');
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
 
     // Refs precisam ser declarados antes de qualquer return condicional
@@ -582,7 +587,7 @@ export function AppContent() {
     }
 
     return (
-        <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden animate-in fade-in duration-500">
+        <div className="flex h-screen bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 overflow-hidden animate-in fade-in duration-500">
             <Sidebar
                 folders={folders} studies={studies} activeStudyId={activeStudyId}
                 onSelectStudy={setActiveStudyId} onCreateFolder={createFolder}
@@ -597,7 +602,7 @@ export function AppContent() {
             />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                <header className="flex justify-between items-center p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10">
+                <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-10">
                     <div className="flex items-center gap-4">
                         <button className="md:hidden text-gray-600" onClick={() => setIsMobileMenuOpen(true)}><Menu className="w-6 h-6" /></button>
                         {activeStudy ? (
@@ -620,6 +625,22 @@ export function AppContent() {
                         ) : (<h1 className="text-xl font-bold text-gray-400">Criar Novo Estudo</h1>)}
                     </div>
                     <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <span
+                                className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 cursor-pointer hover:bg-indigo-100"
+                                onClick={() => { setInitialSettingsTab('productivity'); setShowSettingsModal(true); }}
+                                title="Configurar foco e produtividade"
+                            >
+                                🎯 Foco: {settings.focusArea || 'Geral'}
+                            </span>
+                            <button
+                                className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                                onClick={() => { setInitialSettingsTab('search'); setShowSettingsModal(true); }}
+                                title="Configurações"
+                            >
+                                <Settings className="w-5 h-5" />
+                            </button>
+                        </div>
                         <UsageBadge />
                         <div className="relative">
                             <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" onClick={() => setShowNotifications(!showNotifications)}>
@@ -648,10 +669,10 @@ export function AppContent() {
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8 scroll-smooth">
+                <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 md:p-8 scroll-smooth">
 
                     {processingState.error && (
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 mx-auto max-w-4xl" role="alert">
+                        <div className="bg-red-100 dark:bg-red-900/40 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-200 px-4 py-3 rounded relative mb-6 mx-auto max-w-4xl" role="alert">
                             <strong className="font-bold">Ocorreu um erro: </strong>
                             <span className="block sm:inline">{processingState.error}</span>
                             <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setProcessingState(prev => ({ ...prev, error: null }))}>
@@ -869,7 +890,7 @@ export function AppContent() {
                                 </div>
                             ))
                     ) : (
-                        <div className="flex flex-col h-full bg-slate-50 items-center justify-center animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 items-center justify-center animate-in fade-in slide-in-from-bottom-4">
                             <div className="max-w-4xl mx-auto w-full px-6 py-4 space-y-6">
                                 <div className="text-center">
                                     <img src="/logo.png" alt="NeuroStudy" className="w-16 h-16 mx-auto mb-3" />
@@ -899,7 +920,15 @@ export function AppContent() {
                     )}
                 </div>
 
-                <PomodoroTimer />
+                {settings.pomodoro.showWidget && (
+                    <PomodoroTimer
+                        focusMinutes={settings.pomodoro.focusMinutes}
+                        breakMinutes={settings.pomodoro.breakMinutes}
+                        autoStartBreak={settings.pomodoro.autoStartBreak}
+                        enableAlerts={settings.notifications.pomodoroAlerts}
+                        soundEnabled={settings.notifications.soundEnabled}
+                    />
+                )}
                 <ChatWidget studyGuide={activeStudy?.guide || null} />
                 {showMethodologyModal && <MethodologyModal onClose={() => setShowMethodologyModal(false)} />}
                 {previewSource && <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} />}
@@ -923,13 +952,22 @@ export function AppContent() {
                         onCreateStudy={handleOnboardingCreateStudy}
                     />
                 )}
-                {showSubscriptionModal && (
-                    <SubscriptionModal
-                        isOpen={showSubscriptionModal}
-                        onClose={() => setShowSubscriptionModal(false)}
+                {showSettingsModal && (
+                    <SettingsModal
+                        isOpen={showSettingsModal}
+                        onClose={() => setShowSettingsModal(false)}
+                        initialTab={initialSettingsTab}
                     />
                 )}
             </div>
+
+            {/* Subscription Modal - Rendered OUTSIDE main container to avoid stacking context issues */}
+            {showSubscriptionModal && (
+                <SubscriptionModal
+                    isOpen={showSubscriptionModal}
+                    onClose={() => setShowSubscriptionModal(false)}
+                />
+            )}
         </div>
     );
 }
@@ -937,7 +975,9 @@ export function AppContent() {
 export function App() {
     return (
         <AuthProvider>
-            <AppContent />
+            <SettingsProvider>
+                <AppContent />
+            </SettingsProvider>
         </AuthProvider>
     );
 }

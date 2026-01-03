@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown, Globe, BrainCircuit } from '../components/Icons';
 
 interface SubscriptionModalProps {
@@ -10,13 +11,13 @@ interface SubscriptionModalProps {
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onSelectPlan }) => {
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-auto">
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
 
-            {/* Modal - Restored size but fits in viewport */}
-            <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col md:flex-row">
+            {/* Modal - Centered in viewport */}
+            <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 my-auto">
                 <button
                     onClick={onClose}
                     className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-10"
@@ -24,7 +25,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     <X className="w-6 h-6" />
                 </button>
 
-                <div className="flex flex-col md:flex-row h-full">
+                <div className="flex flex-col md:flex-row">
                     {/* Left Side: Pro Benefits */}
                     <div className="md:w-[45%] p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 text-white relative flex flex-col justify-center">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -136,6 +137,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
+

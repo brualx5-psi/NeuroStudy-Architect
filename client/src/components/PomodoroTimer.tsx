@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RefreshCw, X, Tomato } from './Icons';
 
-export const PomodoroTimer = () => {
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+type PomodoroTimerProps = {
+  focusMinutes?: number;
+  breakMinutes?: number;
+  autoStartBreak?: boolean;
+  enableAlerts?: boolean;
+  soundEnabled?: boolean;
+};
+
+export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
+  focusMinutes = 25,
+  breakMinutes = 5,
+  autoStartBreak = false,
+  enableAlerts = false,
+  soundEnabled = true,
+}) => {
+  const [timeLeft, setTimeLeft] = useState(() => focusMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -44,10 +58,37 @@ export const PomodoroTimer = () => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0) {
-      setIsRunning(false);
+      if (autoStartBreak) {
+        setTimeLeft(breakMinutes * 60);
+        setIsRunning(true);
+      } else {
+        setIsRunning(false);
+      }
     }
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  }, [isRunning, timeLeft, autoStartBreak, breakMinutes]);
+
+  // Notifica ao finalizar um ciclo
+  useEffect(() => {
+    if (!enableAlerts) return;
+    if (timeLeft !== 0) return;
+    const notify = () => {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification('Pomodoro', { body: 'Ciclo concluido.' });
+      }
+    };
+    const beep = () => {
+      if (!soundEnabled) return;
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
+        audio.play().catch(() => { });
+      } catch (e) {
+        // ignore
+      }
+    };
+    notify();
+    beep();
+  }, [timeLeft, enableAlerts, soundEnabled]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -64,7 +105,7 @@ export const PomodoroTimer = () => {
   
   const resetTimer = () => {
     setIsRunning(false);
-    handleSetTime(25);
+    handleSetTime(focusMinutes);
   };
 
   // --- ARRASTAR ---
@@ -149,6 +190,13 @@ export const PomodoroTimer = () => {
 
   const scale = size.w / MAX_W; 
 
+  // Atualiza tempo inicial quando presets mudam (se não estiver rodando)
+  useEffect(() => {
+    if (!isRunning) {
+      setTimeLeft(focusMinutes * 60);
+    }
+  }, [focusMinutes, isRunning]);
+
   if (!isOpen) {
     return (
       <div 
@@ -187,7 +235,7 @@ export const PomodoroTimer = () => {
         </div>
 
         <div className="grid grid-cols-3 gap-2 pt-4 border-t border-white/20 shrink-0">
-            {[{ m: 25, label: '25m' }, { m: 5, label: '5m' }, { m: 15, label: '15m' }].map((preset) => (
+            {[{ m: focusMinutes, label: `${focusMinutes}m` }, { m: breakMinutes, label: `${breakMinutes}m` }, { m: 15, label: '15m' }].map((preset) => (
                 <button key={preset.m} onClick={() => handleSetTime(preset.m)} className="py-2 rounded-xl text-xs font-bold transition-all duration-200 border border-transparent hover:border-white/40 bg-white/20 hover:bg-white/50 text-slate-600 hover:shadow-sm">{preset.label}</button>
             ))}
         </div>
