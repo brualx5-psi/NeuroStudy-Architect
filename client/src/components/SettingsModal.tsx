@@ -15,7 +15,7 @@ type TabKey = 'search' | 'productivity' | 'appearance' | 'notifications' | 'acco
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, initialTab }) => {
   const { settings, updateSettings } = useSettings();
-  const { isPro, limits, usage } = useAuth();
+  const { isPaid, planLabel, limits, usage } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab || 'search');
   const [defaultSource, setDefaultSource] = useState<PreferredSource>('auto');
@@ -346,18 +346,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 bg-gray-50">
                 <div className="flex items-center gap-3">
-                  <Crown className={`w-5 h-5 ${isPro ? 'text-amber-500' : 'text-gray-400'}`} />
+                  <Crown className={`w-5 h-5 ${isPaid ? 'text-amber-500' : 'text-gray-400'}`} />
                   <div>
                     <p className="font-bold text-sm text-gray-800">Plano atual</p>
-                    <p className="text-xs text-gray-500">{isPro ? 'Pro ativo' : 'Free'}</p>
+                    <p className="text-xs text-gray-500">{isPaid ? planLabel : 'Free'}</p>
                   </div>
                 </div>
-                {!isPro && (
+                {!isPaid && (
                   <button
-                    onClick={() => alert('Upgrade Pro: contate o suporte ou use o fluxo de assinatura.')}
+                    onClick={() => alert('Planos: escolha Starter ou Pro no modal de assinatura.')}
                     className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-lg shadow"
                   >
-                    Upgrade para Pro
+                    Ver planos
                   </button>
                 )}
               </div>
@@ -374,6 +374,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                   <li><strong>Web research:</strong> {limits.web_research}</li>
                   <li><strong>Chat msgs:</strong> {limits.chat_messages}</li>
                   <li><strong>YouTube minutos:</strong> {limits.youtube_minutes}</li>
+                  <li><strong>YouTube por vÃ­deo:</strong> {limits.youtube_minutes_per_video} min</li>
+                  <li><strong>Tokens mensais:</strong> {limits.monthly_tokens.toLocaleString()}</li>
                 </ul>
 
                 {usage && (

@@ -25,7 +25,7 @@ interface ResultsViewProps {
 export const ResultsView: React.FC<ResultsViewProps> = ({
     guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled, onOpenSubscription
 }) => {
-    const { isPro, canUseFeynman, incrementUsage, usage } = useAuth();
+    const { isPaid, canUseFeynman, incrementUsage, usage } = useAuth();
 
     // Estado para controlar qual conceito está carregando/expandido
     const [insightLoading, setInsightLoading] = useState<number | null>(null);
@@ -86,7 +86,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
             if (tab === 'feynman') {
                 newConcepts[index].tools!.feynman = content;
-                await incrementUsage('feynman');
+                await incrementUsage({ feynman_used: 1 });
             }
             else if (tab === 'example') newConcepts[index].tools!.example = content;
             else newConcepts[index].tools!.interdisciplinary = content;
@@ -261,7 +261,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                             <button onClick={() => handleInsightTabClick(idx, 'feynman', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'feynman' ? 'bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200' : 'text-gray-400 hover:bg-gray-50'}`}>
                                                 <Smile className="w-4 h-4" />
                                                 Feynman
-                                                {!isPro && <span className="text-[9px] bg-slate-100 px-1 rounded ml-1">{(usage?.feynman_used || 0)}/3</span>}
+                                                {!isPaid && <span className="text-[9px] bg-slate-100 px-1 rounded ml-1">{(usage?.feynman_used || 0)}/3</span>}
                                             </button>
                                             <button onClick={() => handleInsightTabClick(idx, 'example', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'example' ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-gray-400 hover:bg-gray-50'}`}><Target className="w-4 h-4" /> Aplicação</button>
                                             <button onClick={() => handleInsightTabClick(idx, 'interdisciplinary', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'interdisciplinary' ? 'bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-200' : 'text-gray-400 hover:bg-gray-50'}`}><Layers className="w-4 h-4" /> Conexão</button>
@@ -522,7 +522,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             >
                                 <FileDown className="w-4 h-4" />
                                 <span className="text-xs">Exportar PDF</span>
-                                {!isPro && <Crown className="w-3 h-3 text-indigo-600" />}
+                                {!isPaid && <Crown className="w-3 h-3 text-indigo-600" />}
                             </button>
                             <button
                                 onClick={onOpenSubscription}
@@ -530,7 +530,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             >
                                 <NotionIcon className="w-4 h-4" />
                                 <span className="text-xs">Notion</span>
-                                {!isPro && <Crown className="w-3 h-3 text-indigo-600" />}
+                                {!isPaid && <Crown className="w-3 h-3 text-indigo-600" />}
                             </button>
                         </div>
                     </div>

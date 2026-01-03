@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface UsageMeterProps {
@@ -8,7 +8,7 @@ interface UsageMeterProps {
 }
 
 export const UsageMeter: React.FC<UsageMeterProps> = ({ type, showLabel = true, compact = false }) => {
-    const { usage, limits, isPro } = useAuth();
+    const { usage, limits, isPaid } = useAuth();
 
     if (!usage) return null;
 
@@ -17,38 +17,38 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({ type, showLabel = true, 
             label: 'Roteiros',
             used: usage.roadmaps_created,
             max: limits.roadmaps,
-            icon: '📚'
+            icon: 'ðŸ“š'
         },
         feynman: {
             label: 'Feynman',
             used: usage.feynman_used,
-            max: isPro ? 100 : 3,
-            icon: '🧠'
+            max: isPaid ? 100 : 3,
+            icon: 'ðŸ§ '
         },
         youtube: {
             label: 'YouTube',
             used: usage.youtube_minutes_used,
             max: limits.youtube_minutes,
-            icon: '📹',
+            icon: 'ðŸ“¹',
             unit: 'min'
         },
         pdf: {
             label: 'Exportar PDF',
             used: usage.pdf_exports,
-            max: isPro ? 30 : 1,
-            icon: '📄'
+            max: isPaid ? 30 : 1,
+            icon: 'ðŸ“„'
         },
         web_research: {
             label: 'Pesquisa Web',
             used: usage.web_research_used,
             max: limits.web_research,
-            icon: '🔍'
+            icon: 'ðŸ”'
         },
         chat: {
             label: 'Chat',
             used: usage.chat_messages,
             max: limits.chat_messages,
-            icon: '💬',
+            icon: 'ðŸ’¬',
             unit: 'msg'
         }
     };
@@ -110,12 +110,12 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({ type, showLabel = true, 
             </div>
             {isLow && !isExhausted && (
                 <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
-                    ⚠️ Restam apenas {remaining} {unit || 'usos'}
+                    âš ï¸ Restam apenas {remaining} {unit || 'usos'}
                 </p>
             )}
             {isExhausted && (
                 <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
-                    🚫 Limite atingido! Faça upgrade para continuar.
+                    ðŸš« Limite atingido! FaÃ§a upgrade para continuar.
                 </p>
             )}
         </div>
@@ -124,7 +124,7 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({ type, showLabel = true, 
 
 // Componente para mostrar todos os limites de uma vez
 export const UsageDashboard: React.FC = () => {
-    const { isPro } = useAuth();
+    const { planLabel, isPaid } = useAuth();
 
     return (
         <div className="space-y-3">
@@ -132,13 +132,13 @@ export const UsageDashboard: React.FC = () => {
                 <h3 className="text-sm font-bold text-slate-800">
                     Seu Consumo Mensal
                 </h3>
-                {isPro ? (
+                {isPaid ? (
                     <span className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold">
-                        PRO
+                        {planLabel.toUpperCase()}
                     </span>
                 ) : (
                     <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-medium">
-                        Grátis
+                        Free
                     </span>
                 )}
             </div>

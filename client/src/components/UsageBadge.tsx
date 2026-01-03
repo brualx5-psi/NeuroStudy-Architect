@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { SubscriptionModal } from './SubscriptionModal';
 
 export const UsageBadge: React.FC = () => {
-    const { usage, limits, isPro } = useAuth();
+    const { usage, limits, planLabel, isPaid } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -33,10 +33,10 @@ export const UsageBadge: React.FC = () => {
     };
 
     const items = [
-        { icon: '📚', label: 'Roteiros', used: usage.roadmaps_created, max: limits.roadmaps },
-        { icon: '📹', label: 'YouTube', used: usage.youtube_minutes_used, max: limits.youtube_minutes, unit: 'min' },
-        { icon: '🧠', label: 'Feynman', used: usage.feynman_used, max: isPro ? 100 : 3 },
-        { icon: '🔍', label: 'Pesquisa Web', used: usage.web_research_used, max: limits.web_research },
+        { icon: 'ðŸ“š', label: 'Roteiros', used: usage.roadmaps_created, max: limits.roadmaps },
+        { icon: 'ðŸ“¹', label: 'YouTube', used: usage.youtube_minutes_used, max: limits.youtube_minutes, unit: 'min' },
+        { icon: 'ðŸ§ ', label: 'Feynman', used: usage.feynman_used, max: isPaid ? 100 : 3 },
+        { icon: 'ðŸ”', label: 'Pesquisa Web', used: usage.web_research_used, max: limits.web_research },
     ];
 
     return (
@@ -48,7 +48,7 @@ export const UsageBadge: React.FC = () => {
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all hover:scale-105 ${getBadgeColor()}`}
                     title="Ver limites de uso"
                 >
-                    <span>📚</span>
+                    <span>ðŸ“š</span>
                     <span>{roadmapsMax - roadmapsUsed}</span>
                     <svg
                         className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -63,10 +63,10 @@ export const UsageBadge: React.FC = () => {
                     <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-bold text-gray-800">Limite Mensal</h3>
-                            {isPro ? (
-                                <span className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold">PRO</span>
+                            {isPaid ? (
+                                <span className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold">{planLabel.toUpperCase()}</span>
                             ) : (
-                                <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Grátis</span>
+                                <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Free</span>
                             )}
                         </div>
 
@@ -96,12 +96,12 @@ export const UsageBadge: React.FC = () => {
                             })}
                         </div>
 
-                        {!isPro && (
+                        {!isPaid && (
                             <button
                                 onClick={() => { setIsOpen(false); setShowSubscriptionModal(true); }}
                                 className="w-full mt-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md"
                             >
-                                ⚡ Fazer Upgrade PRO
+                                Ver planos
                             </button>
                         )}
                     </div>
