@@ -280,8 +280,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                     <label
                       key={opt.value}
                       className={`flex flex-col items-center gap-2 p-4 rounded-xl border cursor-pointer transition-all ${theme === opt.value
-                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 ring-1 ring-indigo-300'
-                          : 'border-gray-200 dark:border-slate-600 hover:border-indigo-300 bg-white dark:bg-slate-700'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 ring-1 ring-indigo-300'
+                        : 'border-gray-200 dark:border-slate-600 hover:border-indigo-300 bg-white dark:bg-slate-700'
                         }`}
                     >
                       <input
@@ -422,30 +422,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                     <p>Chat: {usage.chat_messages} / {limits.chat_messages}</p>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'appearance' && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700">
-                <p className="text-sm font-bold text-gray-800 dark:text-slate-100 mb-2">Tema</p>
-                <div className="flex gap-3 flex-wrap">
-                  {[
-                    { key: 'system', label: 'Sistema' },
-                    { key: 'light', label: 'Claro' },
-                    { key: 'dark', label: 'Escuro' }
-                  ].map(opt => (
-                    <button
-                      key={opt.key}
-                      onClick={() => setTheme(opt.key as any)}
-                      className={`px-4 py-2 rounded-xl border text-sm font-bold transition-colors ${theme === opt.key ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-indigo-200'}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">Ao escolher "Sistema", seguimos a preferência do dispositivo.</p>
               </div>
             </div>
           )}
