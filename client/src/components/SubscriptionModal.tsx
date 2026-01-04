@@ -3,6 +3,14 @@ import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown } from '../components/Icons';
 import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 
+// Links de assinatura do Mercado Pago
+const MP_SUBSCRIPTION_LINKS = {
+  starter_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=1b3bff62d1f44f70878a89508e94c346',
+  starter_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=854c80057c0e420683c129a07273f7c8',
+  pro_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=87f2fd4ff4544ade8568359886acd3aa',
+  pro_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a7e0f68a4c4f4ddca4c2ae512a8a1db5',
+};
+
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -105,11 +113,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                 </div>
 
                 <button
-                  onClick={() => onSelectPlan?.('pro')}
+                  onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_mensal, '_blank')}
                   className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <Zap className="w-5 h-5 fill-current" />
-                  Assinar Pro
+                  Assinar Pro Mensal
                 </button>
               </div>
 
@@ -134,10 +142,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                 </ul>
 
                 <button
-                  onClick={() => onSelectPlan?.('starter')}
+                  onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_mensal, '_blank')}
                   className="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all"
                 >
-                  Assinar Starter
+                  Assinar Starter Mensal
                 </button>
               </div>
 
