@@ -1,10 +1,10 @@
-import { getAuthContext } from '../_lib/auth.js.js';
-import { buildLimitResponse } from '../_lib/limitResponses.js.js';
-import { getClientIp, readJson, sendJson } from '../_lib/http.js.js';
-import { rateLimit } from '../_lib/rateLimit.js.js';
-import { canPerformAction } from '../_lib/usageLimits.js.js';
-import { callGemini } from '../_lib/gemini.js.js';
-import { ensureUsageRow, getCurrentMonth, getUserPlan, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js.js';
+import { getAuthContext } from '../_lib/auth.js';
+import { buildLimitResponse } from '../_lib/limitResponses.js';
+import { getClientIp, readJson, sendJson } from '../_lib/http.js';
+import { rateLimit } from '../_lib/rateLimit.js';
+import { canPerformAction } from '../_lib/usageLimits.js';
+import { callGemini } from '../_lib/gemini.js';
+import { ensureUsageRow, getCurrentMonth, getUserPlan, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
 
 type WebResearchMode = 'grounding' | 'deep_research' | 'quality';
 
