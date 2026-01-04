@@ -131,6 +131,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Carrega local primeiro para ter resposta imediata
   useEffect(() => {
     const local = loadLocalSettings();
+    applyTheme(local.theme);
     setSettings(local);
     setHydrated(true);
   }, []);
@@ -172,8 +173,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const merged = mergeSettings(loadLocalSettings(), remotePrefs);
         if (!cancelled) {
-          setSettings(merged);
           saveLocalSettings(merged);
+          applyTheme(merged.theme);
+          setSettings(merged);
         }
       } catch (err: any) {
         console.warn('[Settings] Falha ao sincronizar Supabase (ignorado):', err.message);
@@ -194,6 +196,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updatedAt: Date.now()
       };
 
+      // Persiste e aplica primeiro; Supabase é best-effort.
       saveLocalSettings(next);
       applyTheme(next.theme);
 
