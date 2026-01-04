@@ -1,10 +1,10 @@
-import { getAuthContext } from '../_lib/auth';
-import { buildLimitResponse } from '../_lib/limitResponses';
-import { getClientIp, readJson, sendJson } from '../_lib/http';
-import { rateLimit } from '../_lib/rateLimit';
-import { canPerformAction } from '../_lib/usageLimits';
-import { transcribeMedia } from '../_lib/gemini';
-import { ensureUsageRow, getCurrentMonth, getUserPlan, incrementUsage, toUsageSnapshot } from '../_lib/usageStore';
+import { getAuthContext } from '../_lib/auth.js';
+import { buildLimitResponse } from '../_lib/limitResponses.js';
+import { getClientIp, readJson, sendJson } from '../_lib/http.js';
+import { rateLimit } from '../_lib/rateLimit.js';
+import { canPerformAction } from '../_lib/usageLimits.js';
+import { transcribeMedia } from '../_lib/gemini.js';
+import { ensureUsageRow, getCurrentMonth, getUserPlan, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
 
 const getApiKey = () => {
   const apiKey = process.env.GEMINI_API_KEY;
