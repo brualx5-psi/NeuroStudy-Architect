@@ -59,7 +59,9 @@ export default async function handler(req: any, res: any) {
   const usageSnapshot = toUsageSnapshot(usageRow);
 
   const minutes = body.durationMinutes || 0;
+  console.log('[transcribe] Received durationMinutes:', body.durationMinutes, 'Using minutes:', minutes, 'Action:', body.action);
   const check = canPerformAction(planName, usageSnapshot, [], 'youtube', { youtubeMinutes: minutes });
+  console.log('[transcribe] canPerformAction result:', check.allowed, 'reason:', check.reason);
   if (!check.allowed) {
     return sendJson(res, 402, buildLimitResponse(check.reason || 'monthly_limit', check.actionSuggestion));
   }
