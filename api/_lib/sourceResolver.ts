@@ -200,24 +200,28 @@ export const prepareSourcesForRoadmap = async (
     const limits = PLAN_LIMITS[planName];
     const adminBypass = isAdminUser(userId);
 
-    // Validação 1: número de fontes
-    if (sources.length > limits.sources_per_study) {
-        return {
-            success: false,
-            error: 'TOO_MANY_SOURCES',
-            errorMessage: `Máximo de ${limits.sources_per_study} fontes por roteiro.`,
-            actionSuggestion: 'remove_sources'
-        };
-    }
+    // ADMIN: Pula TODAS as validações de limites (roteiros, fontes, tokens, minutos)
+    // Admin pode usar a plataforma sem restrições
+    if (!adminBypass) {
+        // Validação 1: número de fontes
+        if (sources.length > limits.sources_per_study) {
+            return {
+                success: false,
+                error: 'TOO_MANY_SOURCES',
+                errorMessage: `Máximo de ${limits.sources_per_study} fontes por roteiro.`,
+                actionSuggestion: 'remove_sources'
+            };
+        }
 
-    // Validação 2: limite mensal de roteiros
-    if (usage.roadmaps_created >= limits.roadmaps) {
-        return {
-            success: false,
-            error: 'MONTHLY_LIMIT',
-            errorMessage: 'Limite mensal de roteiros atingido.',
-            actionSuggestion: 'view_plans'
-        };
+        // Validação 2: limite mensal de roteiros
+        if (usage.roadmaps_created >= limits.roadmaps) {
+            return {
+                success: false,
+                error: 'MONTHLY_LIMIT',
+                errorMessage: 'Limite mensal de roteiros atingido.',
+                actionSuggestion: 'view_plans'
+            };
+        }
     }
 
     const normalizedSources: NormalizedSource[] = [];
@@ -242,36 +246,38 @@ export const prepareSourcesForRoadmap = async (
             // Admin: tratar como texto puro (conteúdo da URL será usado como está)
         }
 
-        // YouTube - validar duração
+        // YouTube - validar duração (admin pula validação)
         if (sourceType === 'youtube') {
             const durationMinutes = source.durationMinutes || 0;
 
-            if (durationMinutes > limits.youtube_minutes_per_video) {
-                return {
-                    success: false,
-                    error: 'VIDEO_TOO_LONG',
-                    errorMessage: `Vídeo muito longo (${durationMinutes} min). Máximo: ${limits.youtube_minutes_per_video} min.`,
-                    actionSuggestion: 'split_roadmap'
-                };
-            }
+            if (!adminBypass) {
+                if (durationMinutes > limits.youtube_minutes_per_video) {
+                    return {
+                        success: false,
+                        error: 'VIDEO_TOO_LONG',
+                        errorMessage: `Vídeo muito longo (${durationMinutes} min). Máximo: ${limits.youtube_minutes_per_video} min.`,
+                        actionSuggestion: 'split_roadmap'
+                    };
+                }
 
-            if (usage.youtube_minutes_used + durationMinutes + totalDurationMinutes > limits.youtube_minutes) {
-                return {
-                    success: false,
-                    error: 'MONTHLY_LIMIT',
-                    errorMessage: 'Limite mensal de minutos de vídeo atingido.',
-                    actionSuggestion: 'view_plans'
-                };
+                if (usage.youtube_minutes_used + durationMinutes + totalDurationMinutes > limits.youtube_minutes) {
+                    return {
+                        success: false,
+                        error: 'MONTHLY_LIMIT',
+                        errorMessage: 'Limite mensal de minutos de vídeo atingido.',
+                        actionSuggestion: 'view_plans'
+                    };
+                }
             }
 
             totalDurationMinutes += durationMinutes;
         }
 
-        // Upload de vídeo - validar duração
+        // Upload de vídeo - validar duração (admin pula validação)
         if (sourceType === 'video_upload') {
             const durationMinutes = source.durationMinutes || 0;
 
-            if (durationMinutes > limits.youtube_minutes_per_video) {
+            if (!adminBypass && durationMinutes > limits.youtube_minutes_per_video) {
                 return {
                     success: false,
                     error: 'VIDEO_TOO_LONG',
@@ -331,26 +337,29 @@ export const prepareSourcesForRoadmap = async (
     const outputTokens = limits.max_output_tokens?.['roadmap'] || 8000;
     const estimatedTokens = inputTokens + outputTokens;
 
-    // Validação: tamanho do roteiro (airbag)
-    if (estimatedTokens > limits.max_tokens_per_roadmap) {
-        return {
-            success: false,
-            error: 'ROADMAP_TOO_LARGE',
-            errorMessage: 'Conteúdo muito extenso. Divida em roteiros menores ou remova algumas fontes.',
-            actionSuggestion: 'split_roadmap',
-            estimatedTokens
-        };
-    }
+    // ADMIN: Pula validações de tokens
+    if (!adminBypass) {
+        // Validação: tamanho do roteiro (airbag)
+        if (estimatedTokens > limits.max_tokens_per_roadmap) {
+            return {
+                success: false,
+                error: 'ROADMAP_TOO_LARGE',
+                errorMessage: 'Conteúdo muito extenso. Divida em roteiros menores ou remova algumas fontes.',
+                actionSuggestion: 'split_roadmap',
+                estimatedTokens
+            };
+        }
 
-    // Validação: limite mensal de tokens
-    if (usage.monthly_tokens_used + estimatedTokens > limits.monthly_tokens) {
-        return {
-            success: false,
-            error: 'MONTHLY_LIMIT',
-            errorMessage: 'Limite mensal de processamento atingido.',
-            actionSuggestion: 'view_plans',
-            estimatedTokens
-        };
+        // Validação: limite mensal de tokens
+        if (usage.monthly_tokens_used + estimatedTokens > limits.monthly_tokens) {
+            return {
+                success: false,
+                error: 'MONTHLY_LIMIT',
+                errorMessage: 'Limite mensal de processamento atingido.',
+                actionSuggestion: 'view_plans',
+                estimatedTokens
+            };
+        }
     }
 
     return {
