@@ -191,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         try {
             let { data, error } = await client
-                .from('user_usage')
+                .from('user_usage_monthly')
                 .select('*')
                 .eq('user_id', userId)
                 .eq('month', currentMonth)
@@ -199,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (error && error.code === 'PGRST116') {
                 const { data: newData, error: insertError } = await client
-                    .from('user_usage')
+                    .from('user_usage_monthly')
                     .insert([createEmptyUsage(userId, currentMonth)])
                     .select()
                     .single();
@@ -381,7 +381,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 updateFields[typedKey] = nextUsage[typedKey] as number;
             });
             await client
-                .from('user_usage')
+                .from('user_usage_monthly')
                 .update(updateFields)
                 .eq('user_id', user.id)
                 .eq('month', currentMonth);
