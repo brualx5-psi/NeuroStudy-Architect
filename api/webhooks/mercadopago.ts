@@ -138,7 +138,7 @@ async function updateUserPlan(email: string, planName: string, subscriptionId: s
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
     // Apenas POST
     if (req.method !== 'POST') {
-        return sendJson(res, { error: 'Method not allowed' }, 405);
+        return sendJson(res, 405, { error: 'Method not allowed' });
     }
 
     try {
@@ -149,7 +149,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         // Verificar se é um evento de assinatura
         if (payload.type !== 'subscription_preapproval') {
             console.log('[MP Webhook] Evento ignorado:', payload.type);
-            return sendJson(res, { message: 'Evento ignorado' });
+            return sendJson(res, 200, { message: 'Evento ignorado' });
         }
 
         // Buscar detalhes da assinatura
@@ -157,7 +157,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
         if (!subscription) {
             console.error('[MP Webhook] Não foi possível buscar detalhes da assinatura');
-            return sendJson(res, { message: 'Assinatura não encontrada' });
+            return sendJson(res, 200, { message: 'Assinatura não encontrada' });
         }
 
         console.log('[MP Webhook] Assinatura:', {
@@ -198,9 +198,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
                 console.log('[MP Webhook] Status não tratado:', subscription.status);
         }
 
-        return sendJson(res, { message: 'OK' });
+        return sendJson(res, 200, { message: 'OK' });
     } catch (error) {
         console.error('[MP Webhook] Erro no handler:', error);
-        return sendJson(res, { error: 'Internal server error' }, 500);
+        return sendJson(res, 500, { error: 'Internal server error' });
     }
 }
