@@ -303,6 +303,8 @@ export const generateStudyGuide = async (
   }
 
   const MASTER_PROMPT = `
+  IDIOMA OBRIGATÓRIO: Responda SEMPRE em Português do Brasil (pt-BR). Nunca use inglês.
+  
   Voce e o NeuroStudy Architect.
   CONTEXTO: (${isBook ? 'LIVRO COMPLETO' : 'Material de Estudo'}).
   MISSAO: Analisar e criar um guia pratico baseado em Neurociencia.
