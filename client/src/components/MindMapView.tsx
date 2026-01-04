@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
 import { StudyGuide } from '../types';
-import { generateDiagram } from '../services/geminiService';
+import { generateDiagram, isUsageLimitError } from '../services/geminiService';
 import { PenTool, Zap } from './Icons';
+import { LimitReason } from '../services/usageLimits';
 
 interface MindMapViewProps {
   guide: StudyGuide;
   onUpdateGuide: (guide: StudyGuide) => void;
+  onUsageLimit?: (reason: LimitReason) => void;
 }
 
-export const MindMapView: React.FC<MindMapViewProps> = ({ guide, onUpdateGuide }) => {
+export const MindMapView: React.FC<MindMapViewProps> = ({ guide, onUpdateGuide, onUsageLimit }) => {
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const url = await generateDiagram(guide.title);
+      const { url } = await generateDiagram(guide.title);
       onUpdateGuide({ ...guide, diagramUrl: url });
     } catch (e) {
-      console.error(e);
+      if (isUsageLimitError(e)) {
+        onUsageLimit?.(e.reason as LimitReason);
+      } else {
+        console.error(e);
+      }
     } finally {
       setLoading(false);
     }

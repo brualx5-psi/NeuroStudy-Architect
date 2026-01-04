@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { QuizQuestion } from '../types';
-import { evaluateOpenAnswer } from '../services/geminiService';
+import { evaluateOpenAnswer, isUsageLimitError } from '../services/geminiService';
 import { CheckCircle, HelpCircle, FileText, RefreshCw, Trash, Mic, Settings, Play, GradCap, AlertTriangle, Eye, EyeOff, Bot } from './Icons';
+import { LimitReason } from '../services/usageLimits';
 
 interface QuizViewProps {
   questions: QuizQuestion[];
   onGenerate: (config: { quantity: number, difficulty: 'easy' | 'medium' | 'hard' | 'mixed', distribution?: { mc: number, open: number } }) => void;
   onClear: () => void;
+  onUsageLimit?: (reason: LimitReason) => void;
 }
 
-export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onClear }) => {
+export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onClear, onUsageLimit }) => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
   const [showExplanation, setShowExplanation] = useState<Record<string, boolean>>({});
@@ -72,6 +74,10 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
       setEvaluations(prev => ({ ...prev, [q.id]: result }));
       setCheckedState(prev => ({ ...prev, [q.id]: true })); // Marca como checado também
     } catch (error) {
+      if (isUsageLimitError(error)) {
+        onUsageLimit?.(error.reason as LimitReason);
+        return;
+      }
       alert("Erro na avaliação IA.");
     } finally {
       setEvaluatingId(null);
@@ -179,8 +185,8 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
         // Estilização condicional baseada no status
         if (isChecked) {
           if (q.type === 'multiple_choice') {
-            const isUserCorrect = answers[q.id] === String(Number(q.correctAnswer)); // MC CorrectAnswer armazena o índice (mock service) ou letra? Types diz number. Gemini gera number ou string? GeminiService parseia QuizQuestion.
-            // Wait, QuizQuestion defines correctAnswer as number. Gemini generates JSON.
+            const isUserCorrect = answers[q.id] === String(Number(q.correctAnswer)); // MC CorrectAnswer armazena o índice (mock service) ou letra? Types diz number. IA gera number ou string? Service parseia QuizQuestion.
+            // Wait, QuizQuestion defines correctAnswer as number. IA gera JSON.
             // Se o usuário acertou: Verde. Se errou: Vermelho (mas não mostra a certa ainda).
             if (isUserCorrect) containerClass += "border-green-300 bg-green-50/30";
             else containerClass += "border-red-300 bg-red-50/30";

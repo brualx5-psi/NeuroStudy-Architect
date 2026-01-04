@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { StudyGuide } from '../types';
-import { generateTool } from '../services/geminiService';
+import { generateTool, isUsageLimitError } from '../services/geminiService';
 import { Globe } from './Icons';
+import { LimitReason } from '../services/usageLimits';
 
 interface ConnectionsViewProps {
   guide: StudyGuide;
   onUpdateGuide: (guide: StudyGuide) => void;
+  onUsageLimit?: (reason: LimitReason) => void;
 }
 
-export const ConnectionsView: React.FC<ConnectionsViewProps> = ({ guide, onUpdateGuide }) => {
+export const ConnectionsView: React.FC<ConnectionsViewProps> = ({ guide, onUpdateGuide, onUsageLimit }) => {
   const [loading, setLoading] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<string>('');
   const [customInput, setCustomInput] = useState('');
@@ -32,6 +34,10 @@ export const ConnectionsView: React.FC<ConnectionsViewProps> = ({ guide, onUpdat
         tools: { ...currentTools, interdisciplinary: content }
       });
     } catch (e) {
+      if (isUsageLimitError(e)) {
+        onUsageLimit?.(e.reason as LimitReason);
+        return;
+      }
       console.error(e);
       alert("Erro ao gerar conexão.");
     } finally {

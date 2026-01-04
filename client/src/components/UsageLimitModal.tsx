@@ -63,6 +63,13 @@ const getContentForReason = (reason: LimitReason | null) => {
         actions: ['plans', 'close'],
         closeLabel: 'Ok'
       };
+    case 'rate_limited':
+      return {
+        title: 'Muitas requisicoes',
+        message: 'Voce esta fazendo muitas acoes em pouco tempo. Aguarde alguns segundos e tente novamente.',
+        actions: ['close'],
+        closeLabel: 'Ok'
+      };
     default:
       return {
         title: 'Limite atingido',

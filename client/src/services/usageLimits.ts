@@ -9,7 +9,8 @@ export type LimitReason =
   | 'youtube_too_long'
   | 'too_many_sources'
   | 'chat_message_too_large'
-  | 'web_search_limit';
+  | 'web_search_limit'
+  | 'rate_limited';
 
 export type ActionSuggestion = 'split_roadmap' | 'remove_sources' | 'view_plans';
 

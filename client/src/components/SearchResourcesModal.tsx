@@ -6,6 +6,8 @@ import { InputType } from '../types';
 import { searchPubMed } from '../services/pubmedService';
 import { getProfile, getPreferredSource } from '../services/userProfileService';
 import { canPerformAction, LimitReason } from '../services/usageLimits';
+import { supabase } from '../services/supabase';
+import { UsageLimitError, isUsageLimitError } from '../services/geminiService';
 
 // Simple markdown parser for Deep Research output
 const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
@@ -29,6 +31,38 @@ const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
             <p key={idx} className="mb-2" dangerouslySetInnerHTML={{ __html: parsed }} />
         );
     });
+};
+
+const getAuthHeaders = async () => {
+    if (!supabase) return {};
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const postApi = async <T,>(path: string, body: unknown): Promise<T> => {
+    const authHeaders = await getAuthHeaders();
+    const response = await fetch(path, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders
+        },
+        body: JSON.stringify(body)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        if (response.status === 402 || response.status === 429) {
+            throw new UsageLimitError(
+                payload.reason || 'monthly_limit',
+                payload.message || 'Limite atingido.',
+                payload.actions || [],
+                response.status
+            );
+        }
+        throw new Error(payload.message || 'Erro na requisicao.');
+    }
+    return payload as T;
 };
 
 interface SearchResult {
@@ -131,7 +165,7 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
 type SourceMode = 'auto' | 'pubmed' | 'openalex' | 'grounding';
 
 export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onClose, onAddSource, onOpenSubscription, onUsageLimit }) => {
-    const { isPaid, planName, usage, incrementUsage } = useAuth();
+    const { isPaid, planName, usage } = useAuth();
     const { settings } = useSettings();
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'book' | 'article' | 'web'>('article');
@@ -175,6 +209,9 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
                 alert('Não foi possível traduzir. Tente novamente.');
             }
         } catch (error) {
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            }
             console.error('Erro ao traduzir:', error);
             alert('Erro na tradução. Verifique sua conexão.');
         } finally {
@@ -200,10 +237,6 @@ export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onCl
         }));
 
         try {
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) {
-                throw new Error('API Key não configurada');
-            }
 
             const prompt = `Você é um especialista em avaliação de evidências científicas. Analise esta meta-análise/revisão sistemática usando critérios simplificados do AMSTAR 2.
 
@@ -224,17 +257,13 @@ SCORE: [número de 0 a 16]
 QUALIDADE: [Alta/Moderada/Baixa/Criticamente Baixa]
 RESUMO: [1 frase sobre a qualidade metodológica]`;
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.3, maxOutputTokens: 200 }
-                })
+            const { result } = await postApi<{ result: string }>('/api/ai/web-research', {
+                mode: 'quality',
+                assessmentType: 'amstar',
+                title,
+                abstractText
             });
-
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const text = result || '';
 
             // Parse da resposta
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
@@ -248,6 +277,9 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
             }));
 
         } catch (error) {
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            }
             console.error('Erro na avaliação:', error);
             setQualityAssessments(prev => ({
                 ...prev,
@@ -268,8 +300,6 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
         }));
 
         try {
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) throw new Error('API Key não configurada');
 
             const prompt = `Você é um especialista em avaliação de evidências científicas. Analise este Ensaio Clínico Randomizado (RCT) usando os domínios do RoB 2 (Risk of Bias 2).
 
@@ -288,17 +318,13 @@ RISCO: [Baixo/Algumas Preocupações/Alto]
 SCORE: [número de 1 a 5, onde 5=baixo risco, 1=alto risco]
 RESUMO: [1 frase sobre o risco de viés do estudo]`;
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.3, maxOutputTokens: 200 }
-                })
+            const { result } = await postApi<{ result: string }>('/api/ai/web-research', {
+                mode: 'quality',
+                assessmentType: 'rob2',
+                title,
+                abstractText
             });
-
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const text = result || '';
 
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : 3;
@@ -311,6 +337,9 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
             }));
 
         } catch (error) {
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            }
             console.error('Erro na avaliação RoB 2:', error);
             setQualityAssessments(prev => ({
                 ...prev,
@@ -328,8 +357,6 @@ RESUMO: [1 frase sobre o risco de viés do estudo]`;
         setQualityAssessments(prev => ({ ...prev, [itemId]: { score: 0, summary: '', loading: true } }));
 
         try {
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) throw new Error('API Key não configurada');
 
             const prompt = `Você é um especialista em avaliação de evidências. Analise este estudo de coorte/caso-controle usando a Newcastle-Ottawa Scale (NOS).
 
@@ -346,14 +373,13 @@ SCORE: [número de 0 a 9]
 QUALIDADE: [Alta (7-9)/Moderada (4-6)/Baixa (0-3)]
 RESUMO: [1 frase sobre a qualidade metodológica]`;
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 200 } })
+            const { result } = await postApi<{ result: string }>('/api/ai/web-research', {
+                mode: 'quality',
+                assessmentType: 'nos',
+                title,
+                abstractText
             });
-
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const text = result || '';
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
             const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
@@ -361,6 +387,9 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
 
             setQualityAssessments(prev => ({ ...prev, [itemId]: { score, summary, loading: false } }));
         } catch (error) {
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            }
             console.error('Erro NOS:', error);
             setQualityAssessments(prev => ({ ...prev, [itemId]: { score: -1, summary: 'Erro', loading: false } }));
         }
@@ -375,8 +404,6 @@ RESUMO: [1 frase sobre a qualidade metodológica]`;
         setQualityAssessments(prev => ({ ...prev, [itemId]: { score: 0, summary: '', loading: true } }));
 
         try {
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) throw new Error('API Key não configurada');
 
             const prompt = `Você é um especialista em avaliação de guidelines clínicas. Analise esta diretriz usando critérios do AGREE II.
 
@@ -396,14 +423,13 @@ SCORE: [número de 1 a 7, onde 7=excelente]
 RECOMENDAÇÃO: [Fortemente Recomendada/Recomendada com Modificações/Não Recomendada]
 RESUMO: [1 frase sobre a qualidade da diretriz]`;
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 200 } })
+            const { result } = await postApi<{ result: string }>('/api/ai/web-research', {
+                mode: 'quality',
+                assessmentType: 'agree',
+                title,
+                abstractText
             });
-
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const text = result || '';
             const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : 5;
             const summaryMatch = text.match(/RESUMO:\s*(.+)/i);
@@ -411,6 +437,9 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
 
             setQualityAssessments(prev => ({ ...prev, [itemId]: { score, summary, loading: false } }));
         } catch (error) {
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            }
             console.error('Erro AGREE II:', error);
             setQualityAssessments(prev => ({ ...prev, [itemId]: { score: -1, summary: 'Erro', loading: false } }));
         }
@@ -451,16 +480,7 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
                 abstract: item.abstract_inverted_index ? 'Possui abstract' : 'Sem abstract'
             }));
 
-            // 3. Envia para o Gemini analisar
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-            if (!apiKey) {
-                setDeepResearchInsight('API Key do Gemini não configurada.');
-                return;
-            }
-
-            const { GoogleGenAI } = await import('@google/genai');
-            const ai = new GoogleGenAI({ apiKey });
-
+            // 3. Envia para o backend analisar
             const prompt = `Você é um pesquisador científico experiente. Analise estes artigos sobre "${query}" e forneça:
 
 ARTIGOS ENCONTRADOS:
@@ -474,13 +494,12 @@ TAREFA:
 
 Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 200 palavras.`;
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.0-flash',
-                contents: { parts: [{ text: prompt }] }
+            const { insight } = await postApi<{ insight: string }>('/api/ai/web-research', {
+                mode: 'deep_research',
+                query,
+                articles: articlesForAnalysis
             });
-
-            let insight = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
-            setDeepResearchInsight(insight);
+            setDeepResearchInsight(insight || '');
 
             // 4. Também popula os resultados normais
             const formatted = searchData.results.map((item: any) => {
@@ -505,9 +524,10 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
             });
 
             setResults(sorted);
-            await incrementUsage({ web_research_used: 1 });
-
         } catch (error) {
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            }
             console.error('Erro no Deep Research:', error);
             setDeepResearchInsight('Erro ao executar Deep Research. Tente novamente.');
         } finally {
@@ -587,7 +607,6 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
         setHasSearched(true);
         setResults([]);
         setFilter('ALL'); // Reseta filtro ao buscar
-        let shouldIncrement = false;
 
         try {
             if (activeTab === 'book') {
@@ -653,17 +672,8 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
                         setResults(sorted);
                     }
 
-                    // === GEMINI GROUNDING ===
+                    // === IA GROUNDING ===
                 } else {
-                    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
-                    if (!apiKey) {
-                        console.error('API Key não configurada');
-                        return;
-                    }
-
-                    const { GoogleGenAI } = await import('@google/genai');
-                    const ai = new GoogleGenAI({ apiKey });
-
                     const prompt = `Você é um assistente de pesquisa científica. Busque artigos científicos sobre: "${query}"
                 
 TAREFA: Encontre 10-15 artigos científicos relevantes (priorizando meta-análises, revisões sistemáticas e guidelines).
@@ -689,15 +699,12 @@ IMPORTANTE:
 - Retorne APENAS o JSON, sem markdown ou explicações`;
 
                     try {
-                        const response = await ai.models.generateContent({
-                            model: 'gemini-2.0-flash',
-                            contents: { parts: [{ text: prompt }] },
-                            config: {
-                                tools: [{ googleSearch: {} }], // Ativa Grounding com Google Search
-                            }
+                        const { articles } = await postApi<{ articles: any[] }>('/api/ai/web-research', {
+                            mode: 'grounding',
+                            query
                         });
 
-                        let text = typeof (response as any).text === 'function' ? (response as any).text() : (response as any).text;
+                        let text = JSON.stringify({ articles });
 
                         // Limpa e faz parse do JSON
                         text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -740,7 +747,7 @@ IMPORTANTE:
                                 setResults(sorted);
                             }
                         } catch (parseError) {
-                            console.error('Erro ao parsear resposta do Gemini:', parseError);
+                            console.error('Erro ao parsear resposta da IA:', parseError);
                             // Fallback para OpenAlex se falhar
                             const fallbackResponse = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=20&sort=cited_by_count:desc`);
                             const fallbackData = await fallbackResponse.json();
@@ -763,9 +770,13 @@ IMPORTANTE:
                             }
                         }
                     } catch (geminiError) {
-                        console.error('Erro no Gemini Grounding:', geminiError);
+                        if (isUsageLimitError(geminiError)) {
+                            onUsageLimit?.(geminiError.reason as LimitReason);
+                            return;
+                        }
+                        console.error('Erro no grounding da IA:', geminiError);
                     }
-                } // Fecha else do Gemini Grounding
+                } // Fecha else do grounding
 
             } else {
                 const response = await fetch(`https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=40`);
@@ -782,12 +793,10 @@ IMPORTANTE:
                     setResults(formatted);
                 }
             }
-            shouldIncrement = true;
         } catch (error) {
             console.error("Erro na busca:", error);
         } finally {
             setLoading(false);
-            if (shouldIncrement) await incrementUsage({ web_research_used: 1 });
         }
     };
 

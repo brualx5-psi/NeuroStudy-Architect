@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { StudyGuide, CoreConcept } from '../types';
-import { generateTool, generateDiagram } from '../services/geminiService';
+import { generateTool, generateDiagram, isUsageLimitError } from '../services/geminiService';
 import {
     CheckCircle, BookOpen, Brain, Target,
     Smile, RefreshCw, Layers, Calendar, Clock,
@@ -9,6 +9,7 @@ import {
 } from './Icons';
 import { MermaidEditor } from './MermaidEditor';
 import { useAuth } from '../contexts/AuthContext';
+import { LimitReason } from '../services/usageLimits';
 
 interface ResultsViewProps {
     guide: StudyGuide;
@@ -20,10 +21,11 @@ interface ResultsViewProps {
     onScheduleReview?: (studyId: string) => void;
     isReviewScheduled?: boolean;
     onOpenSubscription: () => void;
+    onUsageLimit?: (reason: LimitReason) => void;
 }
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
-    guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled, onOpenSubscription
+    guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled, onOpenSubscription, onUsageLimit
 }) => {
     const { isPaid, canUseFeynman, incrementUsage, usage } = useAuth();
 
@@ -93,8 +95,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
             onUpdateGuide({ ...guide, coreConcepts: newConcepts });
         } catch (error) {
-            console.error(error);
-            alert("Erro ao gerar insight.");
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            } else {
+                console.error(error);
+                alert("Erro ao gerar insight.");
+            }
         } finally {
             setInsightLoading(null);
         }
@@ -109,7 +115,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             );
             onUpdateGuide({ ...guide, checkpoints: newCheckpoints });
         } catch (error) {
-            alert("Erro ao gerar diagrama.");
+            if (isUsageLimitError(error)) {
+                onUsageLimit?.(error.reason as LimitReason);
+            } else {
+                alert("Erro ao gerar diagrama.");
+            }
         } finally {
             setLoadingDiagramForCheckpoint(null);
         }

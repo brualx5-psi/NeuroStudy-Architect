@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode, SlideContent } from './types';
-import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards, uploadFileToGemini, transcribeMedia } from './services/geminiService';
+import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards, uploadFileForTranscription, transcribeMedia, isUsageLimitError } from './services/geminiService';
 import { loadUserData, saveUserData, isCloudMode } from './services/storage';
 import { hasCompletedOnboarding } from './services/userProfileService';
 import { ResultsView } from './components/ResultsView';
@@ -31,7 +31,7 @@ import { canPerformAction, LimitReason } from './services/usageLimits';
 import { extractTextFromPdfBase64 } from './services/textExtraction';
 
 export function AppContent() {
-    const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, incrementUsage, usage } = useAuth();
+    const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage } = useAuth();
     const { settings } = useSettings();
     // Estado da view - começa como 'app' se usuário logado
     const [view, setView] = useState<'landing' | 'app'>('landing');
@@ -351,10 +351,10 @@ export function AppContent() {
                 try {
                     // Otimização: Upload direto do arquivo binário (sem converter para base64 antes)
                     // Isso permite arquivos gigantes (60min+) sem travar o navegador e é muito mais rápido.
-                    // 1. Upload para Gemini (para gerar URI)
-                    const fileUri = await uploadFileToGemini(selectedFile, selectedFile.type);
+                    // 1. Upload para IA (para gerar URI)
+                    const { fileUri, fileName } = await uploadFileForTranscription(selectedFile, selectedFile.type, minutes);
                     // 2. Transcrever
-                    const transcript = await transcribeMedia(fileUri, selectedFile.type);
+                    const transcript = await transcribeMedia(fileUri, fileName, selectedFile.type, minutes);
 
                     // 3. Salvar como Fonte de TEXTO
                     content = transcript;
@@ -365,10 +365,13 @@ export function AppContent() {
                     textContent = transcript;
                     durationMinutes = minutes;
 
-                    await incrementUsage({ youtube_minutes_used: minutes });
-
                     setProcessingState({ isLoading: false, error: null, step: 'idle' });
                 } catch (err: any) {
+                    if (isUsageLimitError(err)) {
+                        openUsageLimitModal(err.reason as LimitReason);
+                        setProcessingState({ isLoading: false, error: null, step: 'idle' });
+                        return;
+                    }
                     setProcessingState({ isLoading: false, error: "Erro na transcrição: " + err.message, step: 'idle' });
                     return;
                 }
@@ -496,7 +499,6 @@ export function AppContent() {
             openUsageLimitModal(roadmapCheck.reason || 'monthly_limit');
             return;
         }
-        const estimatedTokens = roadmapCheck.estimatedTokens || 0;
 
         // Encontra a fonte primária para definir o passo inicial (transcribing vs analyzing)
         const primarySource = sources.find(s => s.isPrimary) || sources[0];
@@ -515,8 +517,12 @@ export function AppContent() {
             setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide } : s));
             setProcessingState({ isLoading: false, error: null, step: 'idle' });
             setActiveTab('guide');
-            await incrementUsage({ roadmaps_created: 1, monthly_tokens_used: estimatedTokens });
         } catch (err: any) {
+            if (isUsageLimitError(err)) {
+                openUsageLimitModal(err.reason as LimitReason);
+                setProcessingState({ isLoading: false, error: null, step: 'idle' });
+                return;
+            }
             setProcessingState({ isLoading: false, error: err.message, step: 'idle' });
         }
     };
@@ -537,7 +543,12 @@ export function AppContent() {
             const slides = await generateSlides(activeStudy.guide);
             setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, slides } : s));
         } catch (err: any) {
-            setProcessingState(prev => ({ ...prev, error: err.message }));
+            if (isUsageLimitError(err)) {
+                openUsageLimitModal(err.reason as LimitReason);
+                setProcessingState(prev => ({ ...prev, error: null }));
+            } else {
+                setProcessingState(prev => ({ ...prev, error: err.message }));
+            }
         } finally {
             setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' }));
         }
@@ -549,14 +560,17 @@ export function AppContent() {
             openUsageLimitModal(quizCheck.reason || 'monthly_tokens_exhausted');
             return;
         }
-        const estimatedTokens = quizCheck.estimatedTokens || 0;
         setProcessingState({ isLoading: true, error: null, step: 'quiz' });
         try {
             const quiz = await generateQuiz(activeStudy.guide, activeStudy.mode || StudyMode.NORMAL, config);
             setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz } : s));
-            await incrementUsage({ monthly_tokens_used: estimatedTokens });
         } catch (err: any) {
-            setProcessingState(prev => ({ ...prev, error: err.message }));
+            if (isUsageLimitError(err)) {
+                openUsageLimitModal(err.reason as LimitReason);
+                setProcessingState(prev => ({ ...prev, error: null }));
+            } else {
+                setProcessingState(prev => ({ ...prev, error: err.message }));
+            }
         } finally {
             setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' }));
         }
@@ -568,14 +582,17 @@ export function AppContent() {
             openUsageLimitModal(flashcardsCheck.reason || 'monthly_tokens_exhausted');
             return;
         }
-        const estimatedTokens = flashcardsCheck.estimatedTokens || 0;
         setProcessingState({ isLoading: true, error: null, step: 'flashcards' });
         try {
             const flashcards = await generateFlashcards(activeStudy.guide);
             setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, flashcards } : s));
-            await incrementUsage({ monthly_tokens_used: estimatedTokens });
         } catch (err: any) {
-            setProcessingState(prev => ({ ...prev, error: err.message }));
+            if (isUsageLimitError(err)) {
+                openUsageLimitModal(err.reason as LimitReason);
+                setProcessingState(prev => ({ ...prev, error: null }));
+            } else {
+                setProcessingState(prev => ({ ...prev, error: err.message }));
+            }
         } finally {
             setProcessingState(prev => ({ ...prev, isLoading: false, step: 'idle' }));
         }
@@ -1030,19 +1047,20 @@ export function AppContent() {
                                                 onScheduleReview={() => handleInitialSchedule(activeStudy.id)}
                                                 isReviewScheduled={!!activeStudy.nextReviewDate}
                                                 onOpenSubscription={() => setShowSubscriptionModal(true)}
+                                                onUsageLimit={openUsageLimitModal}
                                             />
                                         )}
 
                                         {activeTab === 'slides' && !processingState.isLoading && (<div className="space-y-6">{activeStudy.slides ? (<SlidesView slides={activeStudy.slides} onUpdateSlides={(newSlides) => setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, slides: newSlides } : s))} />) : (<div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed"><Monitor className="w-16 h-16 text-gray-300 mx-auto mb-4" /><h3 className="text-xl font-bold text-gray-700 mb-2">Slides de Aula</h3><p className="text-gray-500 mb-6 max-w-md mx-auto">Transforme o roteiro em uma apresentação estruturada.</p><button onClick={handleGenerateSlides} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Gerar Slides com IA</button></div>)}</div>)}
-                                        {activeTab === 'quiz' && !processingState.isLoading && (<div className="space-y-6">{(activeStudy.quiz || activeStudy.guide) ? (<QuizView questions={activeStudy.quiz || []} onGenerate={handleGenerateQuiz} onClear={handleClearQuiz} />) : (<div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed"><CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" /><h3 className="text-xl font-bold text-gray-700 mb-2">Quiz de Recuperação Ativa</h3><p className="text-gray-500 mb-6 max-w-md mx-auto">Teste seu conhecimento para fortalecer as conexões neurais.</p><div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-200"><Lock className="w-4 h-4" /> Gere o Roteiro primeiro</div></div>)}</div>)}
+                                        {activeTab === 'quiz' && !processingState.isLoading && (<div className="space-y-6">{(activeStudy.quiz || activeStudy.guide) ? (<QuizView questions={activeStudy.quiz || []} onGenerate={handleGenerateQuiz} onClear={handleClearQuiz} onUsageLimit={openUsageLimitModal} />) : (<div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed"><CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" /><h3 className="text-xl font-bold text-gray-700 mb-2">Quiz de Recuperação Ativa</h3><p className="text-gray-500 mb-6 max-w-md mx-auto">Teste seu conhecimento para fortalecer as conexões neurais.</p><div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-200"><Lock className="w-4 h-4" /> Gere o Roteiro primeiro</div></div>)}</div>)}
                                         {activeTab === 'flashcards' && !processingState.isLoading && (<div className="space-y-6">{(activeStudy.flashcards || activeStudy.guide) ? (<FlashcardsView cards={activeStudy.flashcards || []} onGenerate={handleGenerateFlashcards} />) : (<div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed"><Layers className="w-16 h-16 text-gray-300 mx-auto mb-4" /><h3 className="text-xl font-bold text-gray-700 mb-2">Flashcards</h3><p className="text-gray-500 mb-6 max-w-md mx-auto">Pratique a recuperação ativa com cartões.</p><div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-200"><Lock className="w-4 h-4" /> Gere o Roteiro primeiro</div></div>)}</div>)}
 
                                         {/* NOVAS VIEWS MAP E CONNECTIONS */}
                                         {activeTab === 'map' && !processingState.isLoading && activeStudy.guide && (
-                                            <MindMapView guide={activeStudy.guide} onUpdateGuide={(g) => updateStudyGuide(activeStudy.id, g)} />
+                                            <MindMapView guide={activeStudy.guide} onUpdateGuide={(g) => updateStudyGuide(activeStudy.id, g)} onUsageLimit={openUsageLimitModal} />
                                         )}
                                         {activeTab === 'connections' && !processingState.isLoading && activeStudy.guide && (
-                                            <ConnectionsView guide={activeStudy.guide} onUpdateGuide={(g) => updateStudyGuide(activeStudy.id, g)} />
+                                            <ConnectionsView guide={activeStudy.guide} onUpdateGuide={(g) => updateStudyGuide(activeStudy.id, g)} onUsageLimit={openUsageLimitModal} />
                                         )}
                                     </div>
                                 </div>
