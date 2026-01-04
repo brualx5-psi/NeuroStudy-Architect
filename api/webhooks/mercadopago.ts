@@ -1,5 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
+import { getSupabaseAdmin } from '../_lib/supabase.js';
+import { sendJson, readJson } from '../_lib/http.js';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 /**
  * Webhook do Mercado Pago
@@ -134,21 +135,21 @@ async function updateUserPlan(email: string, planName: string, subscriptionId: s
     }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
     // Apenas POST
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return sendJson(res, { error: 'Method not allowed' }, 405);
     }
 
     try {
-        const payload = req.body as MPWebhookPayload;
+        const payload = await readJson<MPWebhookPayload>(req);
 
         console.log('[MP Webhook] Recebido:', JSON.stringify(payload, null, 2));
 
         // Verificar se é um evento de assinatura
         if (payload.type !== 'subscription_preapproval') {
             console.log('[MP Webhook] Evento ignorado:', payload.type);
-            return res.status(200).json({ message: 'Evento ignorado' });
+            return sendJson(res, { message: 'Evento ignorado' });
         }
 
         // Buscar detalhes da assinatura
@@ -156,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (!subscription) {
             console.error('[MP Webhook] Não foi possível buscar detalhes da assinatura');
-            return res.status(200).json({ message: 'Assinatura não encontrada' });
+            return sendJson(res, { message: 'Assinatura não encontrada' });
         }
 
         console.log('[MP Webhook] Assinatura:', {
@@ -197,9 +198,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 console.log('[MP Webhook] Status não tratado:', subscription.status);
         }
 
-        return res.status(200).json({ message: 'OK' });
+        return sendJson(res, { message: 'OK' });
     } catch (error) {
         console.error('[MP Webhook] Erro no handler:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return sendJson(res, { error: 'Internal server error' }, 500);
     }
 }
