@@ -151,6 +151,7 @@ export const incrementUsage = async (
   deltas: UsageDeltas
 ) => {
   const supabase = getSupabaseAdmin();
+  console.log('[incrementUsage] supabase available:', !!supabase, 'userId:', userId, 'month:', month, 'deltas:', deltas);
   const current = await ensureUsageRow(userId, month, plan);
   const updatedAt = new Date().toISOString();
 
