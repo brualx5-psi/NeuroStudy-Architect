@@ -105,20 +105,36 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 mb-6">
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 mb-4">
                   <p className="text-emerald-700 text-sm font-bold flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
                     Tokens e limites premium para produção intensiva
                   </p>
                 </div>
 
-                <button
-                  onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_mensal, '_blank')}
-                  className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Zap className="w-5 h-5 fill-current" />
-                  Assinar Pro Mensal
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_mensal, '_blank')}
+                    className="py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1"
+                  >
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-4 h-4 fill-current" />
+                      Mensal
+                    </span>
+                    <span className="text-xs text-indigo-200">{PLAN_PRICES.pro}/mês</span>
+                  </button>
+                  <button
+                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_anual, '_blank')}
+                    className="py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1 relative"
+                  >
+                    <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-black px-2 py-0.5 rounded-full">2 MESES GRÁTIS</span>
+                    <span className="flex items-center gap-1">
+                      <Crown className="w-4 h-4" />
+                      Anual
+                    </span>
+                    <span className="text-xs text-amber-100">R$ 599/ano</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-6 rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -141,12 +157,23 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                   <li>• {starterLimits.web_research} pesquisas web/mês</li>
                 </ul>
 
-                <button
-                  onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_mensal, '_blank')}
-                  className="w-full py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all"
-                >
-                  Assinar Starter Mensal
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_mensal, '_blank')}
+                    className="py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all flex flex-col items-center gap-0.5"
+                  >
+                    <span>Mensal</span>
+                    <span className="text-xs text-slate-400">{PLAN_PRICES.starter}/mês</span>
+                  </button>
+                  <button
+                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_anual, '_blank')}
+                    className="py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all flex flex-col items-center gap-0.5 relative"
+                  >
+                    <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-[8px] font-black text-amber-900 px-1.5 py-0.5 rounded-full">-17%</span>
+                    <span>Anual</span>
+                    <span className="text-xs text-emerald-100">R$ 299/ano</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex items-center justify-between">
