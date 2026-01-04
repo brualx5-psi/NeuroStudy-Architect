@@ -1,5 +1,5 @@
-import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits';
-import { estimateTextFromBinary, extractTextFromPdfBase64 } from './textExtraction';
+import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits.js';
+import { estimateTextFromBinary, extractTextFromPdfBase64 } from './textExtraction.js';
 
 export type LimitReason =
   | 'monthly_limit'

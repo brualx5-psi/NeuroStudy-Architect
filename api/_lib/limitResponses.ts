@@ -1,4 +1,4 @@
-import { ActionSuggestion, LimitReason } from './usageLimits';
+import { ActionSuggestion, LimitReason } from './usageLimits.js';
 
 const reasonMessages: Record<LimitReason, string> = {
   monthly_limit: 'Voce atingiu o limite mensal do seu plano.',

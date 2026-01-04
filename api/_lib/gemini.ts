@@ -1,5 +1,5 @@
 import { GoogleGenAI, Schema, Type } from '@google/genai';
-import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits';
+import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits.js';
 
 const MODEL_FLASH = 'gemini-2.0-flash';
 const MODEL_PRO = 'gemini-pro-latest';

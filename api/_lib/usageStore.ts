@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from './supabase';
-import { PlanName } from './planLimits';
-import { UsageSnapshot } from './usageLimits';
+import { getSupabaseAdmin } from './supabase.js';
+import { PlanName } from './planLimits.js';
+import { UsageSnapshot } from './usageLimits.js';
 
 export type UsageRow = {
   id?: string;
@@ -162,7 +162,6 @@ export const incrementUsage = async (
   };
 
   (Object.keys(deltas) as (keyof UsageDeltas)[]).forEach((key) => {
-    if (key === 'plan') return;
     const delta = deltas[key];
     if (typeof delta !== 'number') return;
     const base = (current as any)[key] || 0;
