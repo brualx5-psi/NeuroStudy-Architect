@@ -549,7 +549,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
             {/* GAMIFIED PROGRESS HUD (Barra Fixa Inferior) */}
             {(!isParetoOnly || isBook) && (
-                <div className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 transition-all duration-500 animate-in slide-in-from-bottom-20 ${isCelebrating ? 'translate-y-[-10px] scale-105 border-green-400 bg-green-50/95' : ''}`}>
+                <div className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 transition-all duration-500 animate-in slide-in-from-bottom-20 ${isCelebrating ? 'translate-y-[-10px] scale-105 border-green-400 bg-green-50/95' : ''}`}>
                     <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
 
                         {/* Seção da Barra de Progresso */}

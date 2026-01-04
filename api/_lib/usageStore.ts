@@ -175,7 +175,8 @@ export const incrementUsage = async (
   }
 
   try {
-    const { data } = await supabase
+    console.log('[incrementUsage] Attempting update for userId:', userId, 'month:', month, 'next values:', JSON.stringify(next));
+    const { data, error } = await supabase
       .from('user_usage_monthly')
       .update({
         roadmaps_created: next.roadmaps_created,
@@ -193,6 +194,12 @@ export const incrementUsage = async (
       .eq('month', month)
       .select()
       .single();
+
+    if (error) {
+      console.error('[incrementUsage] Update error:', error.message, error.code);
+    } else {
+      console.log('[incrementUsage] Update success, data:', data ? 'returned' : 'null');
+    }
 
     try {
       await supabase
