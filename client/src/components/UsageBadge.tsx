@@ -63,11 +63,17 @@ export const UsageBadge: React.FC = () => {
                     <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-sm font-bold text-gray-800">Limite Mensal</h3>
-                            {isPaid ? (
-                                <span className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold">{planLabel.toUpperCase()}</span>
-                            ) : (
-                                <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Free</span>
-                            )}
+                            <button
+                                onClick={() => { setIsOpen(false); setShowSubscriptionModal(true); }}
+                                className="hover:scale-110 transition-transform"
+                                title="Gerenciar assinatura"
+                            >
+                                {isPaid ? (
+                                    <span className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full font-bold cursor-pointer hover:from-amber-600 hover:to-orange-600">{planLabel.toUpperCase()}</span>
+                                ) : (
+                                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium cursor-pointer hover:bg-indigo-100 hover:text-indigo-600">Free → Upgrade</span>
+                                )}
+                            </button>
                         </div>
 
                         <div className="space-y-3">
