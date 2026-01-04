@@ -10,6 +10,18 @@
 
 import { PLAN_LIMITS, PlanName } from './planLimits.js';
 
+// IDs de admin que podem usar qualquer link sem restrição de tipo
+// ATENÇÃO: Apenas para ambiente de desenvolvimento ou usuários específicos
+const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
+
+/**
+ * Verifica se o usuário é admin (pode usar qualquer link)
+ */
+export const isAdminUser = (userId?: string): boolean => {
+    if (!userId) return false;
+    return ADMIN_USER_IDS.includes(userId);
+};
+
 // Tipos de fonte suportados
 export type SourceType = 'youtube' | 'video_upload' | 'link_transcript' | 'text' | 'pdf' | 'unsupported_link';
 
@@ -177,13 +189,16 @@ const parseSubtitleToText = (content: string): string => {
 /**
  * Prepara e normaliza todas as fontes para geração de roteiro
  * Aplica validações de limites ANTES de chamar a IA
+ * Admin users podem usar qualquer link sem restrição de tipo
  */
 export const prepareSourcesForRoadmap = async (
     sources: any[],
     planName: PlanName,
-    usage: { youtube_minutes_used: number; roadmaps_created: number; monthly_tokens_used: number }
+    usage: { youtube_minutes_used: number; roadmaps_created: number; monthly_tokens_used: number },
+    userId?: string
 ): Promise<PrepareSourcesResult> => {
     const limits = PLAN_LIMITS[planName];
+    const adminBypass = isAdminUser(userId);
 
     // Validação 1: número de fontes
     if (sources.length > limits.sources_per_study) {
@@ -214,13 +229,17 @@ export const prepareSourcesForRoadmap = async (
         const sourceId = source.id || `src-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
         // Link não suportado (não é YouTube, não é transcript público)
+        // ADMIN BYPASS: Se for admin, pular este bloqueio e tratar como texto
         if (sourceType === 'unsupported_link') {
-            return {
-                success: false,
-                error: 'UNSUPPORTED_LINK_REQUIRES_TRANSCRIPT',
-                errorMessage: 'Este link parece exigir login ou não oferece transcrição acessível.',
-                actionSuggestion: 'upload_file'
-            };
+            if (!adminBypass) {
+                return {
+                    success: false,
+                    error: 'UNSUPPORTED_LINK_REQUIRES_TRANSCRIPT',
+                    errorMessage: 'Este link parece exigir login ou não oferece transcrição acessível.',
+                    actionSuggestion: 'upload_file'
+                };
+            }
+            // Admin: tratar como texto puro (conteúdo da URL será usado como está)
         }
 
         // YouTube - validar duração

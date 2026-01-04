@@ -76,7 +76,8 @@ export default async function handler(req: any, res: any) {
       youtube_minutes_used: usageSnapshot.youtube_minutes_used,
       roadmaps_created: usageSnapshot.roadmaps_created,
       monthly_tokens_used: usageSnapshot.monthly_tokens_used
-    }
+    },
+    auth.userId // Admin bypass: se for admin, pode usar qualquer link
   );
 
   // Se validação falhou, retornar erro humanizado
