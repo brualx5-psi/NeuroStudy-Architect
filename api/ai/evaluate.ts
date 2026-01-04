@@ -1,0 +1,66 @@
+import { getAuthContext } from '../_lib/auth';
+import { buildLimitResponse } from '../_lib/limitResponses';
+import { getClientIp, readJson, sendJson } from '../_lib/http';
+import { rateLimit } from '../_lib/rateLimit';
+import { canPerformAction } from '../_lib/usageLimits';
+import { evaluateOpenAnswer } from '../_lib/gemini';
+import { ensureUsageRow, getCurrentMonth, getUserPlan, incrementUsage, toUsageSnapshot } from '../_lib/usageStore';
+
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') {
+    return sendJson(res, 405, { error: 'method_not_allowed' });
+  }
+
+  const auth = await getAuthContext(req);
+  if (!auth) {
+    return sendJson(res, 401, { error: 'unauthorized' });
+  }
+
+  const ip = getClientIp(req);
+  const rateKey = `evaluate:${auth.userId || ip}`;
+  const rate = rateLimit(rateKey, { windowMs: 60_000, limit: 30 });
+  if (!rate.allowed) {
+    return sendJson(res, 429, buildLimitResponse('rate_limited'));
+  }
+
+  const body = await readJson<{
+    question: string;
+    userAnswer: string;
+    expectedAnswer: string;
+  }>(req);
+
+  const planName = await getUserPlan(auth.userId);
+  const month = getCurrentMonth();
+  const usageRow = await ensureUsageRow(auth.userId, month, planName);
+  const usageSnapshot = toUsageSnapshot(usageRow);
+  const textInput = `${body.question || ''}\n${body.userAnswer || ''}\n${body.expectedAnswer || ''}`;
+
+  const check = canPerformAction(planName, usageSnapshot, [], 'chat', { textInput });
+  if (!check.allowed) {
+    return sendJson(res, 402, buildLimitResponse(check.reason || 'monthly_tokens_exhausted', check.actionSuggestion));
+  }
+
+  try {
+    const { result, usageTokens } = await evaluateOpenAnswer(
+      planName,
+      body.question,
+      body.userAnswer,
+      body.expectedAnswer
+    );
+
+    await incrementUsage(auth.userId, month, planName, {
+      tokens_estimated: check.estimatedTokens || 0,
+      tokens_used: usageTokens || 0
+    });
+
+    return sendJson(res, 200, {
+      result,
+      usage: {
+        estimatedTokens: check.estimatedTokens || 0,
+        actualTokens: usageTokens || null
+      }
+    });
+  } catch (error: any) {
+    return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Gemini error' });
+  }
+}
