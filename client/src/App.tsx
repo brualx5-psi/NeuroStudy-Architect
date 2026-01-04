@@ -29,6 +29,11 @@ import { LoginPage } from './pages/LoginPage';
 import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles, Loader2 } from './components/Icons';
 import { canPerformAction, LimitReason } from './services/usageLimits';
 import { extractTextFromPdfBase64 } from './services/textExtraction';
+import { looksLikeVideoUrl, isSupportedVideoUrl } from './utils/videoUrlUtils';
+import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
+
+// IDs de admin que podem usar qualquer link sem restrição
+const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
 
 export function AppContent() {
     const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage } = useAuth();
@@ -105,6 +110,7 @@ export function AppContent() {
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [initialSettingsTab, setInitialSettingsTab] = useState<'search' | 'productivity' | 'account'>('search');
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
+    const [showUnsupportedLinkModal, setShowUnsupportedLinkModal] = useState(false);
 
     // Refs precisam ser declarados antes de qualquer return condicional
     const paretoInputRef = useRef<HTMLInputElement>(null);
@@ -321,6 +327,19 @@ export function AppContent() {
         let durationMinutes: number | undefined;
         if (inputType === InputType.TEXT || inputType === InputType.DOI || inputType === InputType.URL) {
             if (!inputText.trim()) return;
+
+            // NOVO: Validação de links de vídeo não suportados
+            if (inputType === InputType.URL) {
+                const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
+                const urlLooksLikeVideo = looksLikeVideoUrl(inputText);
+                const urlIsSupported = isSupportedVideoUrl(inputText);
+
+                // Se parece ser vídeo mas não é YouTube/Vimeo, bloquear (exceto admin)
+                if (urlLooksLikeVideo && !urlIsSupported && !isAdmin) {
+                    setShowUnsupportedLinkModal(true);
+                    return;
+                }
+            }
 
             // Verificação de limite de páginas para texto (Free: 30 pág ~ 75.000 chars)
             const maxChars = limits.pages_per_source * 2500;
@@ -1146,6 +1165,21 @@ export function AppContent() {
                         onRemoveSources={handleRemoveSources}
                     />
                 )}
+                {/* Modal para links não suportados */}
+                <UnsupportedLinkModal
+                    isOpen={showUnsupportedLinkModal}
+                    onClose={() => setShowUnsupportedLinkModal(false)}
+                    onUploadVideo={() => {
+                        setShowUnsupportedLinkModal(false);
+                        setInputType(InputType.VIDEO);
+                        setInputText('');
+                    }}
+                    onPasteTranscript={() => {
+                        setShowUnsupportedLinkModal(false);
+                        setInputType(InputType.TEXT);
+                        setInputText('');
+                    }}
+                />
             </div>
 
             {/* Subscription Modal - Rendered OUTSIDE main container to avoid stacking context issues */}
