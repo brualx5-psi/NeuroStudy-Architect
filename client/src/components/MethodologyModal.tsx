@@ -4,9 +4,10 @@ import { X, BrainCircuit, Activity, Rocket, BatteryCharging, CheckCircle, Brain,
 
 interface MethodologyModalProps {
   onClose: () => void;
+  onCreateStudy?: () => void;
 }
 
-export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) => {
+export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose, onCreateStudy }) => {
   const [activeTab, setActiveTab] = useState<'science' | 'workflow' | 'modes' | 'research'>('science');
 
   return (
@@ -488,10 +489,22 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose }) =
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 p-6 border-t border-gray-200 flex justify-end">
-          <button onClick={onClose} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
-            Entendi, vamos estudar!
+        <div className="bg-gray-50 p-6 border-t border-gray-200 flex justify-between items-center">
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-800 font-medium transition-colors">
+            Fechar
           </button>
+          {onCreateStudy ? (
+            <button
+              onClick={() => { onClose(); onCreateStudy(); }}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2"
+            >
+              🚀 Criar meu primeiro estudo
+            </button>
+          ) : (
+            <button onClick={onClose} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
+              Entendi, vamos estudar!
+            </button>
+          )}
         </div>
       </div>
     </div>

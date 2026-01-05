@@ -645,7 +645,7 @@ export function AppContent() {
     };
     const handleOnboardingCreateStudy = () => {
         handleStartSession();
-        setShowSearchModal(true);
+        setShowMethodologyModal(true); // Mostrar método e instruções primeiro
     };
     const handleFolderExam = (fid: string) => {
         // Feature "Provão" (Folder Exam) placeholder
@@ -1125,7 +1125,12 @@ export function AppContent() {
                     />
                 )}
                 <ChatWidget studyGuide={activeStudy?.guide || null} onUsageLimit={openUsageLimitModal} />
-                {showMethodologyModal && <MethodologyModal onClose={() => setShowMethodologyModal(false)} />}
+                {showMethodologyModal && (
+                    <MethodologyModal
+                        onClose={() => setShowMethodologyModal(false)}
+                        onCreateStudy={() => setShowSearchModal(true)}
+                    />
+                )}
                 {previewSource && <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} />}
                 {showReviewScheduler && activeStudy && (
                     <ReviewSchedulerModal
