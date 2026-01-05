@@ -41,8 +41,8 @@ export function AppContent() {
     // Estado da view - começa como 'app' se usuário logado
     const [view, setView] = useState<'landing' | 'app'>('landing');
 
-    // Força ir para 'app' quando usuário está logado
-    const effectiveView = user ? 'app' : view;
+    // Permite usuário logado acessar landing (3 cards) ou app
+    const effectiveView = !user ? 'landing' : view;
     const [folders, setFolders] = useState<Folder[]>([]);
     const [studies, setStudies] = useState<StudySession[]>([]);
     const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
