@@ -31,34 +31,16 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
       return;
     }
 
-    // Tenta atualizar primeiro para evitar conflito 409 no upsert
-    const { data: existingData } = await supabase!
+    const { error } = await supabase!
       .from('user_data')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    let error = null;
-
-    if (existingData) {
-      const { error: updateError } = await supabase!
-        .from('user_data')
-        .update({
-          content: { studies, folders },
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-      error = updateError;
-    } else {
-      const { error: insertError } = await supabase!
-        .from('user_data')
-        .insert({
+      .upsert(
+        {
           user_id: userId,
           content: { studies, folders },
           updated_at: new Date().toISOString()
-        });
-      error = insertError;
-    }
+        },
+        { onConflict: 'user_id' }
+      );
 
     if (error) {
       console.warn('[Storage] Erro ao salvar na nuvem (dados salvos localmente):', error.message);
@@ -100,13 +82,20 @@ export const loadUserData = async (): Promise<{ studies: StudySession[]; folders
     }
 
     if (!data) {
-      await supabase!
+      const { error: upsertError } = await supabase!
         .from('user_data')
-        .insert({
-          user_id: userId,
-          content: defaultData,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(
+          {
+            user_id: userId,
+            content: defaultData,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id', ignoreDuplicates: true }
+        );
+
+      if (upsertError) {
+        console.warn('[Storage] Erro ao inicializar dados na nuvem:', upsertError.message);
+      }
       return defaultData;
     }
 
