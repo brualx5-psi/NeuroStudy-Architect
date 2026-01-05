@@ -123,22 +123,50 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete, on
                     )}
 
                     {step === 2 && (
-                        <div className="text-center space-y-5 animate-in fade-in slide-in-from-right duration-300">
-                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
-                                <Sparkles className="w-8 h-8 text-white" />
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right duration-300 text-left max-h-[50vh] overflow-y-auto pr-2">
+                            {/* Título */}
+                            <div className="text-center mb-4">
+                                <h2 className="text-xl font-bold text-gray-800 mb-1">🧠 Como o NeuroStudy funciona</h2>
+                                <p className="text-gray-500 text-sm">Aprenda de verdade em 3 passos simples</p>
                             </div>
 
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800 mb-2">Tudo pronto! 🎉</h2>
-                                <p className="text-gray-500 text-sm">Sua experiência foi personalizada. Vamos criar seu primeiro estudo!</p>
-                            </div>
-
-                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 text-left">
-                                <p className="text-sm text-indigo-800 mb-2">
-                                    <strong>💡 Dica:</strong> Ao pesquisar fontes, clique no <strong>?</strong> para ver nosso guia completo sobre como encontrar os melhores artigos.
+                            {/* Analogia */}
+                            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 rounded-xl text-white">
+                                <p className="text-sm font-medium">
+                                    <strong>🏋️ Personal Trainer do Cérebro:</strong> Assim como um personal não malha por você mas cria o treino perfeito,
+                                    o NeuroStudy cria o <strong>roteiro perfeito</strong> para você estudar!
                                 </p>
-                                <p className="text-xs text-indigo-600">
-                                    Usamos PubMed, OpenAlex e IA para trazer a melhor ciência para você.
+                            </div>
+
+                            {/* 3 Passos */}
+                            <div className="space-y-3">
+                                <div className="flex gap-3 items-start bg-indigo-50 p-3 rounded-xl">
+                                    <div className="bg-indigo-600 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm shrink-0">1</div>
+                                    <div>
+                                        <strong className="text-indigo-900 text-sm">Antes: Receba o Roteiro</strong>
+                                        <p className="text-xs text-indigo-700">A IA lê seu material e extrai os 20% mais importantes (Pareto). Você recebe checkpoints organizados.</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 items-start bg-pink-50 p-3 rounded-xl">
+                                    <div className="bg-pink-600 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm shrink-0">2</div>
+                                    <div>
+                                        <strong className="text-pink-900 text-sm">Durante: Estude com Ação</strong>
+                                        <p className="text-xs text-pink-700">Assista/leia com o roteiro aberto. A cada checkpoint, pause, anote e responda. Marque como feito!</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 items-start bg-green-50 p-3 rounded-xl">
+                                    <div className="bg-green-600 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm shrink-0">3</div>
+                                    <div>
+                                        <strong className="text-green-900 text-sm">Depois: Consolide</strong>
+                                        <p className="text-xs text-green-700">Use Flashcards e Quiz para fixar. Agende revisões (1, 7, 14, 30 dias) para memória de longo prazo.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Dica final */}
+                            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl text-center">
+                                <p className="text-xs text-yellow-800">
+                                    <strong>💡 Lembre-se:</strong> Você é o protagonista! A IA cria o mapa, mas quem faz a jornada é você.
                                 </p>
                             </div>
                         </div>
