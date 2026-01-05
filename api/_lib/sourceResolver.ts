@@ -23,7 +23,7 @@ export const isAdminUser = (userId?: string): boolean => {
 };
 
 // Tipos de fonte suportados
-export type SourceType = 'youtube' | 'video_upload' | 'link_transcript' | 'text' | 'pdf' | 'unsupported_link';
+export type SourceType = 'youtube' | 'video_upload' | 'link_transcript' | 'text' | 'pdf' | 'unsupported_link' | 'web_article';
 
 // Códigos de erro para frontend
 export type SourceErrorCode =
@@ -106,8 +106,9 @@ export const detectSourceType = (source: any): SourceType => {
         if (typeof content === 'string') {
             if (isYouTubeUrl(content)) return 'youtube';
             if (isTranscriptUrl(content)) return 'link_transcript';
+            return 'web_article';
         }
-        return 'unsupported_link';
+        return 'web_article';
     }
 
     // PDF
@@ -313,6 +314,28 @@ export const prepareSourcesForRoadmap = async (
             });
 
             totalCharCount += result.text.length;
+            continue;
+        }
+
+        // Web Article - tentar baixar conteúdo
+        if (sourceType === 'web_article') {
+            const url = source.content || source.textContent || '';
+            const result = await fetchTranscriptFromUrl(url);
+
+            // Se falhar o download, usar a URL como texto (fallback) ou retornar erro?
+            // Fallback: deixa o modelo tentar acessar ou usa como referência
+            const textContent = result?.text || url;
+
+            normalizedSources.push({
+                id: sourceId,
+                originalType: source.type || 'URL',
+                resolvedType: 'web_article',
+                name: source.name || `Site: ${url.slice(0, 30)}...`,
+                extractedText: textContent,
+                charCount: textContent.length
+            });
+
+            totalCharCount += textContent.length;
             continue;
         }
 
