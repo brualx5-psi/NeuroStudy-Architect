@@ -26,7 +26,7 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({ type, showLabel = true, 
             icon: '🧠'
         },
         youtube: {
-            label: 'YouTube',
+            label: 'Vídeo',
             used: usage.youtube_minutes_used,
             max: limits.youtube_minutes,
             icon: '📹',

@@ -34,7 +34,7 @@ export const UsageBadge: React.FC = () => {
 
     const items = [
         { icon: '📚', label: 'Roteiros', used: usage.roadmaps_created, max: limits.roadmaps },
-        { icon: '📹', label: 'YouTube', used: usage.youtube_minutes_used, max: limits.youtube_minutes, unit: 'min' },
+        { icon: '📹', label: 'Vídeo', used: usage.youtube_minutes_used, max: limits.youtube_minutes, unit: 'min' },
         { icon: '🧠', label: 'Feynman', used: usage.feynman_used, max: isPaid ? 100 : 3 },
         { icon: '🔍', label: 'Pesquisa Web', used: usage.web_research_used, max: limits.web_research },
     ];
