@@ -750,23 +750,51 @@ export function AppContent() {
 
                             <div className="relative group w-full md:w-80">
                                 <input type="file" ref={bookInputRef} className="hidden" onChange={handleBookUpload} accept=".pdf,.epub,.mobi" />
-                                <button onClick={() => bookInputRef.current?.click()} className="relative flex flex-col items-start p-6 bg-white hover:bg-orange-50 border-2 border-orange-100 hover:border-orange-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden">
+                                <button
+                                    onClick={() => isPaid ? bookInputRef.current?.click() : setShowSubscriptionModal(true)}
+                                    className={`relative flex flex-col items-start p-6 bg-white border-2 rounded-2xl transition-all w-full shadow-sm overflow-hidden ${isPaid ? 'hover:bg-orange-50 border-orange-100 hover:border-orange-200 hover:shadow-xl hover:-translate-y-1' : 'border-gray-200 opacity-80'}`}
+                                >
+                                    {/* Lock overlay for free users */}
+                                    {!isPaid && (
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                                            <div className="bg-gray-900/80 text-white px-3 py-2 rounded-full flex items-center gap-2 text-sm font-bold shadow-lg">
+                                                <Lock className="w-4 h-4" />
+                                                Starter / Pro
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
                                     <div className="bg-orange-100 p-3 rounded-xl text-orange-600 mb-4 group-hover:scale-110 transition-transform"><BookOpen className="w-8 h-8" /></div>
                                     <h3 className="text-lg font-bold text-gray-900">Resumo de Livros</h3>
                                     <p className="text-sm text-gray-500 mt-2 text-left flex-1">Analise livros inteiros. Modos Sobrevivência, Normal e Hard.</p>
-                                    <span className="mt-4 w-full bg-orange-500 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-orange-600 transition-colors">Iniciar <ChevronRight className="w-4 h-4" /></span>
+                                    <span className={`mt-4 w-full font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg transition-colors ${isPaid ? 'bg-orange-500 text-white group-hover:bg-orange-600' : 'bg-gray-300 text-gray-600'}`}>
+                                        {isPaid ? 'Iniciar' : '🔒 Assinar'} <ChevronRight className="w-4 h-4" />
+                                    </span>
                                 </button>
                             </div>
 
                             <div className="relative group w-full md:w-80">
                                 <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*, .epub, .mobi" />
-                                <button onClick={() => paretoInputRef.current?.click()} className="relative flex flex-col items-start p-6 bg-white hover:bg-red-50 border-2 border-red-100 hover:border-red-200 rounded-2xl transition-all w-full shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden">
+                                <button
+                                    onClick={() => isPaid ? paretoInputRef.current?.click() : setShowSubscriptionModal(true)}
+                                    className={`relative flex flex-col items-start p-6 bg-white border-2 rounded-2xl transition-all w-full shadow-sm overflow-hidden ${isPaid ? 'hover:bg-red-50 border-red-100 hover:border-red-200 hover:shadow-xl hover:-translate-y-1' : 'border-gray-200 opacity-80'}`}
+                                >
+                                    {/* Lock overlay for free users */}
+                                    {!isPaid && (
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                                            <div className="bg-gray-900/80 text-white px-3 py-2 rounded-full flex items-center gap-2 text-sm font-bold shadow-lg">
+                                                <Lock className="w-4 h-4" />
+                                                Starter / Pro
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                                     <div className="bg-red-100 p-3 rounded-xl text-red-600 mb-4 group-hover:scale-110 transition-transform"><Target className="w-8 h-8" /></div>
                                     <h3 className="text-lg font-bold text-gray-900">Método Pareto 80/20</h3>
                                     <p className="text-sm text-gray-500 mt-2 text-left flex-1">Extração Rápida. Ideal para consultas ágeis e tirar dúvidas pontuais.</p>
-                                    <span className="mt-4 w-full bg-red-600 text-white font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg group-hover:bg-red-700 transition-colors">Iniciar <ChevronRight className="w-4 h-4" /></span>
+                                    <span className={`mt-4 w-full font-bold text-sm flex items-center justify-center gap-1 px-4 py-3 rounded-lg transition-colors ${isPaid ? 'bg-red-600 text-white group-hover:bg-red-700' : 'bg-gray-300 text-gray-600'}`}>
+                                        {isPaid ? 'Iniciar' : '🔒 Assinar'} <ChevronRight className="w-4 h-4" />
+                                    </span>
                                 </button>
                             </div>
                         </div>
