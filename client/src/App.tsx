@@ -315,9 +315,10 @@ export function AppContent() {
     const addSourceToStudy = async () => {
         if (!activeStudyId || !activeStudy) return;
 
-        // Verificação de limite de fontes por roteiro
+        // Verificação de limite de fontes por roteiro (admin bypassa)
+        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
         const maxSources = limits.sources_per_study;
-        if (activeStudy.sources.length >= maxSources) {
+        if (!isAdmin && activeStudy.sources.length >= maxSources) {
             openUsageLimitModal('too_many_sources');
             return;
         }
@@ -435,7 +436,8 @@ export function AppContent() {
 
     const handleAddSearchSource = (name: string, content: string, type: InputType) => {
         if (!activeStudyId || !activeStudy) return;
-        if (activeStudy.sources.length >= limits.sources_per_study) {
+        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
+        if (!isAdmin && activeStudy.sources.length >= limits.sources_per_study) {
             openUsageLimitModal('too_many_sources');
             return;
         }
