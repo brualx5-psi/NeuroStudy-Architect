@@ -645,7 +645,7 @@ export function AppContent() {
     };
     const handleOnboardingCreateStudy = () => {
         handleStartSession();
-        setShowMethodologyModal(true); // Mostrar método e instruções primeiro
+        setShowSearchModal(true); // Ir direto para criar roteiro
     };
     const handleFolderExam = (fid: string) => {
         // Feature "Provão" (Folder Exam) placeholder
