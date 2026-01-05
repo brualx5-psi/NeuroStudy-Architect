@@ -516,7 +516,7 @@ export function AppContent() {
 
     const handleGenerateGuideForStudy = async (studyId: string, sources: StudySource[], mode: StudyMode, isBook: boolean) => {
         // ADMIN BYPASS
-        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
+        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const roadmapCheck = canPerformAction(planName, usage, sources, 'roadmap', { isAdmin });
 
         if (!roadmapCheck.allowed) {
