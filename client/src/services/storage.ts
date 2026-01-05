@@ -102,11 +102,11 @@ export const loadUserData = async (): Promise<{ studies: StudySession[]; folders
     if (!data) {
       await supabase!
         .from('user_data')
-        .upsert({
+        .insert({
           user_id: userId,
           content: defaultData,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
+        });
       return defaultData;
     }
 
