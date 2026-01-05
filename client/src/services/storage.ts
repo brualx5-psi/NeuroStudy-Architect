@@ -31,13 +31,34 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
       return;
     }
 
-    const { error } = await supabase!
+    // Tenta atualizar primeiro para evitar conflito 409 no upsert
+    const { data: existingData } = await supabase!
       .from('user_data')
-      .upsert({
-        user_id: userId,
-        content: { studies, folders },
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    let error = null;
+
+    if (existingData) {
+      const { error: updateError } = await supabase!
+        .from('user_data')
+        .update({
+          content: { studies, folders },
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase!
+        .from('user_data')
+        .insert({
+          user_id: userId,
+          content: { studies, folders },
+          updated_at: new Date().toISOString()
+        });
+      error = insertError;
+    }
 
     if (error) {
       console.warn('[Storage] Erro ao salvar na nuvem (dados salvos localmente):', error.message);
