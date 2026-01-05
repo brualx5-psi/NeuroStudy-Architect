@@ -554,7 +554,7 @@ export function AppContent() {
         if (!activeStudy || activeStudy.sources.length === 0) return;
 
         // ADMIN BYPASS
-        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
+        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const check = canPerformAction(planName, usage, activeStudy.sources, 'roadmap', { isAdmin });
 
         if (!check.allowed) {
@@ -590,7 +590,7 @@ export function AppContent() {
     const handleGenerateQuiz = async (config?: any) => {
         if (!activeStudy?.guide) return;
         // ADMIN BYPASS
-        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
+        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const quizCheck = canPerformAction(planName, usage, activeStudy.sources, 'quiz', { textInput: JSON.stringify(activeStudy.guide), isAdmin });
         if (!quizCheck.allowed) {
             openUsageLimitModal(quizCheck.reason || 'monthly_tokens_exhausted');
@@ -614,7 +614,7 @@ export function AppContent() {
     const handleGenerateFlashcards = async () => {
         if (!activeStudy?.guide) return;
         // ADMIN BYPASS
-        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
+        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const flashcardsCheck = canPerformAction(planName, usage, activeStudy.sources, 'flashcards', { textInput: JSON.stringify(activeStudy.guide), isAdmin });
         if (!flashcardsCheck.allowed) {
             openUsageLimitModal(flashcardsCheck.reason || 'monthly_tokens_exhausted');
