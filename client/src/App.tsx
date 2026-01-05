@@ -125,8 +125,8 @@ export function AppContent() {
                 if (data.folders) setFolders(data.folders || []);
             }
         };
-        load();
-    }, []);
+        if (user) load();
+    }, [user]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
