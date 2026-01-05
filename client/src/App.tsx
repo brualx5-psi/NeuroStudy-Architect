@@ -989,7 +989,7 @@ export function AppContent() {
                                                         {inputType === InputType.URL && (
                                                             <div className="mb-4 bg-green-50 text-green-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-green-100">
                                                                 <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                                <p><strong>✅ Links suportados:</strong> YouTube, PDFs online, sites e artigos. A IA extrai e analisa o conteúdo automaticamente. Para vídeos privados, certifique-se de estar logado.</p>
+                                                                <p><strong>✅ Links suportados:</strong> Vídeos (YouTube, Vimeo), PDFs online, sites e artigos. A IA extrai e analisa o conteúdo automaticamente.</p>
                                                             </div>
                                                         )}
                                                         <div className="space-y-4">
