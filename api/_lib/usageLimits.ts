@@ -97,8 +97,13 @@ export const canPerformAction = (
     textInput?: string;
     chatHistory?: ChatMessageInput[];
     youtubeMinutes?: number;
+    isAdmin?: boolean;
   }
 ): ActionCheck => {
+  if (options?.isAdmin) {
+    return { allowed: true };
+  }
+
   const limits = PLAN_LIMITS[planName];
   const usageSnapshot = normalizeUsage(usage);
 

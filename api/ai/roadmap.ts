@@ -3,7 +3,7 @@ import { buildLimitResponse } from '../_lib/limitResponses.js';
 import { getClientIp, readJson, sendJson } from '../_lib/http.js';
 import { rateLimit } from '../_lib/rateLimit.js';
 import { generateStudyGuide } from '../_lib/gemini.js';
-import { ensureUsageRow, getCurrentMonth, getUserPlan, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
+import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
 import { prepareSourcesForRoadmap, SourceErrorCode } from '../_lib/sourceResolver.js';
 
 // Mapeamento de erros para respostas humanizadas
@@ -63,7 +63,7 @@ export default async function handler(req: any, res: any) {
     isBook?: boolean;
   }>(req);
 
-  const planName = await getUserPlan(auth.userId);
+  const { planName, isAdmin } = await getUserAccess(auth.userId);
   const month = getCurrentMonth();
   const usageRow = await ensureUsageRow(auth.userId, month, planName);
   const usageSnapshot = toUsageSnapshot(usageRow);
@@ -77,7 +77,8 @@ export default async function handler(req: any, res: any) {
       roadmaps_created: usageSnapshot.roadmaps_created,
       monthly_tokens_used: usageSnapshot.monthly_tokens_used
     },
-    auth.userId // Admin bypass: se for admin, pode usar qualquer link
+    auth.userId,
+    isAdmin // Admin bypass: se for admin, pode usar qualquer link
   );
 
   // Se validação falhou, retornar erro humanizado

@@ -4,7 +4,7 @@ import { getClientIp, readJson, sendJson } from '../_lib/http.js';
 import { rateLimit } from '../_lib/rateLimit.js';
 import { canPerformAction } from '../_lib/usageLimits.js';
 import { callGemini } from '../_lib/gemini.js';
-import { ensureUsageRow, getCurrentMonth, getUserPlan, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
+import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
 
 type WebResearchMode = 'grounding' | 'deep_research' | 'quality';
 
@@ -34,12 +34,12 @@ export default async function handler(req: any, res: any) {
     assessmentType?: 'amstar' | 'rob2' | 'nos' | 'agree';
   }>(req);
 
-  const planName = await getUserPlan(auth.userId);
+  const { planName, isAdmin } = await getUserAccess(auth.userId);
   const month = getCurrentMonth();
   const usageRow = await ensureUsageRow(auth.userId, month, planName);
   const usageSnapshot = toUsageSnapshot(usageRow);
 
-  const check = canPerformAction(planName, usageSnapshot, [], 'web_search');
+  const check = canPerformAction(planName, usageSnapshot, [], 'web_search', { isAdmin });
   if (!check.allowed) {
     return sendJson(res, 402, buildLimitResponse(check.reason || 'web_search_limit', check.actionSuggestion));
   }

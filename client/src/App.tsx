@@ -36,8 +36,9 @@ import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
 
 export function AppContent() {
-    const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage } = useAuth();
+    const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage, isAdmin: isAdminFromProfile } = useAuth();
     const { settings } = useSettings();
+    const isAdmin = Boolean(isAdminFromProfile || (user?.id && ADMIN_USER_IDS.includes(user.id)));
     // Estado da view - começa como 'app' se usuário logado
     const [view, setView] = useState<'landing' | 'app'>('landing');
 
@@ -316,7 +317,6 @@ export function AppContent() {
         if (!activeStudyId || !activeStudy) return;
 
         // Verificação de limite de fontes por roteiro (admin bypassa)
-        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
         const maxSources = limits.sources_per_study;
         if (!isAdmin && activeStudy.sources.length >= maxSources) {
             openUsageLimitModal('too_many_sources');
@@ -331,7 +331,6 @@ export function AppContent() {
 
             // NOVO: Validação de links de vídeo não suportados
             if (inputType === InputType.URL) {
-                const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
                 const urlLooksLikeVideo = looksLikeVideoUrl(inputText);
                 const urlIsSupported = isSupportedVideoUrl(inputText);
 
@@ -344,7 +343,7 @@ export function AppContent() {
 
             // Verificação de limite de páginas para texto (Free: 30 pág ~ 75.000 chars)
             const maxChars = limits.pages_per_source * 2500;
-            if (inputText.length > maxChars) {
+            if (!isAdmin && inputText.length > maxChars) {
                 alert(`Texto muito longo! Seu plano suporta até ${limits.pages_per_source} páginas (aprox. ${maxChars.toLocaleString()} caracteres).`);
                 return;
             }
@@ -361,7 +360,7 @@ export function AppContent() {
             if (inputType === InputType.VIDEO) {
                 const detectedMinutes = await getMediaDurationMinutes(selectedFile);
                 const minutes = detectedMinutes ?? limits.youtube_minutes_per_video;
-                const youtubeCheck = canPerformAction(planName, usage, [], 'youtube', { youtubeMinutes: minutes });
+                const youtubeCheck = canPerformAction(planName, usage, [], 'youtube', { youtubeMinutes: minutes, isAdmin });
                 if (!youtubeCheck.allowed) {
                     openUsageLimitModal(youtubeCheck.reason || 'monthly_limit');
                     return;
@@ -436,7 +435,6 @@ export function AppContent() {
 
     const handleAddSearchSource = (name: string, content: string, type: InputType) => {
         if (!activeStudyId || !activeStudy) return;
-        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
         if (!isAdmin && activeStudy.sources.length >= limits.sources_per_study) {
             openUsageLimitModal('too_many_sources');
             return;
@@ -516,7 +514,6 @@ export function AppContent() {
 
     const handleGenerateGuideForStudy = async (studyId: string, sources: StudySource[], mode: StudyMode, isBook: boolean) => {
         // ADMIN BYPASS
-        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const roadmapCheck = canPerformAction(planName, usage, sources, 'roadmap', { isAdmin });
 
         if (!roadmapCheck.allowed) {
@@ -554,7 +551,6 @@ export function AppContent() {
         if (!activeStudy || activeStudy.sources.length === 0) return;
 
         // ADMIN BYPASS
-        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const check = canPerformAction(planName, usage, activeStudy.sources, 'roadmap', { isAdmin });
 
         if (!check.allowed) {
@@ -590,7 +586,6 @@ export function AppContent() {
     const handleGenerateQuiz = async (config?: any) => {
         if (!activeStudy?.guide) return;
         // ADMIN BYPASS
-        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const quizCheck = canPerformAction(planName, usage, activeStudy.sources, 'quiz', { textInput: JSON.stringify(activeStudy.guide), isAdmin });
         if (!quizCheck.allowed) {
             openUsageLimitModal(quizCheck.reason || 'monthly_tokens_exhausted');
@@ -614,7 +609,6 @@ export function AppContent() {
     const handleGenerateFlashcards = async () => {
         if (!activeStudy?.guide) return;
         // ADMIN BYPASS
-        const isAdmin = !!(user?.id && ADMIN_USER_IDS.includes(user.id));
         const flashcardsCheck = canPerformAction(planName, usage, activeStudy.sources, 'flashcards', { textInput: JSON.stringify(activeStudy.guide), isAdmin });
         if (!flashcardsCheck.allowed) {
             openUsageLimitModal(flashcardsCheck.reason || 'monthly_tokens_exhausted');

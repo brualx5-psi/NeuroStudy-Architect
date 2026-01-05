@@ -15,6 +15,7 @@ type UserProfile = {
     study_area: string | null;
     study_purpose: string | null;
     subscription_status: SubscriptionStatus;
+    is_admin?: boolean;
     created_at: string;
 };
 
@@ -45,6 +46,7 @@ interface AuthContextType {
     planLabel: string;
     isPaid: boolean;
     isPro: boolean;
+    isAdmin: boolean;
     limits: UsageLimits;
     canCreateStudy: () => boolean;
     canUseFeynman: () => boolean;
@@ -65,6 +67,7 @@ const AuthContext = createContext<AuthContextType>({
     planLabel: PLAN_LABELS.free,
     isPaid: false,
     isPro: false,
+    isAdmin: false,
     limits: PLAN_LIMITS.free,
     canCreateStudy: () => true,
     canUseFeynman: () => true,
@@ -88,7 +91,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const planName = resolvePlanName(profile?.subscription_status);
     const limits = PLAN_LIMITS[planName];
     const planLabel = PLAN_LABELS[planName];
-    const isPaid = planName !== 'free';
+    const isAdmin = Boolean(profile?.is_admin);
+    const isPaid = isAdmin || planName !== 'free';
     const isPro = planName === 'pro';
 
     const getCurrentMonth = () => new Date().toISOString().substring(0, 7);
@@ -344,11 +348,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const canCreateStudy = () => {
+        if (isAdmin) return true;
         if (!usage) return true;
         return usage.roadmaps_created < limits.roadmaps;
     };
 
     const canUseFeynman = () => {
+        if (isAdmin) return true;
         if (isPaid) return true;
         if (!usage) return true;
         return usage.feynman_used < 3;
@@ -391,7 +397,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, profile, usage, loading, planName, planLabel, isPaid, isPro, limits, canCreateStudy, canUseFeynman, incrementUsage, signOut, refreshProfile }}>
+        <AuthContext.Provider value={{ user, profile, usage, loading, planName, planLabel, isPaid, isPro, isAdmin, limits, canCreateStudy, canUseFeynman, incrementUsage, signOut, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

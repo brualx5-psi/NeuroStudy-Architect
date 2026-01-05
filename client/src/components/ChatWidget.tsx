@@ -12,7 +12,7 @@ interface ChatWidgetProps {
 }
 
 export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, onUsageLimit }) => {
-  const { planName, usage } = useAuth();
+  const { planName, usage, isAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +26,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, onUsageLimit
   const handleSend = async (textOverride?: string) => {
     const textToSend = textOverride || input;
     if (!textToSend.trim() || isLoading) return;
-    const chatCheck = canPerformAction(planName, usage, [], 'chat', { textInput: textToSend, chatHistory: messages });
+    const chatCheck = canPerformAction(planName, usage, [], 'chat', { textInput: textToSend, chatHistory: messages, isAdmin });
     if (!chatCheck.allowed) {
       onUsageLimit?.(chatCheck.reason || 'monthly_tokens_exhausted');
       return;

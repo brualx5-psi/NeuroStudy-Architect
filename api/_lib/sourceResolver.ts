@@ -17,7 +17,8 @@ const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
 /**
  * Verifica se o usuário é admin (pode usar qualquer link)
  */
-export const isAdminUser = (userId?: string): boolean => {
+export const isAdminUser = (userId?: string, isAdmin?: boolean): boolean => {
+    if (isAdmin) return true;
     if (!userId) return false;
     return ADMIN_USER_IDS.includes(userId);
 };
@@ -196,10 +197,11 @@ export const prepareSourcesForRoadmap = async (
     sources: any[],
     planName: PlanName,
     usage: { youtube_minutes_used: number; roadmaps_created: number; monthly_tokens_used: number },
-    userId?: string
+    userId?: string,
+    isAdmin?: boolean
 ): Promise<PrepareSourcesResult> => {
     const limits = PLAN_LIMITS[planName];
-    const adminBypass = isAdminUser(userId);
+    const adminBypass = isAdminUser(userId, isAdmin);
 
     // ADMIN: Pula TODAS as validações de limites (roteiros, fontes, tokens, minutos)
     // Admin pode usar a plataforma sem restrições

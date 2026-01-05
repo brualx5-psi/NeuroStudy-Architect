@@ -165,7 +165,7 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
 type SourceMode = 'auto' | 'pubmed' | 'openalex' | 'grounding';
 
 export const SearchResourcesModal: React.FC<SearchResourcesModalProps> = ({ onClose, onAddSource, onOpenSubscription, onUsageLimit }) => {
-    const { isPaid, planName, usage } = useAuth();
+    const { isPaid, planName, usage, isAdmin } = useAuth();
     const { settings } = useSettings();
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'book' | 'article' | 'web'>('article');
@@ -451,7 +451,7 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
             return;
         }
         if (!query.trim()) return;
-        const searchCheck = canPerformAction(planName, usage, [], 'web_search');
+        const searchCheck = canPerformAction(planName, usage, [], 'web_search', { isAdmin });
         if (!searchCheck.allowed) {
             onUsageLimit?.(searchCheck.reason || 'web_search_limit');
             return;
@@ -597,7 +597,7 @@ Responda de forma concisa e útil para um estudante. Use bullet points. Máximo 
 
     const handleSearch = async () => {
         if (!query.trim()) return;
-        const searchCheck = canPerformAction(planName, usage, [], 'web_search');
+        const searchCheck = canPerformAction(planName, usage, [], 'web_search', { isAdmin });
         if (!searchCheck.allowed) {
             onUsageLimit?.(searchCheck.reason || 'web_search_limit');
             return;

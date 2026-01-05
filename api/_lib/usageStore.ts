@@ -19,6 +19,11 @@ export type UsageRow = {
   updated_at?: string;
 };
 
+export type UserAccess = {
+  planName: PlanName;
+  isAdmin: boolean;
+};
+
 export type UsageDeltas = Partial<
   Pick<
     UsageRow,
@@ -70,6 +75,20 @@ export const getUserPlan = async (userId: string): Promise<PlanName> => {
     .eq('id', userId)
     .single();
   return mapPlanName(data?.subscription_status);
+};
+
+export const getUserAccess = async (userId: string): Promise<UserAccess> => {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { planName: 'free', isAdmin: false };
+  const { data } = await supabase
+    .from('users')
+    .select('subscription_status, is_admin')
+    .eq('id', userId)
+    .single();
+  return {
+    planName: mapPlanName(data?.subscription_status),
+    isAdmin: Boolean(data?.is_admin)
+  };
 };
 
 export const ensureUsageRow = async (
