@@ -178,7 +178,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const { percent, nextTitle } = getProgressStats();
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-40"> {/* pb-40 para dar espaço para a barra fixa */}
+        <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-48"> {/* pb-48 para dar espaço para a barra fixa */}
 
             {/* HEADER - ADVANCE ORGANIZER (Contexto do Livro ou Material) */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 relative overflow-hidden">
