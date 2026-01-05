@@ -132,12 +132,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
             {activeTab === 'search' && (
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-800 mb-2">Fonte padrão</h4>
+                  <h4 className="text-sm font-bold text-gray-800 dark:text-slate-100 mb-2">Fonte padrão</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(['auto', 'pubmed', 'openalex', 'grounding'] as PreferredSource[]).map(source => (
                       <label
                         key={source}
-                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${defaultSource === source ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200'}`}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${defaultSource === source ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-200 dark:border-slate-600 hover:border-indigo-200 dark:hover:border-indigo-500'}`}
                       >
                         <input
                           type="radio"
@@ -147,8 +147,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                           className="text-indigo-600"
                         />
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-gray-800">{LABELS.preferredSource[source]}</span>
-                          <span className="text-xs text-gray-500">
+                          <span className="font-bold text-sm text-gray-800 dark:text-slate-100">{LABELS.preferredSource[source]}</span>
+                          <span className="text-xs text-gray-500 dark:text-slate-400">
                             {source === 'auto' && 'Escolhe a melhor fonte para você'}
                             {source === 'pubmed' && 'Saúde e medicina (PubMed)'}
                             {source === 'openalex' && 'Artigos acadêmicos gerais'}
@@ -160,12 +160,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700">
                   <div className="flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-indigo-600" />
+                    <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     <div>
-                      <p className="font-bold text-sm text-gray-800">Sugerir busca em EN (PT→EN)</p>
-                      <p className="text-xs text-gray-500">Mais resultados e qualidade nos termos em inglês.</p>
+                      <p className="font-bold text-sm text-gray-800 dark:text-slate-100">Sugerir busca em EN (PT→EN)</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">Mais resultados e qualidade nos termos em inglês.</p>
                     </div>
                   </div>
                   <label className="inline-flex items-center cursor-pointer">
@@ -175,7 +175,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                       onChange={(e) => setPreferPtEnHint(e.target.checked)}
                       className="sr-only"
                     />
-                    <span className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${preferPtEnHint ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                    <span className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${preferPtEnHint ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-600'}`}>
                       <span className={`bg-white w-4 h-4 rounded-full shadow transform transition-transform ${preferPtEnHint ? 'translate-x-4' : ''}`}></span>
                     </span>
                   </label>
@@ -224,48 +224,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-3">
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 space-y-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <Settings className="w-4 h-4 text-indigo-600" />
-                    <p className="text-sm font-bold text-gray-800">Pomodoro presets</p>
+                    <Settings className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <p className="text-sm font-bold text-gray-800 dark:text-slate-100">Pomodoro presets</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Foco (min)</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">Foco (min)</p>
                       <input
                         type="number"
                         min={5}
                         max={180}
                         value={focusMinutes}
                         onChange={(e) => setFocusMinutes(Math.max(5, Number(e.target.value) || 0))}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-sm"
+                        className="w-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 rounded-lg p-2 text-sm"
                       />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Pausa curta (min)</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">Pausa curta (min)</p>
                       <input
                         type="number"
                         min={1}
                         max={60}
                         value={breakMinutes}
                         onChange={(e) => setBreakMinutes(Math.max(1, Number(e.target.value) || 0))}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-sm"
+                        className="w-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 rounded-lg p-2 text-sm"
                       />
                     </div>
                     <div className="flex items-end justify-between gap-2">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Auto-iniciar pausa</p>
-                        <p className="text-[11px] text-gray-400">Ao terminar o foco.</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">Auto-iniciar pausa</p>
+                        <p className="text-[11px] text-gray-400 dark:text-slate-500">Ao terminar o foco.</p>
                       </div>
                       <label className="inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only" checked={autoStartBreak} onChange={(e) => setAutoStartBreak(e.target.checked)} />
-                        <span className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${autoStartBreak ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                        <span className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${autoStartBreak ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-600'}`}>
                           <span className={`bg-white w-4 h-4 rounded-full shadow transform transition-transform ${autoStartBreak ? 'translate-x-4' : ''}`}></span>
                         </span>
                       </label>
                     </div>
                   </div>
-                  <p className="text-[11px] text-gray-400">Esses valores serão usados como padrão no Pomodoro flutuante.</p>
+                  <p className="text-[11px] text-gray-400 dark:text-slate-500">Esses valores serão usados como padrão no Pomodoro flutuante.</p>
                 </div>
               </div>
             )}
