@@ -165,8 +165,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete, on
 
                             {/* Dica final */}
                             <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl text-center">
-                                <p className="text-xs text-yellow-800">
+                                <p className="text-xs text-yellow-800 mb-1">
                                     <strong>💡 Lembre-se:</strong> Você é o protagonista! A IA cria o mapa, mas quem faz a jornada é você.
+                                </p>
+                                <p className="text-[10px] text-yellow-600">
+                                    📖 Para entender a fundo como funciona, leia o <strong>Método Completo</strong> no menu lateral (ícone 🧠).
                                 </p>
                             </div>
                         </div>
