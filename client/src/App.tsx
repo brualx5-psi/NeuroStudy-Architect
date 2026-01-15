@@ -1000,9 +1000,9 @@ export function AppContent() {
                                                             <button onClick={() => setShowSearchModal(true)} className={`flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2`}><Globe className="w-4 h-4" /> Pesquisar Web</button>
                                                         </div>
                                                         {inputType === InputType.URL && (
-                                                            <div className="mb-4 bg-green-50 text-green-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-green-100">
+                                                            <div className="mb-4 bg-indigo-50 text-indigo-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-indigo-100">
                                                                 <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                                <p><strong>✅ Links suportados:</strong> Vídeos (YouTube, Vimeo), PDFs online, sites e artigos. A IA extrai e analisa o conteúdo automaticamente.</p>
+                                                                <p><strong>📎 Links aceitos:</strong> Vídeos (YouTube, Vimeo, aulas online), PDFs, sites e artigos. A IA tenta extrair o conteúdo automaticamente. <strong>Você é responsável por ter acesso legítimo ao material.</strong></p>
                                                             </div>
                                                         )}
                                                         <div className="space-y-4">

@@ -120,10 +120,32 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                         </ul>
                     </section>
 
-                    {/* 5. Limitações */}
+                    {/* 5. Processamento de Conteúdo de Terceiros */}
                     <section>
                         <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                            <Shield className="w-5 h-5 text-indigo-600" />
+                            Processamento de Conteúdo de Terceiros
+                        </h2>
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                            <p className="text-indigo-900 text-sm leading-relaxed font-semibold mb-3">
+                                <strong>DECLARAÇÃO DE RESPONSABILIDADE:</strong>
+                            </p>
+                            <ul className="space-y-2 text-indigo-800 text-sm list-disc list-inside">
+                                <li>Ao processar vídeos, PDFs, artigos ou qualquer outro conteúdo de terceiros, você declara ter <strong>acesso legítimo</strong> e <strong>direito de uso</strong> desse material.</li>
+                                <li>Você é o <strong>único responsável</strong> por garantir que o uso do conteúdo processado está em conformidade com as leis de direitos autorais aplicáveis e os termos de serviço das plataformas de origem.</li>
+                                <li>O NeuroStudy é uma ferramenta de <strong>estudo pessoal</strong> e não deve ser usado para redistribuir, comercializar ou violar direitos de propriedade intelectual.</li>
+                                <li>O Desenvolvedor não se responsabiliza por uso indevido de conteúdo protegido por direitos autorais ou violações de termos de serviço de plataformas de terceiros.</li>
+                            </ul>
+                        </div>
+                        <p className="text-slate-600 text-sm leading-relaxed">
+                            <strong>Uso Legítimo Recomendado:</strong> Processar conteúdo que você adquiriu legalmente (cursos comprados, aulas da faculdade onde você está matriculado, vídeos públicos educacionais) para criação de materiais de estudo pessoal está geralmente protegido pela doutrina do uso justo/legítimo.
+                        </p>
+                    </section>
+
+                    {/* 6. Limitações */}
+                    <section>
+                        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                            <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-black text-sm">6</span>
                             Limitações de Responsabilidade
                         </h2>
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
@@ -133,10 +155,10 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                         </div>
                     </section>
 
-                    {/* 6. Cancelamento */}
+                    {/* 7. Cancelamento */}
                     <section>
                         <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <XCircle className="w-5 h-5 text-red-500" />
+                            <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-black text-sm">7</span>
                             Cancelamento e Reembolso
                         </h2>
                         <ul className="space-y-2 text-slate-600 list-disc list-inside">
@@ -147,10 +169,10 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                         </ul>
                     </section>
 
-                    {/* 7. Propriedade Intelectual */}
+                    {/* 8. Propriedade Intelectual */}
                     <section>
                         <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-black text-sm">7</span>
+                            <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-black text-sm">8</span>
                             Propriedade Intelectual
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
@@ -158,10 +180,10 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                         </p>
                     </section>
 
-                    {/* 8. Alterações */}
+                    {/* 9. Alterações */}
                     <section>
                         <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-black text-sm">8</span>
+                            <span className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-black text-sm">9</span>
                             Alterações nos Termos
                         </h2>
                         <p className="text-slate-600 leading-relaxed">

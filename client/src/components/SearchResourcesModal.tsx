@@ -33,7 +33,7 @@ const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
     });
 };
 
-const getAuthHeaders = async () => {
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
     if (!supabase) return {};
     const { data } = await supabase.auth.getSession();
     const token = data?.session?.access_token;
@@ -42,12 +42,13 @@ const getAuthHeaders = async () => {
 
 const postApi = async <T,>(path: string, body: unknown): Promise<T> => {
     const authHeaders = await getAuthHeaders();
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...authHeaders
+    };
     const response = await fetch(path, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...authHeaders
-        },
+        headers,
         body: JSON.stringify(body)
     });
     const payload = await response.json().catch(() => ({}));
