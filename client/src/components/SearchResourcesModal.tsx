@@ -139,14 +139,14 @@ const EvidencePyramid = ({ score, isGuideline }: { score: number, isGuideline?: 
                     <path d="M96,85 L96,10 L92,18 M96,10 L100,18" stroke="#9ca3af" strokeWidth="1.5" fill="none" />
                 </svg>
 
-                {/* Tooltip expandido ao hover */}
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50 w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl">
+                {/* Tooltip expandido ao hover - posicionado à direita para não cortar */}
+                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:block z-[100] w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl pointer-events-none">
                     <div className="font-bold text-xs mb-1">{isGuideline ? '🏛️ Guideline' : `📊 ${currentLevel.name}`}</div>
                     <div className="text-gray-300 mb-1">{isGuideline ? 'Diretriz clínica oficial' : currentLevel.fullName}</div>
                     <div className="text-gray-400 border-t border-gray-700 pt-1 mt-1">
                         Ferramenta: {isGuideline ? 'AGREE II' : currentLevel.tool}
                     </div>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-slate-900"></div>
                 </div>
             </div>
 
