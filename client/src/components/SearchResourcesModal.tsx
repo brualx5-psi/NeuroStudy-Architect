@@ -1286,13 +1286,13 @@ IMPORTANTE:
                         </div>
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                            {loading ? (
+                            {loading || deepResearchLoading ? (
                                 <div className="text-center animate-pulse">
                                     <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                                     </div>
-                                    <p className="text-indigo-600 font-bold mb-1">Filtrando o melhor conteúdo...</p>
-                                    <p className="text-xs">Priorizando Guidelines e Revisões Sistemáticas.</p>
+                                    <p className="text-indigo-600 font-bold mb-1">{deepResearchLoading ? 'Analisando com IA...' : 'Filtrando o melhor conteúdo...'}</p>
+                                    <p className="text-xs">{deepResearchLoading ? 'Deep Research em andamento. Aguarde.' : 'Priorizando Guidelines e Revisões Sistemáticas.'}</p>
                                 </div>
                             ) : hasSearched ? (
                                 <div className="text-center max-w-md mx-auto">
