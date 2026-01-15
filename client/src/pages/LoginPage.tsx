@@ -76,42 +76,56 @@ export const LoginPage: React.FC = () => {
             <div className="relative h-screen flex items-center justify-center p-4 md:p-6">
                 <div className="w-full max-w-5xl grid md:grid-cols-2 gap-6 md:gap-8 items-center">
 
-                    {/* Hero Section - AI Assistant Image */}
+                    {/* Hero Section - Informativo */}
                     <div className="relative order-2 md:order-1 hidden md:block">
-                        <div className="relative">
-                            {/* Container com max-width conforme solicitado */}
-                            <div className="relative mx-auto" style={{ maxWidth: '320px' }}>
-                                <img
-                                    src="/ai-hero.png"
-                                    alt="AI Study Assistant"
-                                    className="w-full h-auto object-contain drop-shadow-2xl rounded-3xl"
-                                    style={{ objectFit: 'contain' }}
-                                />
+                        <div className="bg-white/70 backdrop-blur-2xl border border-white shadow-2xl rounded-3xl p-8 space-y-6 relative overflow-hidden">
+                            {/* Subtle border glow */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-blue-500/5 to-indigo-500/5 rounded-3xl blur-xl"></div>
 
-                                {/* Glow effect behind image */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-300/15 via-blue-300/15 to-indigo-400/15 blur-3xl -z-10 scale-110"></div>
-                            </div>
+                            <div className="relative z-10 space-y-5">
+                                {/* Título */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <BrainCircuit className="w-8 h-8 text-indigo-600" />
+                                        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
+                                            O que é o NeuroStudy?
+                                        </h2>
+                                    </div>
+                                    <p className="text-slate-700 font-semibold text-base leading-relaxed">
+                                        Plataforma de estudo ativa baseada em neurociência. Transforme qualquer conteúdo em roteiros estruturados para aprender de verdade.
+                                    </p>
+                                </div>
 
-                            {/* Floating holographic icons */}
-                            <div className="absolute top-[15%] right-[-5%] bg-white/90 backdrop-blur-xl p-3 rounded-2xl shadow-2xl border border-indigo-200/50 animate-float-slow">
-                                <Sparkles className="w-6 h-6 text-indigo-600" />
-                            </div>
-                            <div className="absolute bottom-[20%] left-[-5%] bg-white/90 backdrop-blur-xl p-3 rounded-2xl shadow-2xl border border-blue-200/50 animate-float-slower">
-                                <Zap className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div className="absolute top-[45%] right-[5%] bg-white/90 backdrop-blur-xl p-3 rounded-2xl shadow-2xl border border-indigo-200/50 animate-float-medium">
-                                <Rocket className="w-6 h-6 text-indigo-600" />
-                            </div>
-                        </div>
+                                {/* Como funciona */}
+                                <div className="space-y-3">
+                                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider">Como funciona:</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex items-start gap-3 bg-indigo-50/50 backdrop-blur-sm p-3 rounded-xl border border-indigo-100/50">
+                                            <span className="text-xl shrink-0">📥</span>
+                                            <p className="text-sm text-slate-700 font-medium"><strong className="text-slate-900">Envie</strong> PDFs, vídeos, artigos ou anotações</p>
+                                        </div>
+                                        <div className="flex items-start gap-3 bg-blue-50/50 backdrop-blur-sm p-3 rounded-xl border border-blue-100/50">
+                                            <span className="text-xl shrink-0">🧠</span>
+                                            <p className="text-sm text-slate-700 font-medium"><strong className="text-slate-900">IA analisa</strong> e cria seu roteiro personalizado (Pareto, Normal ou Hard)</p>
+                                        </div>
+                                        <div className="flex items-start gap-3 bg-emerald-50/50 backdrop-blur-sm p-3 rounded-xl border border-emerald-100/50">
+                                            <span className="text-xl shrink-0">✅</span>
+                                            <p className="text-sm text-slate-700 font-medium"><strong className="text-slate-900">Estude ativamente</strong> com checkpoints, quiz e flashcards</p>
+                                        </div>
+                                        <div className="flex items-start gap-3 bg-purple-50/50 backdrop-blur-sm p-3 rounded-xl border border-purple-100/50">
+                                            <span className="text-xl shrink-0">🔁</span>
+                                            <p className="text-sm text-slate-700 font-medium"><strong className="text-slate-900">Revise</strong> no tempo certo (espaçamento científico)</p>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        {/* Decorative text */}
-                        <div className="mt-4 text-center space-y-1">
-                            <h2 className="text-xl font-black bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 bg-clip-text text-transparent">
-                                Seu assistente de estudos inteligente
-                            </h2>
-                            <p className="text-slate-600 font-medium text-sm">
-                                Rotas personalizadas com IA
-                            </p>
+                                {/* Para quem */}
+                                <div className="pt-3 border-t border-slate-200/50">
+                                    <p className="text-sm text-slate-600 font-medium text-center">
+                                        <strong className="text-indigo-600">Para quem:</strong> Estudantes, concurseiros e profissionais que querem aprender com eficiência real.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
