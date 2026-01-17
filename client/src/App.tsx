@@ -31,6 +31,7 @@ import { canPerformAction, LimitReason } from './services/usageLimits';
 import { extractTextFromPdfBase64 } from './services/textExtraction';
 import { looksLikeVideoUrl, isSupportedVideoUrl } from './utils/videoUrlUtils';
 import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
+import { PageSelectorModal, PageSelection } from './components/PageSelectorModal';
 
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
@@ -112,6 +113,10 @@ export function AppContent() {
     const [initialSettingsTab, setInitialSettingsTab] = useState<'search' | 'productivity' | 'account'>('search');
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
     const [showUnsupportedLinkModal, setShowUnsupportedLinkModal] = useState(false);
+
+    // Page Selector Modal states
+    const [showPageSelectorModal, setShowPageSelectorModal] = useState(false);
+    const [pendingPdfFile, setPendingPdfFile] = useState<{ file: File; type: InputType; mode: StudyMode; isPareto: boolean; isBook: boolean } | null>(null);
 
     // Refs precisam ser declarados antes de qualquer return condicional
     const paretoInputRef = useRef<HTMLInputElement>(null);
@@ -452,7 +457,7 @@ export function AppContent() {
     const handleStartRenamingSource = (source: StudySource) => { setEditingSourceId(source.id); setEditSourceName(source.name); };
     const handleSaveSourceRename = () => { if (!activeStudyId || !editingSourceId) return; setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: s.sources.map(src => src.id === editingSourceId ? { ...src, name: editSourceName } : src) }; return s; })); setEditingSourceId(null); setEditSourceName(''); };
 
-    const handleQuickStart = async (content: string | File, type: InputType, mode: StudyMode = StudyMode.NORMAL, autoGenerate: boolean = false, isBook: boolean = false) => {
+    const handleQuickStart = async (content: string | File, type: InputType, mode: StudyMode = StudyMode.NORMAL, autoGenerate: boolean = false, isBook: boolean = false, pageSelection?: PageSelection) => {
         if (!isOnboardingComplete) {
             setShowOnboarding(true);
             return;
@@ -496,8 +501,17 @@ export function AppContent() {
             else if (file.name.endsWith('.mobi')) type = InputType.MOBI;
             else if (file.type.includes('video') || file.type.includes('audio')) type = InputType.VIDEO;
             else if (file.type.includes('image')) type = InputType.IMAGE;
-            handleQuickStart(file, type, StudyMode.PARETO, true, false);
+
+            // Se for PDF, mostra modal de seleção de páginas
+            if (type === InputType.PDF) {
+                setPendingPdfFile({ file, type, mode: StudyMode.PARETO, isPareto: true, isBook: false });
+                setShowPageSelectorModal(true);
+            } else {
+                handleQuickStart(file, type, StudyMode.PARETO, true, false);
+            }
         }
+        // Limpa o input para permitir reupload do mesmo arquivo
+        e.target.value = '';
     };
 
     const handleBookUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -506,7 +520,28 @@ export function AppContent() {
             let type = InputType.PDF;
             if (file.name.endsWith('.epub')) type = InputType.EPUB;
             if (file.name.endsWith('.mobi')) type = InputType.MOBI;
-            handleQuickStart(file, type, StudyMode.NORMAL, false, true);
+
+            // Se for PDF, mostra modal de seleção de páginas
+            if (type === InputType.PDF) {
+                setPendingPdfFile({ file, type, mode: StudyMode.NORMAL, isPareto: false, isBook: true });
+                setShowPageSelectorModal(true);
+            } else {
+                handleQuickStart(file, type, StudyMode.NORMAL, false, true);
+            }
+        }
+        // Limpa o input para permitir reupload do mesmo arquivo
+        e.target.value = '';
+    };
+
+    // Handler para confirmação de seleção de páginas
+    const handlePageSelectionConfirm = (selection: PageSelection) => {
+        if (pendingPdfFile) {
+            const { file, type, mode, isPareto, isBook } = pendingPdfFile;
+            // Por enquanto, ignora a seleção de páginas e processa o arquivo todo
+            // TODO: Implementar extração de páginas específicas no backend
+            handleQuickStart(file, type, mode, isPareto, isBook, selection);
+            setPendingPdfFile(null);
+            setShowPageSelectorModal(false);
         }
     };
 
@@ -1235,6 +1270,17 @@ export function AppContent() {
                     onClose={() => setShowSubscriptionModal(false)}
                 />
             )}
+
+            {/* Page Selector Modal - Para seleção de páginas do PDF */}
+            <PageSelectorModal
+                isOpen={showPageSelectorModal}
+                fileName={pendingPdfFile?.file.name || ''}
+                onClose={() => {
+                    setShowPageSelectorModal(false);
+                    setPendingPdfFile(null);
+                }}
+                onConfirm={handlePageSelectionConfirm}
+            />
         </div>
     );
 }
