@@ -1,8 +1,143 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { BrainCircuit, Mail, Chrome, ArrowRight, Loader2, CheckCircle2, Sparkles, Zap, Rocket } from 'lucide-react';
 import { TermsPage } from './TermsPage';
 import { PrivacyPage } from './PrivacyPage';
+
+// Componente de Carrossel com Glassmorphism
+const HeroCarousel: React.FC = () => {
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const features = [
+        {
+            icon: Zap,
+            title: 'Roteiros IA',
+            description: 'PDFs, vídeos e anotações viram roteiros prontos em minutos.',
+            gradient: 'from-indigo-500 to-indigo-600',
+            shadow: 'shadow-indigo-200',
+            bg: 'bg-indigo-50/50'
+        },
+        {
+            icon: BrainCircuit,
+            title: 'Neurociência',
+            description: 'Técnicas de aprendizado ativo comprovadas pela ciência.',
+            gradient: 'from-blue-500 to-blue-600',
+            shadow: 'shadow-blue-200',
+            bg: 'bg-blue-50/50'
+        },
+        {
+            icon: CheckCircle2,
+            title: 'Quiz & Flashcards',
+            description: 'Teste seu conhecimento com perguntas geradas por IA.',
+            gradient: 'from-emerald-500 to-emerald-600',
+            shadow: 'shadow-emerald-200',
+            bg: 'bg-emerald-50/50'
+        },
+        {
+            icon: Rocket,
+            title: '3 Modos de Estudo',
+            description: 'Pareto 80/20, Normal ou Hard. Você escolhe a profundidade.',
+            gradient: 'from-purple-500 to-purple-600',
+            shadow: 'shadow-purple-200',
+            bg: 'bg-purple-50/50'
+        }
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % features.length);
+        }, 4000); // Muda a cada 4 segundos
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const currentFeature = features[activeIndex];
+    const Icon = currentFeature.icon;
+
+    return (
+        <div className="space-y-6">
+            {/* Headline Principal */}
+            <div className="text-center space-y-3">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-indigo-100 to-blue-100 rounded-full border border-indigo-200/50">
+                    <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
+                    <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Powered by AI</span>
+                </div>
+                <h2 className="text-4xl font-black leading-tight">
+                    <span className="bg-gradient-to-r from-slate-800 via-indigo-700 to-slate-800 bg-clip-text text-transparent">Estude menos.</span>
+                    <br />
+                    <span className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">Aprenda mais.</span>
+                </h2>
+                <p className="text-slate-500 font-medium text-sm max-w-xs mx-auto">
+                    A IA que transforma qualquer conteúdo em roteiros de estudo cientificamente otimizados.
+                </p>
+            </div>
+
+            {/* Carrossel Glassmorphism com Fade */}
+            <div className="relative h-56 overflow-hidden">
+                {features.map((feature, index) => {
+                    const FeatureIcon = feature.icon;
+                    const isActive = index === activeIndex;
+
+                    return (
+                        <div
+                            key={index}
+                            className={`absolute inset-0 transition-all duration-1000 ${isActive
+                                    ? 'opacity-100 scale-100'
+                                    : 'opacity-0 scale-95 pointer-events-none'
+                                }`}
+                        >
+                            <div className={`h-full bg-white/70 backdrop-blur-2xl rounded-3xl border border-white/50 shadow-2xl ${feature.bg} p-8 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
+                                {/* Glow effect */}
+                                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5 blur-xl`}></div>
+
+                                {/* Content */}
+                                <div className="relative z-10 space-y-4">
+                                    <div className={`w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mx-auto shadow-xl ${feature.shadow} transform transition-transform duration-500 ${isActive ? 'scale-100' : 'scale-90'}`}>
+                                        <FeatureIcon className="w-8 h-8 text-white" />
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-800">{feature.title}</h3>
+                                    <p className="text-slate-600 font-medium text-sm max-w-sm mx-auto leading-relaxed">{feature.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Indicadores de progresso */}
+            <div className="flex items-center justify-center gap-2">
+                {features.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setActiveIndex(index)}
+                        className={`transition-all duration-300 rounded-full ${index === activeIndex
+                                ? 'w-8 h-2 bg-gradient-to-r from-indigo-600 to-blue-600'
+                                : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'
+                            }`}
+                    />
+                ))}
+            </div>
+
+            {/* Social Proof / Stats */}
+            <div className="flex items-center justify-center gap-6 pt-2">
+                <div className="text-center">
+                    <p className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">+5k</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Roteiros criados</p>
+                </div>
+                <div className="w-px h-8 bg-slate-200"></div>
+                <div className="text-center">
+                    <p className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">4.9★</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Avaliação</p>
+                </div>
+                <div className="w-px h-8 bg-slate-200"></div>
+                <div className="text-center">
+                    <p className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">2min</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Para criar</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const LoginPage: React.FC = () => {
     const [currentView, setCurrentView] = useState<'login' | 'terms' | 'privacy'>('login');
@@ -76,78 +211,9 @@ export const LoginPage: React.FC = () => {
             <div className="relative h-screen flex items-center justify-center p-4 md:p-6">
                 <div className="w-full max-w-5xl grid md:grid-cols-2 gap-6 md:gap-8 items-center">
 
-                    {/* Hero Section - Premium Design */}
+                    {/* Hero Section - Glassmorphism Carousel */}
                     <div className="relative order-2 md:order-1 hidden md:block">
-                        <div className="space-y-6">
-                            {/* Headline Principal */}
-                            <div className="text-center space-y-3">
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-indigo-100 to-blue-100 rounded-full border border-indigo-200/50">
-                                    <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
-                                    <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Powered by AI</span>
-                                </div>
-                                <h2 className="text-4xl font-black leading-tight">
-                                    <span className="bg-gradient-to-r from-slate-800 via-indigo-700 to-slate-800 bg-clip-text text-transparent">Estude menos.</span>
-                                    <br />
-                                    <span className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">Aprenda mais.</span>
-                                </h2>
-                                <p className="text-slate-500 font-medium text-sm max-w-xs mx-auto">
-                                    A IA que transforma qualquer conteúdo em roteiros de estudo cientificamente otimizados.
-                                </p>
-                            </div>
-
-                            {/* Feature Cards - Grid Visual */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="group bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-200/50 shadow-lg shadow-indigo-100/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-indigo-200">
-                                        <Zap className="w-5 h-5 text-white" />
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 text-sm mb-1">Roteiros IA</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">PDFs, vídeos e anotações viram roteiros prontos.</p>
-                                </div>
-
-                                <div className="group bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-200/50 shadow-lg shadow-blue-100/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-blue-200">
-                                        <BrainCircuit className="w-5 h-5 text-white" />
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 text-sm mb-1">Neurociência</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">Técnicas de aprendizado ativo comprovadas.</p>
-                                </div>
-
-                                <div className="group bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-200/50 shadow-lg shadow-emerald-100/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-emerald-200">
-                                        <CheckCircle2 className="w-5 h-5 text-white" />
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 text-sm mb-1">Quiz & Flash</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">Teste seu conhecimento com IA.</p>
-                                </div>
-
-                                <div className="group bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-200/50 shadow-lg shadow-purple-100/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-purple-200">
-                                        <Rocket className="w-5 h-5 text-white" />
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 text-sm mb-1">3 Modos</h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed">Pareto 80/20, Normal ou Hard.</p>
-                                </div>
-                            </div>
-
-                            {/* Social Proof / Stats */}
-                            <div className="flex items-center justify-center gap-6 pt-2">
-                                <div className="text-center">
-                                    <p className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">+5k</p>
-                                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Roteiros criados</p>
-                                </div>
-                                <div className="w-px h-8 bg-slate-200"></div>
-                                <div className="text-center">
-                                    <p className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">4.9★</p>
-                                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Avaliação</p>
-                                </div>
-                                <div className="w-px h-8 bg-slate-200"></div>
-                                <div className="text-center">
-                                    <p className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">2min</p>
-                                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Para criar</p>
-                                </div>
-                            </div>
-                        </div>
+                        <HeroCarousel />
                     </div>
 
                     {/* Login Card */}
