@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { BrainCircuit, Mail, Chrome, ArrowRight, Loader2, CheckCircle2, Sparkles, Zap, Rocket } from 'lucide-react';
+import { BrainCircuit, Mail, Chrome, ArrowRight, Loader2, CheckCircle2, Sparkles, Zap, Rocket, BookOpen, Target, Search, Layers, CalendarClock, GraduationCap, MessageCircle } from 'lucide-react';
 import { TermsPage } from './TermsPage';
 import { PrivacyPage } from './PrivacyPage';
 
@@ -12,41 +12,89 @@ const HeroCarousel: React.FC = () => {
         {
             icon: Zap,
             title: 'Roteiros IA',
-            description: 'PDFs, vídeos e anotações viram roteiros prontos em minutos.',
+            description: 'PDFs, vídeos e anotações transformados em roteiros de estudo estruturados em minutos.',
             gradient: 'from-indigo-500 to-indigo-600',
             shadow: 'shadow-indigo-200',
             bg: 'bg-indigo-50/50'
         },
         {
-            icon: BrainCircuit,
-            title: 'Neurociência',
-            description: 'Técnicas de aprendizado ativo comprovadas pela ciência.',
-            gradient: 'from-blue-500 to-blue-600',
-            shadow: 'shadow-blue-200',
-            bg: 'bg-blue-50/50'
+            icon: BookOpen,
+            title: 'Modo Livro',
+            description: 'Resuma livros inteiros. Faça upload do PDF e receba uma análise completa capítulo por capítulo.',
+            gradient: 'from-orange-500 to-orange-600',
+            shadow: 'shadow-orange-200',
+            bg: 'bg-orange-50/50'
+        },
+        {
+            icon: Target,
+            title: 'Modo Pareto 80/20',
+            description: 'Extração rápida do essencial. Ideal para consultas ágeis e tirar dúvidas pontuais.',
+            gradient: 'from-red-500 to-red-600',
+            shadow: 'shadow-red-200',
+            bg: 'bg-red-50/50'
+        },
+        {
+            icon: Layers,
+            title: '3 Níveis de Profundidade',
+            description: 'Escolha: Sobrevivência (foco no essencial), Normal (equilíbrio) ou Hard (deep dive completo).',
+            gradient: 'from-amber-500 to-amber-600',
+            shadow: 'shadow-amber-200',
+            bg: 'bg-amber-50/50'
+        },
+        {
+            icon: Search,
+            title: 'Deep Research',
+            description: 'Pesquise em bases científicas (PubMed, OpenAlex). A IA filtra e prioriza os melhores artigos.',
+            gradient: 'from-cyan-500 to-cyan-600',
+            shadow: 'shadow-cyan-200',
+            bg: 'bg-cyan-50/50'
+        },
+        {
+            icon: GraduationCap,
+            title: 'Pirâmide de Evidências',
+            description: 'Artigos classificados por nível de evidência: Guidelines, Meta-análises, RCTs e mais.',
+            gradient: 'from-teal-500 to-teal-600',
+            shadow: 'shadow-teal-200',
+            bg: 'bg-teal-50/50'
         },
         {
             icon: CheckCircle2,
             title: 'Quiz & Flashcards',
-            description: 'Teste seu conhecimento com perguntas geradas por IA.',
+            description: 'Teste seu conhecimento com perguntas e flashcards gerados automaticamente pela IA.',
             gradient: 'from-emerald-500 to-emerald-600',
             shadow: 'shadow-emerald-200',
             bg: 'bg-emerald-50/50'
         },
         {
-            icon: Rocket,
-            title: '3 Modos de Estudo',
-            description: 'Pareto 80/20, Normal ou Hard. Você escolhe a profundidade.',
-            gradient: 'from-purple-500 to-purple-600',
-            shadow: 'shadow-purple-200',
-            bg: 'bg-purple-50/50'
+            icon: MessageCircle,
+            title: 'Chat Professor Virtual',
+            description: 'Tire dúvidas diretamente com o professor IA. Ele conhece todo o conteúdo do seu estudo.',
+            gradient: 'from-violet-500 to-violet-600',
+            shadow: 'shadow-violet-200',
+            bg: 'bg-violet-50/50'
+        },
+        {
+            icon: CalendarClock,
+            title: 'Revisão Espaçada',
+            description: 'Agende revisões baseadas em neurociência. Lembre no momento ideal para fixar o conteúdo.',
+            gradient: 'from-pink-500 to-pink-600',
+            shadow: 'shadow-pink-200',
+            bg: 'bg-pink-50/50'
+        },
+        {
+            icon: BrainCircuit,
+            title: 'Mapa Mental & Conexões',
+            description: 'Visualize conexões entre conceitos. Entenda como os tópicos se relacionam.',
+            gradient: 'from-blue-500 to-blue-600',
+            shadow: 'shadow-blue-200',
+            bg: 'bg-blue-50/50'
         }
     ];
 
     useEffect(() => {
         const interval = setInterval(() => {
             setActiveIndex((prev) => (prev + 1) % features.length);
-        }, 4000); // Muda a cada 4 segundos
+        }, 3500); // Muda a cada 3.5 segundos (10 features = 35s ciclo)
 
         return () => clearInterval(interval);
     }, []);
@@ -82,8 +130,8 @@ const HeroCarousel: React.FC = () => {
                         <div
                             key={index}
                             className={`absolute inset-0 transition-all duration-1000 ${isActive
-                                    ? 'opacity-100 scale-100'
-                                    : 'opacity-0 scale-95 pointer-events-none'
+                                ? 'opacity-100 scale-100'
+                                : 'opacity-0 scale-95 pointer-events-none'
                                 }`}
                         >
                             <div className={`h-full bg-white/70 backdrop-blur-2xl rounded-3xl border border-white/50 shadow-2xl ${feature.bg} p-8 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
@@ -111,8 +159,8 @@ const HeroCarousel: React.FC = () => {
                         key={index}
                         onClick={() => setActiveIndex(index)}
                         className={`transition-all duration-300 rounded-full ${index === activeIndex
-                                ? 'w-8 h-2 bg-gradient-to-r from-indigo-600 to-blue-600'
-                                : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'
+                            ? 'w-8 h-2 bg-gradient-to-r from-indigo-600 to-blue-600'
+                            : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'
                             }`}
                     />
                 ))}
