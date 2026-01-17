@@ -166,21 +166,19 @@ const HeroCarousel: React.FC = () => {
                 ))}
             </div>
 
-            {/* Social Proof / Stats */}
-            <div className="flex items-center justify-center gap-6 pt-2">
-                <div className="text-center">
-                    <p className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">+5k</p>
-                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Roteiros criados</p>
+            {/* Badges Verificáveis */}
+            <div className="flex items-center justify-center gap-4 pt-2 flex-wrap">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-sm">
+                    <span className="text-lg">🆓</span>
+                    <span className="text-xs font-bold text-slate-700">Gratuito para começar</span>
                 </div>
-                <div className="w-px h-8 bg-slate-200"></div>
-                <div className="text-center">
-                    <p className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">4.9★</p>
-                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Avaliação</p>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-sm">
+                    <span className="text-lg">🧠</span>
+                    <span className="text-xs font-bold text-slate-700">Baseado em Neurociência</span>
                 </div>
-                <div className="w-px h-8 bg-slate-200"></div>
-                <div className="text-center">
-                    <p className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">2min</p>
-                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Para criar</p>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-sm">
+                    <span className="text-lg">🤖</span>
+                    <span className="text-xs font-bold text-slate-700">Powered by Google AI</span>
                 </div>
             </div>
         </div>
