@@ -432,11 +432,7 @@ export function AppContent() {
                     if (finalType === InputType.PDF) {
                         const extracted = extractTextFromPdfBase64(base64Content);
                         if (extracted) {
-                            const maxChars = limits.pages_per_source * 2500;
-                            if (extracted.length > maxChars) {
-                                alert(`Texto muito longo! Seu plano suporta até ${limits.pages_per_source} páginas (aprox. ${maxChars.toLocaleString()} caracteres).`);
-                                return;
-                            }
+                            // Limite de páginas removido - permite PDF de qualquer tamanho
                             textContent = extracted;
                         }
                     }
