@@ -12,7 +12,7 @@ import { PLAN_LIMITS, PlanName } from './planLimits.js';
 
 // IDs de admin que podem usar qualquer link sem restrição de tipo
 // ATENÇÃO: Apenas para ambiente de desenvolvimento ou usuários específicos
-const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
+const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
 
 /**
  * Verifica se o usuário é admin (pode usar qualquer link)

@@ -35,7 +35,7 @@ import { PageSelectorModal, PageSelection } from './components/PageSelectorModal
 import { extractPdfPages } from './services/pdfPageExtractor';
 
 // IDs de admin que podem usar qualquer link sem restrição
-const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
+const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
 
 export function AppContent() {
     const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage, isAdmin: isAdminFromProfile } = useAuth();
