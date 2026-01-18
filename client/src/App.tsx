@@ -464,9 +464,19 @@ export function AppContent() {
             return;
         }
 
-        let targetFolderId = 'root-neuro';
-        if (isBook) targetFolderId = 'root-books';
-        else if (mode === StudyMode.PARETO) targetFolderId = 'root-pareto';
+        // Usa targetFolderId do estado se não for especificação especial
+        // Isso preserva a pasta customizada onde o usuário estava
+        let effectiveFolderId = targetFolderId;
+        if (isBook && targetFolderId !== 'root-books' && !folders.find(f => f.id === targetFolderId)) {
+            effectiveFolderId = 'root-books';
+        } else if (mode === StudyMode.PARETO && targetFolderId !== 'root-pareto' && !folders.find(f => f.id === targetFolderId)) {
+            effectiveFolderId = 'root-pareto';
+        } else if (targetFolderId === 'root-neuro' || targetFolderId === 'root-books' || targetFolderId === 'root-pareto') {
+            // Se está em pasta root, mantém lógica original
+            if (isBook) effectiveFolderId = 'root-books';
+            else if (mode === StudyMode.PARETO) effectiveFolderId = 'root-pareto';
+        }
+        // Se está em pasta customizada, mantém essa pasta
 
         // Se for PDF com seleção de páginas específicas, extrai antes
         let processedFile = content;
@@ -485,7 +495,7 @@ export function AppContent() {
         const fileName = processedFile instanceof File ? processedFile.name : 'Novo Estudo';
         let title = isBook ? `Livro: ${fileName}` : mode === StudyMode.PARETO ? `Pareto 80/20: ${fileName}` : `Estudo: ${fileName}`;
 
-        const newStudy = createStudy(targetFolderId, title, mode, isBook);
+        const newStudy = createStudy(effectiveFolderId, title, mode, isBook);
         if (!newStudy) return; // Limite atingido, modal já exibido
 
         let sourceContent = ''; let mimeType = 'text/plain'; let name = ''; let textContent: string | undefined;
