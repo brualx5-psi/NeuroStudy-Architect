@@ -32,6 +32,7 @@ import { extractTextFromPdfBase64 } from './services/textExtraction';
 import { looksLikeVideoUrl, isSupportedVideoUrl } from './utils/videoUrlUtils';
 import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
 import { PageSelectorModal, PageSelection } from './components/PageSelectorModal';
+import { extractPdfPages } from './services/pdfPageExtractor';
 
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500'];
@@ -467,21 +468,35 @@ export function AppContent() {
         if (isBook) targetFolderId = 'root-books';
         else if (mode === StudyMode.PARETO) targetFolderId = 'root-pareto';
 
-        const fileName = content instanceof File ? content.name : 'Novo Estudo';
+        // Se for PDF com seleção de páginas específicas, extrai antes
+        let processedFile = content;
+        if (content instanceof File && type === InputType.PDF && pageSelection?.mode === 'range' && pageSelection.parsedPages && pageSelection.parsedPages.length > 0) {
+            try {
+                console.log(`📄 Extraindo ${pageSelection.parsedPages.length} páginas: ${pageSelection.pageRanges}`);
+                processedFile = await extractPdfPages(content, pageSelection.parsedPages);
+                console.log(`✅ PDF reduzido: ${content.name} → ${(processedFile as File).name}`);
+            } catch (error) {
+                console.error('Erro ao extrair páginas:', error);
+                // Se falhar, usa o arquivo original
+                processedFile = content;
+            }
+        }
+
+        const fileName = processedFile instanceof File ? processedFile.name : 'Novo Estudo';
         let title = isBook ? `Livro: ${fileName}` : mode === StudyMode.PARETO ? `Pareto 80/20: ${fileName}` : `Estudo: ${fileName}`;
 
         const newStudy = createStudy(targetFolderId, title, mode, isBook);
         if (!newStudy) return; // Limite atingido, modal já exibido
 
         let sourceContent = ''; let mimeType = 'text/plain'; let name = ''; let textContent: string | undefined;
-        if (content instanceof File) {
-            sourceContent = await fileToBase64(content); mimeType = content.type; name = content.name;
+        if (processedFile instanceof File) {
+            sourceContent = await fileToBase64(processedFile); mimeType = processedFile.type; name = processedFile.name;
             if (type === InputType.PDF) {
                 const extracted = extractTextFromPdfBase64(sourceContent);
                 if (extracted) textContent = extracted;
             }
         } else {
-            sourceContent = content; textContent = content;
+            sourceContent = processedFile; textContent = processedFile;
             if (type === InputType.DOI) name = 'DOI Link'; else if (type === InputType.URL) name = 'Website Link'; else name = 'Texto Colado';
         }
 
