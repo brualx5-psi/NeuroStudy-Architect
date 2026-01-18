@@ -1374,6 +1374,7 @@ export function AppContent() {
             <PageSelectorModal
                 isOpen={showPageSelectorModal}
                 fileName={pendingPdfFile?.file.name || ''}
+                pdfFile={pendingPdfFile?.file}
                 onClose={() => {
                     setShowPageSelectorModal(false);
                     setPendingPdfFile(null);
@@ -1385,6 +1386,7 @@ export function AppContent() {
             <PageSelectorModal
                 isOpen={showSourcePageModal}
                 fileName={pendingSourceFile?.file.name || ''}
+                pdfFile={pendingSourceFile?.file}
                 onClose={() => {
                     setShowSourcePageModal(false);
                     setPendingSourceFile(null);
