@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StudySource, InputType } from '../types';
 import { X, FileText, Globe, Video, Image as ImageIcon } from './Icons';
+import { fetchLinkPreview, LinkPreview } from '../services/previewService';
 
 interface SourcePreviewModalProps {
   source: StudySource;
@@ -8,6 +9,41 @@ interface SourcePreviewModalProps {
 }
 
 export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, onClose }) => {
+  const [preview, setPreview] = useState<LinkPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const isLink = source.type === InputType.URL || source.type === InputType.DOI;
+    if (!isLink) {
+      setPreview(null);
+      setPreviewLoading(false);
+      setPreviewError(null);
+      return;
+    }
+
+    let active = true;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    fetchLinkPreview(source.content, source.type, source.name)
+      .then((data) => {
+        if (!active) return;
+        setPreview(data);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setPreviewError(error?.message || 'Nao foi possivel carregar o preview.');
+      })
+      .finally(() => {
+        if (!active) return;
+        setPreviewLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [source]);
+
   const renderContent = () => {
     switch (source.type) {
       case InputType.PDF:
@@ -99,9 +135,13 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
           }
         }
 
-        const domain = getDomain(finalUrl);
+        const previewUrl = preview?.url || finalUrl;
+        const domain = getDomain(previewUrl);
         const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
         const isRawUrl = !source.content || source.content.startsWith('http') || isDOI(source.content) || source.content.includes('.com') || source.content.includes('.org');
+        const displayTitle = preview?.title || source.name.replace('Link: ', '').replace('DOI: ', '').replace('...', '') || domain;
+        const displaySummary = preview?.summary || '';
+        const displaySite = preview?.siteName || domain;
 
         return (
           <div className="flex flex-col h-full p-6 space-y-4">
@@ -116,11 +156,11 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-800 truncate">{source.name.replace('Link: ', '').replace('DOI: ', '').replace('...', '') || domain}</p>
-                  <p className="text-xs text-gray-500">{domain}</p>
+                  <p className="font-bold text-gray-800 truncate">{displayTitle}</p>
+                  <p className="text-xs text-gray-500">{displaySite}</p>
                 </div>
                 <a
-                  href={finalUrl}
+                  href={previewUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors"
@@ -133,13 +173,36 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
               <div className="p-4 bg-white">
                 <p className="text-xs text-gray-400 uppercase font-bold mb-2">{source.type === InputType.DOI ? 'DOI / Link' : 'URL Completa'}</p>
                 <p className="text-sm text-indigo-600 break-all bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-                  {finalUrl}
+                  {previewUrl}
                 </p>
               </div>
             </div>
 
+            {previewLoading && (
+              <div className="text-center py-6 text-gray-400">
+                Carregando preview...
+              </div>
+            )}
+
+            {previewError && !previewLoading && (
+              <div className="text-center py-6 text-gray-400">
+                {previewError}
+              </div>
+            )}
+
+            {!previewLoading && !previewError && displaySummary && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100 bg-gray-50">
+                  <p className="text-xs text-gray-500 uppercase font-bold">Resumo</p>
+                </div>
+                <div className="p-4">
+                  <p className="text-sm text-gray-700 leading-relaxed">{displaySummary}</p>
+                </div>
+              </div>
+            )}
+
             {/* Conteúdo extraído (se disponível e não for só URL) */}
-            {!isRawUrl && source.content && (
+            {!isRawUrl && source.content && !preview && (
               <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-gray-100 bg-gray-50">
                   <p className="text-xs text-gray-500 uppercase font-bold">Conteúdo Extraído</p>
@@ -156,7 +219,7 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
             )}
 
             {/* Dica se for só URL */}
-            {isRawUrl && (
+            {isRawUrl && !previewLoading && !previewError && !displaySummary && (
               <div className="text-center py-8 text-gray-400">
                 <Globe className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                 <p className="text-sm">O conteúdo deste link será processado ao gerar o roteiro de estudo.</p>
