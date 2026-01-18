@@ -42,6 +42,27 @@ const globalStore = globalThis as typeof globalThis & { __usageStore?: Map<strin
 const localStore = globalStore.__usageStore || new Map<string, UsageRow>();
 globalStore.__usageStore = localStore;
 
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const normalizeUsageRow = (row: UsageRow): UsageRow => ({
+  ...row,
+  roadmaps_created: toNumber(row.roadmaps_created),
+  web_searches_used: toNumber(row.web_searches_used),
+  youtube_minutes_used: toNumber(row.youtube_minutes_used),
+  chat_messages: toNumber(row.chat_messages),
+  tokens_estimated: toNumber(row.tokens_estimated),
+  tokens_used: toNumber(row.tokens_used),
+  chat_tokens_estimated: toNumber(row.chat_tokens_estimated),
+  chat_tokens_used: toNumber(row.chat_tokens_used)
+});
+
 const mapPlanName = (status?: string | null): PlanName => {
   if (status === 'starter' || status === 'pro' || status === 'free') return status;
   if (status === 'premium') return 'pro';
@@ -115,7 +136,7 @@ export const ensureUsageRow = async (
       .single();
 
     if (data && !error) {
-      return data as UsageRow;
+      return normalizeUsageRow(data as UsageRow);
     }
 
     const fresh = createEmptyUsage(userId, month, plan);
@@ -131,7 +152,7 @@ export const ensureUsageRow = async (
       return fresh;
     }
 
-    return inserted as UsageRow;
+    return normalizeUsageRow(inserted as UsageRow);
   } catch {
     const key = `${userId}:${month}`;
     const existing = localStore.get(key);
@@ -157,7 +178,7 @@ export const getUsage = async (userId: string, month: string): Promise<UsageRow 
       .single();
 
     if (error || !data) return null;
-    return data as UsageRow;
+    return normalizeUsageRow(data as UsageRow);
   } catch {
     return localStore.get(`${userId}:${month}`) || null;
   }
@@ -171,7 +192,7 @@ export const incrementUsage = async (
 ) => {
   const supabase = getSupabaseAdmin();
   console.log('[incrementUsage] supabase available:', !!supabase, 'userId:', userId, 'month:', month, 'deltas:', deltas);
-  const current = await ensureUsageRow(userId, month, plan);
+  const current = normalizeUsageRow(await ensureUsageRow(userId, month, plan));
   const updatedAt = new Date().toISOString();
 
   const next: UsageRow = {
@@ -184,7 +205,7 @@ export const incrementUsage = async (
   (Object.keys(deltas) as (keyof UsageDeltas)[]).forEach((key) => {
     const delta = deltas[key];
     if (typeof delta !== 'number') return;
-    const base = (current as any)[key] || 0;
+    const base = toNumber((current as any)[key]);
     (next as any)[key] = base + delta;
   });
 
@@ -246,10 +267,10 @@ export const incrementUsage = async (
 };
 
 export const toUsageSnapshot = (row: UsageRow | null): UsageSnapshot => ({
-  roadmaps_created: row?.roadmaps_created ?? 0,
-  youtube_minutes_used: row?.youtube_minutes_used ?? 0,
-  web_research_used: row?.web_searches_used ?? 0,
-  chat_messages: row?.chat_messages ?? 0,
-  monthly_tokens_used: row?.tokens_estimated ?? row?.tokens_used ?? 0,
-  chat_tokens_used: row?.chat_tokens_estimated ?? row?.chat_tokens_used ?? 0
+  roadmaps_created: toNumber(row?.roadmaps_created),
+  youtube_minutes_used: toNumber(row?.youtube_minutes_used),
+  web_research_used: toNumber(row?.web_searches_used),
+  chat_messages: toNumber(row?.chat_messages),
+  monthly_tokens_used: toNumber(row?.tokens_estimated ?? row?.tokens_used),
+  chat_tokens_used: toNumber(row?.chat_tokens_estimated ?? row?.chat_tokens_used)
 });
