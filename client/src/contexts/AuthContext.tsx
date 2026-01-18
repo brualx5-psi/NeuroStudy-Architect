@@ -386,9 +386,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const nextUsage = { ...current, updated_at: updatedAt };
         Object.entries(updates).forEach(([key, value]) => {
             if (typeof value !== 'number') return;
-            const typedKey = key as UsageMetric;
+            const typedKey = key as keyof UserUsage;
             const currentValue = (nextUsage[typedKey] as number) || 0;
-            nextUsage[typedKey] = currentValue + value;
+            (nextUsage as Record<string, unknown>)[typedKey] = currentValue + value;
         });
 
         setUsage(nextUsage);
