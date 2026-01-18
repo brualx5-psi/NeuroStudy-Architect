@@ -64,6 +64,17 @@ export type PrepareSourcesResult = {
 const TRANSCRIPT_EXTENSIONS = ['.vtt', '.srt', '.txt', '.sub', '.sbv'];
 const TRANSCRIPT_CONTENT_TYPES = ['text/vtt', 'text/plain', 'application/x-subrip', 'text/srt'];
 
+// Domínios bloqueados para plano Free (exigem assinatura/login)
+const BLOCKED_PAID_DOMAINS = [
+    'udemy.com',
+    'coursera.org',
+    'edx.org',
+    'linkedin.com/learning',
+    'skillshare.com',
+    'alura.com.br',
+    'hotmart.com'
+];
+
 // Padrões de YouTube
 const YOUTUBE_PATTERNS = [
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=[\w-]+/i,
@@ -204,7 +215,6 @@ export const prepareSourcesForRoadmap = async (
     const adminBypass = isAdminUser(userId, isAdmin);
 
     // ADMIN: Pula TODAS as validações de limites (roteiros, fontes, tokens, minutos)
-    // Admin pode usar a plataforma sem restrições
     if (!adminBypass) {
         // Validação 1: número de fontes
         if (sources.length > limits.sources_per_study) {
@@ -234,19 +244,19 @@ export const prepareSourcesForRoadmap = async (
     for (const source of sources) {
         const sourceType = detectSourceType(source);
         const sourceId = source.id || `src-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const content = source.content || source.textContent || '';
 
-        // Link não suportado (não é YouTube, não é transcript público)
-        // ADMIN BYPASS: Se for admin, pular este bloqueio e tratar como texto
-        if (sourceType === 'unsupported_link') {
-            if (!adminBypass) {
+        // Validação de links pagos para Plano Free (admin pula)
+        if (!adminBypass && planName === 'free' && typeof content === 'string') {
+            const isBlocked = BLOCKED_PAID_DOMAINS.some(domain => content.toLowerCase().includes(domain));
+            if (isBlocked) {
                 return {
                     success: false,
                     error: 'UNSUPPORTED_LINK_REQUIRES_TRANSCRIPT',
-                    errorMessage: 'Este link parece exigir login ou não oferece transcrição acessível.',
-                    actionSuggestion: 'upload_file'
+                    errorMessage: 'Links de plataformas pagas (Udemy, Coursera, etc.) exigem transcrição manual no plano Free.',
+                    actionSuggestion: 'paste_transcript'
                 };
             }
-            // Admin: tratar como texto puro (conteúdo da URL será usado como está)
         }
 
         // YouTube - validar duração (admin pula validação)
@@ -325,7 +335,6 @@ export const prepareSourcesForRoadmap = async (
             const result = await fetchTranscriptFromUrl(url);
 
             // Se falhar o download, usar a URL como texto (fallback) ou retornar erro?
-            // Fallback: deixa o modelo tentar acessar ou usa como referência
             const textContent = result?.text || url;
 
             normalizedSources.push({

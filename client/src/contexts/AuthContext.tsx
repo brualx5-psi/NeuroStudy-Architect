@@ -111,10 +111,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updated_at: new Date().toISOString()
     });
 
-    const normalizeUsage = (data: Partial<UserUsage> | null, userId: string, month: string) => ({
-        ...createEmptyUsage(userId, month),
-        ...(data || {})
-    });
+    const normalizeUsage = (data: Partial<UserUsage> | null, userId: string, month: string) => {
+        const base = createEmptyUsage(userId, month);
+        if (!data || data.month !== month) {
+            return base;
+        }
+        return { ...base, ...data, month };
+    };
 
     const getUsageStorageKey = (userId: string, month: string) => `${USAGE_STORAGE_PREFIX}:${userId}:${month}`;
 
@@ -251,6 +254,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
+        if (!user?.id || !usage?.month) return;
+        const currentMonth = getCurrentMonth();
+        if (usage.month !== currentMonth) {
+            fetchUsage(user.id);
+        }
+    }, [user?.id, usage?.month]);
+
+    useEffect(() => {
         console.log('🔵 [Auth] useEffect iniciado (Manual + Listener)');
         const client = getSupabaseClient();
 
@@ -360,6 +371,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Se usage não carregou, assume que pode criar
         if (!usage) {
             console.log('[canCreateStudy] Usage não carregado, permitindo...');
+            return true;
+        }
+
+        const currentMonth = getCurrentMonth();
+        if (usage.month !== currentMonth) {
+            console.log('[canCreateStudy] Usage de outro mes, permitindo...');
             return true;
         }
 
