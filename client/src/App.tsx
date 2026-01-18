@@ -118,6 +118,9 @@ export function AppContent() {
     // Page Selector Modal states
     const [showPageSelectorModal, setShowPageSelectorModal] = useState(false);
     const [pendingPdfFile, setPendingPdfFile] = useState<{ file: File; type: InputType; mode: StudyMode; isPareto: boolean; isBook: boolean } | null>(null);
+    // Estado para PDF pendente ao adicionar fonte DENTRO de um estudo existente
+    const [pendingSourceFile, setPendingSourceFile] = useState<{ file: File } | null>(null);
+    const [showSourcePageModal, setShowSourcePageModal] = useState(false);
 
     // Refs precisam ser declarados antes de qualquer return condicional
     const lastLoadedUserIdRef = useRef<string | null>(null);
@@ -385,6 +388,13 @@ export function AppContent() {
         } else {
             if (!selectedFile) return;
 
+            // INTERCEPTAÇÃO: Se for PDF, mostrar modal de seleção de páginas
+            if (inputType === InputType.PDF && selectedFile.type.includes('pdf')) {
+                setPendingSourceFile({ file: selectedFile });
+                setShowSourcePageModal(true);
+                return; // Parar aqui - processamento continua após escolha no modal
+            }
+
             // Lógica de Transcrição Automática para Vídeo/Áudio
             if (inputType === InputType.VIDEO) {
                 const detectedMinutes = await getMediaDurationMinutes(selectedFile);
@@ -587,6 +597,51 @@ export function AppContent() {
             setPendingPdfFile(null);
             setShowPageSelectorModal(false);
         }
+    };
+
+    // Handler para seleção de páginas ao adicionar fonte DENTRO de um estudo
+    const handleSourcePageConfirm = async (selection: PageSelection) => {
+        if (!pendingSourceFile || !activeStudyId || !activeStudy) return;
+
+        let fileToProcess = pendingSourceFile.file;
+
+        // Se selecionou páginas específicas, extrai antes
+        if (selection.mode === 'range' && selection.parsedPages && selection.parsedPages.length > 0) {
+            try {
+                console.log(`📄 Extraindo ${selection.parsedPages.length} páginas: ${selection.pageRanges}`);
+                fileToProcess = await extractPdfPages(pendingSourceFile.file, selection.parsedPages);
+                console.log(`✅ PDF reduzido: ${pendingSourceFile.file.name} → ${fileToProcess.name}`);
+            } catch (error) {
+                console.error('Erro ao extrair páginas:', error);
+                // Se falhar, usa arquivo original
+            }
+        }
+
+        // Processa o PDF (igual ao fluxo original)
+        const base64Content = await fileToBase64(fileToProcess);
+        const extracted = extractTextFromPdfBase64(base64Content);
+
+        const isFirstSource = (!activeStudy.sources || activeStudy.sources.length === 0);
+        const newSource: StudySource = {
+            id: Date.now().toString(),
+            type: InputType.PDF,
+            name: fileToProcess.name,
+            content: base64Content,
+            textContent: extracted || undefined,
+            mimeType: 'application/pdf',
+            dateAdded: Date.now(),
+            isPrimary: isFirstSource
+        };
+
+        setStudies(prev => prev.map(s => {
+            if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource] };
+            return s;
+        }));
+
+        // Limpa estados
+        setPendingSourceFile(null);
+        setShowSourcePageModal(false);
+        setSelectedFile(null);
     };
 
     const fileToBase64 = (file: File): Promise<string> => { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => { const result = reader.result as string; const base64 = result.split(',')[1]; resolve(base64); }; reader.onerror = (error) => reject(error); }); };
@@ -1324,6 +1379,18 @@ export function AppContent() {
                     setPendingPdfFile(null);
                 }}
                 onConfirm={handlePageSelectionConfirm}
+            />
+
+            {/* Page Selector Modal - Para adicionar fonte DENTRO de um estudo */}
+            <PageSelectorModal
+                isOpen={showSourcePageModal}
+                fileName={pendingSourceFile?.file.name || ''}
+                onClose={() => {
+                    setShowSourcePageModal(false);
+                    setPendingSourceFile(null);
+                    setSelectedFile(null);
+                }}
+                onConfirm={handleSourcePageConfirm}
             />
         </div>
     );
