@@ -82,20 +82,7 @@ export const loadUserData = async (): Promise<{ studies: StudySession[]; folders
     }
 
     if (!data) {
-      const { error: upsertError } = await supabase!
-        .from('user_data')
-        .upsert(
-          {
-            user_id: userId,
-            content: defaultData,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'user_id', ignoreDuplicates: true }
-        );
-
-      if (upsertError) {
-        console.warn('[Storage] Erro ao inicializar dados na nuvem:', upsertError.message);
-      }
+      // Não tenta criar linha aqui - deixa o primeiro saveUserData criar
       return defaultData;
     }
 
