@@ -345,7 +345,7 @@ export function AppContent() {
     const updateStudyGuide = (studyId: string, newGuide: StudyGuide) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide: newGuide } : s)); };
     const updateStudyMode = (studyId: string, mode: StudyMode) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, mode: mode } : s)); };
     const handleSaveTitle = () => { if (activeStudyId && editTitleInput.trim()) { setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, title: editTitleInput } : s)); } setIsEditingTitle(false); };
-    const addSourceToStudy = async () => {
+    const addSourceToStudy = async (options?: { bypassUnsupportedUrlCheck?: boolean }) => {
         if (!activeStudyId || !activeStudy) return;
 
         // Verificação de limite de fontes por roteiro (admin bypassa)
@@ -367,7 +367,7 @@ export function AppContent() {
                 const urlIsSupported = isSupportedVideoUrl(inputText);
 
                 // Se parece ser vídeo mas não é YouTube/Vimeo, bloquear (exceto admin)
-                if (urlLooksLikeVideo && !urlIsSupported && !isAdmin) {
+                if (urlLooksLikeVideo && !urlIsSupported && !isAdmin && !options?.bypassUnsupportedUrlCheck) {
                     setShowUnsupportedLinkModal(true);
                     return;
                 }
@@ -1358,6 +1358,10 @@ export function AppContent() {
                         setShowUnsupportedLinkModal(false);
                         setInputType(InputType.TEXT);
                         setInputText('');
+                    }}
+                    onProceed={() => {
+                        setShowUnsupportedLinkModal(false);
+                        addSourceToStudy({ bypassUnsupportedUrlCheck: true });
                     }}
                 />
             </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Upload, FileText, Youtube, AlertTriangle } from 'lucide-react';
 
 interface UnsupportedLinkModalProps {
@@ -6,6 +6,7 @@ interface UnsupportedLinkModalProps {
     onClose: () => void;
     onUploadVideo: () => void;
     onPasteTranscript: () => void;
+    onProceed: () => void;
 }
 
 export const UnsupportedLinkModal: React.FC<UnsupportedLinkModalProps> = ({
@@ -13,7 +14,16 @@ export const UnsupportedLinkModal: React.FC<UnsupportedLinkModalProps> = ({
     onClose,
     onUploadVideo,
     onPasteTranscript,
+    onProceed,
 }) => {
+    const [hasAgreed, setHasAgreed] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setHasAgreed(false);
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     return (
@@ -91,6 +101,27 @@ export const UnsupportedLinkModal: React.FC<UnsupportedLinkModalProps> = ({
                                 </p>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="mt-6 border-t border-gray-200/70 dark:border-gray-700 pt-4 space-y-3">
+                        <label className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
+                            <input
+                                type="checkbox"
+                                checked={hasAgreed}
+                                onChange={(event) => setHasAgreed(event.target.checked)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span>
+                                Li e concordo que sou responsavel por direitos autorais e pelos termos das plataformas de origem.
+                            </span>
+                        </label>
+                        <button
+                            onClick={onProceed}
+                            disabled={!hasAgreed}
+                            className="w-full py-3 rounded-xl font-semibold bg-gray-900 text-white hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Continuar com o link mesmo assim
+                        </button>
                     </div>
                 </div>
 
