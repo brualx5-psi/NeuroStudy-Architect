@@ -120,19 +120,42 @@ export function AppContent() {
     const [pendingPdfFile, setPendingPdfFile] = useState<{ file: File; type: InputType; mode: StudyMode; isPareto: boolean; isBook: boolean } | null>(null);
 
     // Refs precisam ser declarados antes de qualquer return condicional
+    const lastLoadedUserIdRef = useRef<string | null>(null);
     const paretoInputRef = useRef<HTMLInputElement>(null);
     const bookInputRef = useRef<HTMLInputElement>(null);
 
     // TODOS os useEffect precisam vir antes de qualquer return condicional
     useEffect(() => {
+        let cancelled = false;
+
         const load = async () => {
             const data = await loadUserData();
+            if (cancelled) return;
             if (data) {
                 if (data.studies) setStudies(data.studies || []);
                 if (data.folders) setFolders(data.folders || []);
             }
         };
-        if (user) load();
+
+        if (!user) {
+            lastLoadedUserIdRef.current = null;
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        if (lastLoadedUserIdRef.current === user.id) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        lastLoadedUserIdRef.current = user.id;
+        load();
+
+        return () => {
+            cancelled = true;
+        };
     }, [user]);
 
     useEffect(() => {
