@@ -348,9 +348,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const canCreateStudy = () => {
+        // Admin sempre pode criar
         if (isAdmin) return true;
-        if (!usage) return true;
-        return usage.roadmaps_created < limits.roadmaps;
+
+        // Se perfil ainda não carregou, permite (evita falso bloqueio)
+        if (!profile) {
+            console.log('[canCreateStudy] Perfil não carregado, permitindo...');
+            return true;
+        }
+
+        // Se usage não carregou, assume que pode criar
+        if (!usage) {
+            console.log('[canCreateStudy] Usage não carregado, permitindo...');
+            return true;
+        }
+
+        // Verifica limite considerando o plano
+        const canCreate = usage.roadmaps_created < limits.roadmaps;
+        console.log(`[canCreateStudy] Plan: ${planName}, Created: ${usage.roadmaps_created}, Limit: ${limits.roadmaps}, Can: ${canCreate}`);
+        return canCreate;
     };
 
     const canUseFeynman = () => {
