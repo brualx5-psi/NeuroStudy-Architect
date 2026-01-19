@@ -1150,7 +1150,7 @@ export function AppContent() {
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                            <button onClick={addSourceToStudy} disabled={(!inputText && !selectedFile)} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">Adicionar à Lista</button>
+                                                            <button onClick={() => addSourceToStudy()} disabled={(!inputText && !selectedFile)} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">Adicionar à Lista</button>
                                                         </div>
                                                     </div>
                                                 ) : (
