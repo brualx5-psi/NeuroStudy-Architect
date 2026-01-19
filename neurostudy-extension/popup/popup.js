@@ -16,6 +16,14 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 const API_BASE = 'https://neurostudy.com.br';
 
 // ============== AUTH FUNCTIONS ==============
+function logAuthDebug(message, data) {
+    if (data === undefined) {
+        console.log(`[Auth] ${message}`);
+        return;
+    }
+    console.log(`[Auth] ${message}`, data);
+}
+
 function getAuthParam(url, key) {
     const searchValue = url.searchParams.get(key);
     if (searchValue) {
@@ -30,7 +38,7 @@ function getAuthParam(url, key) {
 
 async function login() {
     const redirectUri = chrome.identity.getRedirectURL('callback');
-    console.log('[Auth] Redirect URI:', redirectUri);
+    logAuthDebug('Redirect URI:', redirectUri);
 
     const authUrl = new URL(`${API_BASE}/api/extension`);
     authUrl.searchParams.set('action', 'authorize');
@@ -42,7 +50,10 @@ async function login() {
             interactive: true
         });
 
-        console.log('[Auth] Response URL:', responseUrl);
+        logAuthDebug('Response URL:', responseUrl);
+        if (!responseUrl) {
+            throw new Error('URL de resposta vazia');
+        }
 
         const url = new URL(responseUrl);
         const accessToken = getAuthParam(url, 'access_token');
@@ -50,6 +61,14 @@ async function login() {
         const expiresAt = getAuthParam(url, 'expires_at');
         const expiresIn = getAuthParam(url, 'expires_in');
         const error = getAuthParam(url, 'error');
+
+        logAuthDebug('Parsed tokens', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            hasExpiresAt: !!expiresAt,
+            hasExpiresIn: !!expiresIn,
+            error
+        });
 
         if (error) {
             throw new Error(`Erro de autenticação: ${error}`);
@@ -69,11 +88,14 @@ async function login() {
             refresh_token: refreshToken,
             expires_at: expiresAtValue
         });
+        logAuthDebug('Tokens saved to storage');
 
         // Buscar dados do usuário
+        logAuthDebug('Fetching plan');
         const userResponse = await fetch(`${API_BASE}/api/extension?action=plan`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
+        logAuthDebug('Plan response', { ok: userResponse.ok, status: userResponse.status });
 
         if (userResponse.ok) {
             const userData = await userResponse.json();
@@ -81,8 +103,10 @@ async function login() {
                 user: { planName: userData.planName },
                 plan_name: userData.planName
             });
+            logAuthDebug('Plan saved', userData.planName);
         }
 
+        logAuthDebug('Login succeeded');
         return { success: true };
     } catch (error) {
         console.error('[Auth] Login error:', error);
@@ -102,6 +126,11 @@ async function logout() {
 
 async function getAuthState() {
     const data = await chrome.storage.local.get(['access_token', 'user', 'expires_at']);
+    logAuthDebug('Auth state from storage', {
+        hasToken: !!data.access_token,
+        hasUser: !!data.user,
+        expiresAt: data.expires_at
+    });
 
     if (!data.access_token) {
         return { isAuthenticated: false };
