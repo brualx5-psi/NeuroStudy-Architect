@@ -12,7 +12,8 @@ async function login() {
     const redirectUri = chrome.identity.getRedirectURL('callback');
     console.log('[Auth] Redirect URI:', redirectUri);
 
-    const authUrl = new URL(`${API_BASE}/api/extension/authorize`);
+    const authUrl = new URL(`${API_BASE}/api/extension`);
+    authUrl.searchParams.set('action', 'authorize');
     authUrl.searchParams.set('redirect_uri', redirectUri);
 
     try {
@@ -45,7 +46,7 @@ async function login() {
         });
 
         // Buscar dados do usuário
-        const userResponse = await fetch(`${API_BASE}/api/user/plan`, {
+        const userResponse = await fetch(`${API_BASE}/api/extension?action=plan`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
 
@@ -110,7 +111,7 @@ async function checkPlanAccess() {
         const token = await getToken();
         if (!token) return false;
 
-        const response = await fetch(`${API_BASE}/api/user/plan`, {
+        const response = await fetch(`${API_BASE}/api/extension?action=plan`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -153,7 +154,7 @@ async function fetchWithAuth(path, options = {}) {
 
 async function getFolders() {
     try {
-        const response = await fetchWithAuth('/api/extension/folders');
+        const response = await fetchWithAuth('/api/extension?action=folders');
         return response.folders || [];
     } catch (error) {
         console.error('[API] Get folders error:', error);
@@ -163,7 +164,7 @@ async function getFolders() {
 
 async function getStudies(folderId) {
     try {
-        const response = await fetchWithAuth(`/api/extension/studies?folderId=${folderId}`);
+        const response = await fetchWithAuth(`/api/extension?action=studies&folderId=${folderId}`);
         return response.studies || [];
     } catch (error) {
         console.error('[API] Get studies error:', error);
@@ -172,7 +173,7 @@ async function getStudies(folderId) {
 }
 
 async function sendTranscript(studyId, transcript, options = {}) {
-    return await fetchWithAuth('/api/extension/capture', {
+    return await fetchWithAuth('/api/extension?action=capture', {
         method: 'POST',
         body: JSON.stringify({
             studyId,
