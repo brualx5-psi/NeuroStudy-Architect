@@ -10,6 +10,7 @@
     ],
     "host_permissions": [
         "https://neurostudy.com.br/*",
+        "https://www.neurostudy.com.br/*",
         "https://*.hotmart.com/*",
         "https://*.hotmart.club/*",
         "https://*.eduzz.com/*",
