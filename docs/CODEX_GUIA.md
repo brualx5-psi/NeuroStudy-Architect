@@ -84,7 +84,54 @@ codex resume <SESSION_ID>
 
 | Comando | Descrição |
 |---------|-----------|
-| `/model` | Trocar modelo (gpt-5.2-codex, gpt-5, gpt-4.1, etc.) |
+| `/model` | Trocar modelo (ver seção abaixo) |
+
+---
+
+## 🧠 Modelos Disponíveis - Quando Usar Cada Um
+
+| Modelo | Descrição | Quando Usar |
+|--------|-----------|-------------|
+| **gpt-5.2-codex** | Modelo agentico de coding mais recente | ✅ **Padrão recomendado** - Desenvolvimento diário, features novas, refatorações |
+| **gpt-5.1-codex-max** | Flagship para raciocínio profundo e rápido | 🧠 **Tarefas complexas** - Debugging difícil, arquitetura, decisões críticas |
+| **gpt-5.1-codex-mini** | Mais rápido e barato, menos capaz | ⚡ **Tarefas simples** - Correções pequenas, formatação, perguntas rápidas |
+| **gpt-5.2** | Modelo generalista frontier | 📚 **Conhecimento amplo** - Explicações, documentação, pesquisa |
+
+### Guia Rápido de Escolha:
+
+```
+Tarefa simples/rápida? → gpt-5.1-codex-mini (economiza tokens)
+Desenvolvimento normal? → gpt-5.2-codex (padrão)
+Problema complexo?     → gpt-5.1-codex-max (análise profunda)
+Docs/Pesquisa?         → gpt-5.2 (conhecimento geral)
+```
+
+### Como Trocar:
+```bash
+/model              # Abre lista para escolher
+/model gpt-5.1-codex-max  # Troca direto
+```
+
+---
+
+## ⚡ Níveis de Raciocínio (Reasoning Effort)
+
+Além do modelo, você pode ajustar a **profundidade de raciocínio**:
+
+| Nível | Descrição | Quando Usar |
+|-------|-----------|-------------|
+| **Low** | Respostas rápidas, raciocínio leve | ⚡ Perguntas simples, formatação, tarefas triviais |
+| **Medium** (padrão) | Equilibra velocidade e profundidade | ✅ **Uso diário** - maioria das tarefas |
+| **High** | Raciocínio mais profundo | 🧠 Problemas complexos, bugs difíceis |
+| **Extra High** | Máxima profundidade de análise | 🔬 Arquitetura, decisões críticas, edge cases |
+
+### Dica de Combinação:
+```
+Tarefa simples    → gpt-5.1-codex-mini + Low
+Desenvolvimento   → gpt-5.2-codex + Medium
+Bug complexo      → gpt-5.1-codex-max + High
+Decisão crítica   → gpt-5.1-codex-max + Extra High
+```
 | `/approvals` | Mudar modo de aprovação |
 | `/init` | Gerar AGENTS.md automático |
 

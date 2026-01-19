@@ -12,6 +12,8 @@ import { sendJson, readJson } from './_lib/http.js';
 import type { PlanName } from './_lib/planLimits.js';
 import { createClient } from '@supabase/supabase-js';
 
+const SITE_URL = process.env.PUBLIC_SITE_URL || 'https://neurostudy.com.br';
+
 function getRequestUrl(req: any) {
     const host = req.headers?.host || 'neurostudy.com.br';
     if (!req.url) {
@@ -91,10 +93,15 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
         return sendJson(res, 500, { error: 'supabase_not_configured' });
     }
 
+    // Redireciona sempre para um callback do nosso dominio para evitar depender do ID da extensao
+    const callbackUrl = new URL('/api/extension/callback', SITE_URL);
+    callbackUrl.searchParams.set('extension_redirect', redirectUri);
+
     const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`);
     authUrl.searchParams.set('provider', 'google');
-    // Redirect straight back to the extension (implicit flow friendly).
-    authUrl.searchParams.set('redirect_to', redirectUri);
+    authUrl.searchParams.set('redirect_to', callbackUrl.toString());
+    // Mantem o redirect original no state como redundancia
+    authUrl.searchParams.set('state', redirectUri);
 
     res.redirect(302, authUrl.toString());
 }
@@ -104,16 +111,27 @@ async function handleCallback(req: any, res: any, requestUrl: URL | null) {
     const code = getQueryParam(req, requestUrl, 'code');
     const extensionRedirect = getQueryParam(req, requestUrl, 'extension_redirect');
     const stateRedirect = getQueryParam(req, requestUrl, 'state');
-    const redirectTarget = extensionRedirect
+    const safeExtensionRedirect = extensionRedirect && isValidExtensionRedirect(extensionRedirect)
+        ? extensionRedirect
+        : null;
+    const redirectTarget = safeExtensionRedirect
         || (stateRedirect && isValidExtensionRedirect(stateRedirect) ? stateRedirect : null);
     const accessToken = getQueryParam(req, requestUrl, 'access_token');
     const refreshToken = getQueryParam(req, requestUrl, 'refresh_token');
+    const expiresAt = getQueryParam(req, requestUrl, 'expires_at');
+    const expiresIn = getQueryParam(req, requestUrl, 'expires_in');
 
     if (accessToken && redirectTarget) {
         const redirectUrl = new URL(redirectTarget);
         redirectUrl.searchParams.set('access_token', accessToken);
         if (refreshToken) {
             redirectUrl.searchParams.set('refresh_token', refreshToken);
+        }
+        if (expiresAt) {
+            redirectUrl.searchParams.set('expires_at', expiresAt);
+        }
+        if (expiresIn) {
+            redirectUrl.searchParams.set('expires_in', expiresIn);
         }
         return res.redirect(302, redirectUrl.toString());
     }
@@ -141,7 +159,43 @@ async function handleCallback(req: any, res: any, requestUrl: URL | null) {
         return res.redirect(302, redirectUrl.toString());
     }
 
-    return sendJson(res, 400, { error: 'missing_parameters' });
+    // Fallback: se os tokens vierem na hash (fluxo implicito), repassa para a extensao via HTML
+    const htmlRedirectTarget = redirectTarget && isValidExtensionRedirect(redirectTarget)
+        ? redirectTarget
+        : null;
+
+    const html = `<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>NeuroStudy - Callback</title></head>
+<body>
+<p>Concluindo login da extensao...</p>
+<script>
+(function() {
+  const isValidRedirect = (value) => typeof value === 'string' && (value.startsWith('chrome-extension://') || value.includes('chromiumapp.org'));
+  const target = ${htmlRedirectTarget ? `'${htmlRedirectTarget}'` : 'null'};
+  const fallback = '${SITE_URL}';
+  const finalTarget = isValidRedirect(target) ? target : fallback;
+  const url = new URL(finalTarget);
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const readParam = (key) => hashParams.get(key) || searchParams.get(key);
+
+  ['access_token', 'refresh_token', 'expires_in', 'expires_at', 'token_type', 'provider_token', 'error'].forEach((key) => {
+    const value = readParam(key);
+    if (value) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  window.location.replace(url.toString());
+})();
+</script>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(html);
 }
 
 // ============== FOLDERS ==============
