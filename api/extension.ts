@@ -12,6 +12,25 @@ import { sendJson, readJson } from './_lib/http.js';
 import type { PlanName } from './_lib/planLimits.js';
 import { createClient } from '@supabase/supabase-js';
 
+function getRequestUrl(req: any) {
+    const host = req.headers?.host || 'www.neurostudy.com.br';
+    if (!req.url) {
+        return null;
+    }
+    return new URL(req.url, `https://${host}`);
+}
+
+function getQueryParam(req: any, requestUrl: URL | null, key: string): string | null {
+    const queryValue = req.query?.[key];
+    if (typeof queryValue === 'string') {
+        return queryValue;
+    }
+    if (Array.isArray(queryValue) && queryValue.length > 0) {
+        return queryValue[0];
+    }
+    return requestUrl?.searchParams.get(key) ?? null;
+}
+
 export default async function handler(req: any, res: any) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,14 +42,16 @@ export default async function handler(req: any, res: any) {
     }
 
     // Get action from query string (for GET) or body (for POST)
-    const action = req.query?.action || (req.method === 'POST' ? (await readJson<{ action?: string }>(req)).action : null);
+    const requestUrl = getRequestUrl(req);
+    const actionFromQuery = getQueryParam(req, requestUrl, 'action');
+    const action = actionFromQuery || (req.method === 'POST' ? (await readJson<{ action?: string }>(req)).action : null);
 
     try {
         switch (action) {
             case 'authorize':
-                return handleAuthorize(req, res);
+                return handleAuthorize(req, res, requestUrl);
             case 'callback':
-                return handleCallback(req, res);
+                return handleCallback(req, res, requestUrl);
             case 'folders':
                 return handleFolders(req, res);
             case 'studies':
@@ -49,8 +70,8 @@ export default async function handler(req: any, res: any) {
 }
 
 // ============== AUTHORIZE ==============
-async function handleAuthorize(req: any, res: any) {
-    const redirectUri = req.query.redirect_uri as string;
+async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
+    const redirectUri = getQueryParam(req, requestUrl, 'redirect_uri');
 
     if (!redirectUri) {
         return sendJson(res, 400, { error: 'redirect_uri required' });
@@ -78,19 +99,22 @@ async function handleAuthorize(req: any, res: any) {
 }
 
 // ============== CALLBACK ==============
-async function handleCallback(req: any, res: any) {
-    const { code, extension_redirect, access_token, refresh_token } = req.query;
+async function handleCallback(req: any, res: any, requestUrl: URL | null) {
+    const code = getQueryParam(req, requestUrl, 'code');
+    const extensionRedirect = getQueryParam(req, requestUrl, 'extension_redirect');
+    const accessToken = getQueryParam(req, requestUrl, 'access_token');
+    const refreshToken = getQueryParam(req, requestUrl, 'refresh_token');
 
-    if (access_token && extension_redirect) {
-        const redirectUrl = new URL(extension_redirect as string);
-        redirectUrl.searchParams.set('access_token', access_token as string);
-        if (refresh_token) {
-            redirectUrl.searchParams.set('refresh_token', refresh_token as string);
+    if (accessToken && extensionRedirect) {
+        const redirectUrl = new URL(extensionRedirect);
+        redirectUrl.searchParams.set('access_token', accessToken);
+        if (refreshToken) {
+            redirectUrl.searchParams.set('refresh_token', refreshToken);
         }
         return res.redirect(302, redirectUrl.toString());
     }
 
-    if (code && extension_redirect) {
+    if (code && extensionRedirect) {
         const supabaseUrl = process.env.SUPABASE_URL;
         const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
@@ -105,7 +129,7 @@ async function handleCallback(req: any, res: any) {
             return sendJson(res, 400, { error: 'invalid_code' });
         }
 
-        const redirectUrl = new URL(extension_redirect as string);
+        const redirectUrl = new URL(extensionRedirect);
         redirectUrl.searchParams.set('access_token', session.access_token);
         redirectUrl.searchParams.set('refresh_token', session.refresh_token);
         redirectUrl.searchParams.set('expires_at', String(session.expires_at || Date.now() + 3600000));
