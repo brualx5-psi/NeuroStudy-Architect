@@ -1,21 +1,194 @@
 /**
- * NeuroStudy Capture - Popup Logic
+ * NeuroStudy Capture - Popup Logic (Self-contained)
  * 
- * Gerencia estados do popup e comunicação com:
- * - Content script (extração de legendas)
- * - Background worker (autenticação)
- * - API NeuroStudy (envio de fontes)
+ * Versão sem imports externos para compatibilidade com Chrome Extensions
  */
 
-import { login, logout, getAuthState, checkPlanAccess } from '../lib/auth.js';
-import { sendTranscript, getFolders, getStudies } from '../lib/api.js';
+// ============== CONFIG ==============
+const API_BASE = 'https://www.neurostudy.com.br';
 
-// Estado global
+// ============== AUTH FUNCTIONS ==============
+async function login() {
+    const redirectUri = chrome.identity.getRedirectURL('callback');
+    console.log('[Auth] Redirect URI:', redirectUri);
+
+    const authUrl = new URL(`${API_BASE}/api/extension/authorize`);
+    authUrl.searchParams.set('redirect_uri', redirectUri);
+
+    try {
+        const responseUrl = await chrome.identity.launchWebAuthFlow({
+            url: authUrl.toString(),
+            interactive: true
+        });
+
+        console.log('[Auth] Response URL:', responseUrl);
+
+        const url = new URL(responseUrl);
+        const accessToken = url.searchParams.get('access_token');
+        const refreshToken = url.searchParams.get('refresh_token');
+        const expiresAt = url.searchParams.get('expires_at');
+        const error = url.searchParams.get('error');
+
+        if (error) {
+            throw new Error(`Erro de autenticação: ${error}`);
+        }
+
+        if (!accessToken) {
+            throw new Error('Token não encontrado na resposta');
+        }
+
+        // Salvar no storage
+        await chrome.storage.local.set({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_at: expiresAt ? parseInt(expiresAt) : Date.now() + 3600000
+        });
+
+        // Buscar dados do usuário
+        const userResponse = await fetch(`${API_BASE}/api/user/plan`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (userResponse.ok) {
+            const userData = await userResponse.json();
+            await chrome.storage.local.set({
+                user: { planName: userData.planName },
+                plan_name: userData.planName
+            });
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('[Auth] Login error:', error);
+        throw error;
+    }
+}
+
+async function logout() {
+    await chrome.storage.local.remove([
+        'access_token',
+        'refresh_token',
+        'user',
+        'expires_at',
+        'plan_name'
+    ]);
+}
+
+async function getAuthState() {
+    const data = await chrome.storage.local.get(['access_token', 'user', 'expires_at']);
+
+    if (!data.access_token) {
+        return { isAuthenticated: false };
+    }
+
+    if (data.expires_at && Date.now() > data.expires_at) {
+        await logout();
+        return { isAuthenticated: false };
+    }
+
+    return {
+        isAuthenticated: true,
+        user: data.user
+    };
+}
+
+async function getToken() {
+    const { access_token } = await chrome.storage.local.get('access_token');
+    return access_token;
+}
+
+async function checkPlanAccess() {
+    try {
+        const { plan_name } = await chrome.storage.local.get('plan_name');
+
+        // Se já tem cache, usar
+        if (plan_name) {
+            return plan_name !== 'free';
+        }
+
+        // Buscar da API
+        const token = await getToken();
+        if (!token) return false;
+
+        const response = await fetch(`${API_BASE}/api/user/plan`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) return false;
+
+        const { planName } = await response.json();
+        await chrome.storage.local.set({ plan_name: planName });
+
+        return planName !== 'free';
+    } catch (error) {
+        console.error('[Auth] Plan check error:', error);
+        return false;
+    }
+}
+
+// ============== API FUNCTIONS ==============
+async function fetchWithAuth(path, options = {}) {
+    const token = await getToken();
+
+    if (!token) {
+        throw new Error('Não autenticado');
+    }
+
+    const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options.headers
+        }
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || `Erro ${response.status}`);
+    }
+
+    return response.json();
+}
+
+async function getFolders() {
+    try {
+        const response = await fetchWithAuth('/api/extension/folders');
+        return response.folders || [];
+    } catch (error) {
+        console.error('[API] Get folders error:', error);
+        return [];
+    }
+}
+
+async function getStudies(folderId) {
+    try {
+        const response = await fetchWithAuth(`/api/extension/studies?folderId=${folderId}`);
+        return response.studies || [];
+    } catch (error) {
+        console.error('[API] Get studies error:', error);
+        return [];
+    }
+}
+
+async function sendTranscript(studyId, transcript, options = {}) {
+    return await fetchWithAuth('/api/extension/capture', {
+        method: 'POST',
+        body: JSON.stringify({
+            studyId,
+            transcript,
+            isPrimary: options.isPrimary || false,
+            videoTitle: options.videoTitle,
+            videoUrl: options.videoUrl
+        })
+    });
+}
+
+// ============== UI STATE ==============
 let currentTranscript = null;
 let currentPlatform = null;
 let currentVideoInfo = null;
 
-// Elementos DOM
 const elements = {
     loadingState: null,
     loginState: null,
@@ -35,9 +208,9 @@ const elements = {
     statusMessage: null
 };
 
-// Inicialização
+// ============== INITIALIZATION ==============
 document.addEventListener('DOMContentLoaded', async () => {
-    // Cache de elementos DOM
+    // Cache DOM elements
     elements.loadingState = document.getElementById('loading-state');
     elements.loginState = document.getElementById('login-state');
     elements.upgradeState = document.getElementById('upgrade-state');
@@ -61,13 +234,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     elements.sendBtn.addEventListener('click', handleSend);
     elements.folderSelect.addEventListener('change', handleFolderChange);
 
-    // Inicializar estado
+    // Initialize
     await initializeState();
 });
 
-/**
- * Inicializa o estado do popup baseado na autenticação
- */
 async function initializeState() {
     try {
         const authState = await getAuthState();
@@ -77,7 +247,6 @@ async function initializeState() {
             return;
         }
 
-        // Verificar se é plano pago
         const hasAccess = await checkPlanAccess();
 
         if (!hasAccess) {
@@ -85,21 +254,17 @@ async function initializeState() {
             return;
         }
 
-        // Usuário autenticado e com plano válido
         showState('capture');
         elements.userEmail.textContent = authState.user?.email || 'Usuário';
 
         await loadUserData();
         await checkCurrentPage();
     } catch (error) {
-        console.error('Erro na inicialização:', error);
+        console.error('[Init] Error:', error);
         showState('login');
     }
 }
 
-/**
- * Mostra um estado específico do popup
- */
 function showState(state) {
     elements.loadingState.classList.add('hidden');
     elements.loginState.classList.add('hidden');
@@ -122,9 +287,6 @@ function showState(state) {
     }
 }
 
-/**
- * Carrega pastas e estudos do usuário
- */
 async function loadUserData() {
     try {
         const folders = await getFolders();
@@ -143,19 +305,15 @@ async function loadUserData() {
             elements.folderSelect.appendChild(option);
         });
 
-        // Carregar estudos da primeira pasta
         if (folders.length > 0) {
             await handleFolderChange();
         }
     } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+        console.error('[LoadData] Error:', error);
         showStatusMessage('Erro ao carregar pastas', 'error');
     }
 }
 
-/**
- * Handler para mudança de pasta
- */
 async function handleFolderChange() {
     const folderId = elements.folderSelect.value;
 
@@ -183,14 +341,11 @@ async function handleFolderChange() {
             elements.studySelect.appendChild(option);
         });
     } catch (error) {
-        console.error('Erro ao carregar estudos:', error);
+        console.error('[FolderChange] Error:', error);
         elements.studySelect.innerHTML = '<option value="">Erro ao carregar</option>';
     }
 }
 
-/**
- * Verifica se a página atual tem vídeo detectável
- */
 async function checkCurrentPage() {
     try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -200,7 +355,6 @@ async function checkCurrentPage() {
             return;
         }
 
-        // Enviar mensagem para content script
         chrome.tabs.sendMessage(tab.id, { type: 'CHECK_PLATFORM' }, (response) => {
             if (chrome.runtime.lastError) {
                 updateDetectionStatus('warning', '⚠️', 'Abra uma página de curso para capturar legendas');
@@ -223,23 +377,17 @@ async function checkCurrentPage() {
             }
         });
     } catch (error) {
-        console.error('Erro ao verificar página:', error);
+        console.error('[CheckPage] Error:', error);
         updateDetectionStatus('error', '❌', 'Erro ao verificar página');
     }
 }
 
-/**
- * Atualiza o status de detecção
- */
 function updateDetectionStatus(type, icon, text) {
     elements.detectionStatus.className = `status-box ${type}`;
     elements.detectionIcon.textContent = icon;
     elements.detectionText.textContent = text;
 }
 
-/**
- * Handler de login
- */
 async function handleLogin() {
     try {
         elements.loginBtn.disabled = true;
@@ -247,31 +395,24 @@ async function handleLogin() {
 
         await login();
 
-        // Recarregar para atualizar estado
         await initializeState();
     } catch (error) {
-        console.error('Erro no login:', error);
+        console.error('[Login] Error:', error);
         showStatusMessage('Erro ao conectar. Tente novamente.', 'error');
         elements.loginBtn.disabled = false;
         elements.loginBtn.innerHTML = 'Conectar com NeuroStudy';
     }
 }
 
-/**
- * Handler de logout
- */
 async function handleLogout() {
     try {
         await logout();
         showState('login');
     } catch (error) {
-        console.error('Erro no logout:', error);
+        console.error('[Logout] Error:', error);
     }
 }
 
-/**
- * Handler de envio de transcrição
- */
 async function handleSend() {
     const studyId = elements.studySelect.value;
 
@@ -284,7 +425,6 @@ async function handleSend() {
         elements.sendBtn.disabled = true;
         showStatusMessage('Capturando legenda...', 'loading');
 
-        // Solicitar extração ao content script
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
         const extractionResult = await new Promise((resolve, reject) => {
@@ -306,7 +446,6 @@ async function handleSend() {
 
         showStatusMessage('Enviando para NeuroStudy...', 'loading');
 
-        // Enviar para API
         const result = await sendTranscript(studyId, currentTranscript, {
             isPrimary: elements.primarySource.checked,
             videoTitle: currentVideoInfo?.title,
@@ -315,22 +454,18 @@ async function handleSend() {
 
         showStatusMessage('✅ Transcrição enviada com sucesso!', 'success');
 
-        // Fechar popup após 2 segundos
         setTimeout(() => {
             window.close();
         }, 2000);
 
     } catch (error) {
-        console.error('Erro ao enviar:', error);
+        console.error('[Send] Error:', error);
         showStatusMessage(`❌ ${error.message}`, 'error');
     } finally {
         elements.sendBtn.disabled = false;
     }
 }
 
-/**
- * Mostra mensagem de status
- */
 function showStatusMessage(message, type) {
     elements.statusMessage.textContent = message;
     elements.statusMessage.className = type;
