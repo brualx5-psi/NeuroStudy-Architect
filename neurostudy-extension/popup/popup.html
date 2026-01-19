@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroStudy Capture</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Estado: Carregando -->
+        <div id="loading-state">
+            <div class="spinner"></div>
+            <p>Conectando...</p>
+        </div>
+
+        <!-- Estado: Não logado -->
+        <div id="login-state" class="hidden">
+            <div class="logo">
+                <img src="../icons/icon48.png" alt="NeuroStudy">
+                <h2>NeuroStudy Capture</h2>
+                <p class="tagline">Capture legendas de qualquer curso</p>
+            </div>
+            <button id="login-btn" class="primary-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                    <polyline points="10 17 15 12 10 7"></polyline>
+                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                Conectar com NeuroStudy
+            </button>
+        </div>
+
+        <!-- Estado: Upgrade necessário (Free user) -->
+        <div id="upgrade-state" class="hidden">
+            <div class="upgrade-prompt">
+                <div class="icon">🔒</div>
+                <h3>Feature Premium</h3>
+                <p>A captura automática de legendas é exclusiva para assinantes <strong>Pro</strong> e
+                    <strong>Plus</strong>.</p>
+                <a href="https://neurostudy.com.br/plans" target="_blank" class="upgrade-btn">
+                    Ver Planos
+                </a>
+                <p class="hint">💡 Plano Free: Use upload de arquivo ou cole a transcrição manualmente no app</p>
+            </div>
+        </div>
+
+        <!-- Estado: Logado e autorizado -->
+        <div id="capture-state" class="hidden">
+            <div class="header">
+                <div class="user-info">
+                    <img src="../icons/icon16.png" alt="NeuroStudy" class="header-icon">
+                    <span id="user-email"></span>
+                </div>
+                <button id="logout-btn" title="Sair">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Status de detecção -->
+            <div id="detection-status" class="status-box">
+                <div id="detection-icon">🔍</div>
+                <div id="detection-text">Verificando página...</div>
+            </div>
+
+            <!-- Formulário de captura -->
+            <div id="capture-form" class="hidden">
+                <div class="form-group">
+                    <label for="folder-select">📁 Pasta:</label>
+                    <select id="folder-select">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="study-select">📚 Estudo:</label>
+                    <select id="study-select">
+                        <option value="">Selecione uma pasta primeiro</option>
+                    </select>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="primary-source">
+                        <span>⭐ Marcar como fonte principal</span>
+                    </label>
+                </div>
+
+                <button id="send-btn" class="primary-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Enviar para NeuroStudy
+                </button>
+            </div>
+
+            <!-- Mensagem de status -->
+            <div id="status-message" class="hidden"></div>
+        </div>
+    </div>
+
+    <script src="popup.js" type="module"></script>
+</body>
+
+</html>

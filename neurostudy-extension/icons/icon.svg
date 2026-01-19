@@ -1,0 +1,23 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#grad)"/>
+  
+  <!-- Brain icon simplified -->
+  <path d="M64 28C48 28 36 40 36 54C36 62 40 70 46 76L46 88C46 92 50 96 54 96L74 96C78 96 82 92 82 88L82 76C88 70 92 62 92 54C92 40 80 28 64 28Z" fill="white" opacity="0.9"/>
+  
+  <!-- Neural connections -->
+  <circle cx="52" cy="52" r="6" fill="#4f46e5"/>
+  <circle cx="76" cy="52" r="6" fill="#4f46e5"/>
+  <circle cx="64" cy="68" r="6" fill="#4f46e5"/>
+  
+  <line x1="52" y1="52" x2="64" y2="68" stroke="#4f46e5" stroke-width="3"/>
+  <line x1="76" y1="52" x2="64" y2="68" stroke="#4f46e5" stroke-width="3"/>
+  <line x1="52" y1="52" x2="76" y2="52" stroke="#4f46e5" stroke-width="3"/>
+</svg>

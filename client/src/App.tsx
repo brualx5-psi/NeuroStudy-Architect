@@ -1136,7 +1136,7 @@ export function AppContent() {
                                                         {inputType === InputType.URL && (
                                                             <div className="mb-4 bg-indigo-50 text-indigo-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-indigo-100">
                                                                 <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                                <p><strong>📎 Links aceitos:</strong> Vídeos (YouTube, Vimeo, aulas online), PDFs, sites e artigos. A IA tenta extrair o conteúdo automaticamente. <strong>Você é responsável por ter acesso legítimo ao material.</strong></p>
+                                                                <p><strong>📎 Links públicos:</strong> YouTube, Vimeo, sites e PDFs acessíveis. <strong>Plataformas com login não funcionam</strong> (Hotmart, Udemy, etc.) — para esses casos, faça upload do arquivo ou cole a transcrição. Ao fazer upload, você declara ter direito de uso do material.</p>
                                                             </div>
                                                         )}
                                                         <div className="space-y-4">
