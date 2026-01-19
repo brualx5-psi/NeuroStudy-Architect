@@ -31,6 +31,10 @@ function getQueryParam(req: any, requestUrl: URL | null, key: string): string | 
     return requestUrl?.searchParams.get(key) ?? null;
 }
 
+function isValidExtensionRedirect(value: string) {
+    return value.startsWith('chrome-extension://') || value.includes('chromiumapp.org');
+}
+
 export default async function handler(req: any, res: any) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -77,7 +81,7 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
         return sendJson(res, 400, { error: 'redirect_uri required' });
     }
 
-    if (!redirectUri.startsWith('chrome-extension://') && !redirectUri.includes('chromiumapp.org')) {
+    if (!isValidExtensionRedirect(redirectUri)) {
         return sendJson(res, 400, { error: 'invalid_redirect_uri' });
     }
 
@@ -89,13 +93,11 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
 
     // Force production domain to match Supabase allowed list
     const baseUrl = 'https://www.neurostudy.com.br';
-    // Keep redirect_to static and pass the extension redirect via state.
-    const callbackUrl = `${baseUrl}/api/extension/callback`;
+    const callbackUrl = `${baseUrl}/api/extension/callback?extension_redirect=${encodeURIComponent(redirectUri)}`;
 
     const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`);
     authUrl.searchParams.set('provider', 'google');
     authUrl.searchParams.set('redirect_to', callbackUrl);
-    authUrl.searchParams.set('state', redirectUri);
 
     res.redirect(302, authUrl.toString());
 }
@@ -103,13 +105,15 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
 // ============== CALLBACK ==============
 async function handleCallback(req: any, res: any, requestUrl: URL | null) {
     const code = getQueryParam(req, requestUrl, 'code');
-    const extensionRedirect = getQueryParam(req, requestUrl, 'extension_redirect')
-        || getQueryParam(req, requestUrl, 'state');
+    const extensionRedirect = getQueryParam(req, requestUrl, 'extension_redirect');
+    const stateRedirect = getQueryParam(req, requestUrl, 'state');
+    const redirectTarget = extensionRedirect
+        || (stateRedirect && isValidExtensionRedirect(stateRedirect) ? stateRedirect : null);
     const accessToken = getQueryParam(req, requestUrl, 'access_token');
     const refreshToken = getQueryParam(req, requestUrl, 'refresh_token');
 
-    if (accessToken && extensionRedirect) {
-        const redirectUrl = new URL(extensionRedirect);
+    if (accessToken && redirectTarget) {
+        const redirectUrl = new URL(redirectTarget);
         redirectUrl.searchParams.set('access_token', accessToken);
         if (refreshToken) {
             redirectUrl.searchParams.set('refresh_token', refreshToken);
@@ -117,7 +121,7 @@ async function handleCallback(req: any, res: any, requestUrl: URL | null) {
         return res.redirect(302, redirectUrl.toString());
     }
 
-    if (code && extensionRedirect) {
+    if (code && redirectTarget) {
         const supabaseUrl = process.env.SUPABASE_URL;
         const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
@@ -132,7 +136,7 @@ async function handleCallback(req: any, res: any, requestUrl: URL | null) {
             return sendJson(res, 400, { error: 'invalid_code' });
         }
 
-        const redirectUrl = new URL(extensionRedirect);
+        const redirectUrl = new URL(redirectTarget);
         redirectUrl.searchParams.set('access_token', session.access_token);
         redirectUrl.searchParams.set('refresh_token', session.refresh_token);
         redirectUrl.searchParams.set('expires_at', String(session.expires_at || Date.now() + 3600000));

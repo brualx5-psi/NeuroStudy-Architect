@@ -16,6 +16,18 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 const API_BASE = 'https://www.neurostudy.com.br';
 
 // ============== AUTH FUNCTIONS ==============
+function getAuthParam(url, key) {
+    const searchValue = url.searchParams.get(key);
+    if (searchValue) {
+        return searchValue;
+    }
+    if (url.hash && url.hash.length > 1) {
+        const hashParams = new URLSearchParams(url.hash.slice(1));
+        return hashParams.get(key);
+    }
+    return null;
+}
+
 async function login() {
     const redirectUri = chrome.identity.getRedirectURL('callback');
     console.log('[Auth] Redirect URI:', redirectUri);
@@ -33,10 +45,11 @@ async function login() {
         console.log('[Auth] Response URL:', responseUrl);
 
         const url = new URL(responseUrl);
-        const accessToken = url.searchParams.get('access_token');
-        const refreshToken = url.searchParams.get('refresh_token');
-        const expiresAt = url.searchParams.get('expires_at');
-        const error = url.searchParams.get('error');
+        const accessToken = getAuthParam(url, 'access_token');
+        const refreshToken = getAuthParam(url, 'refresh_token');
+        const expiresAt = getAuthParam(url, 'expires_at');
+        const expiresIn = getAuthParam(url, 'expires_in');
+        const error = getAuthParam(url, 'error');
 
         if (error) {
             throw new Error(`Erro de autenticação: ${error}`);
@@ -47,10 +60,14 @@ async function login() {
         }
 
         // Salvar no storage
+        const expiresAtValue = expiresAt
+            ? parseInt(expiresAt)
+            : (expiresIn ? Date.now() + (parseInt(expiresIn) * 1000) : Date.now() + 3600000);
+
         await chrome.storage.local.set({
             access_token: accessToken,
             refresh_token: refreshToken,
-            expires_at: expiresAt ? parseInt(expiresAt) : Date.now() + 3600000
+            expires_at: expiresAtValue
         });
 
         // Buscar dados do usuário
