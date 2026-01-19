@@ -91,13 +91,10 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
         return sendJson(res, 500, { error: 'supabase_not_configured' });
     }
 
-    // Force production domain to match Supabase allowed list
-    const baseUrl = 'https://neurostudy.com.br';
-    const callbackUrl = `${baseUrl}/api/extension/callback?extension_redirect=${encodeURIComponent(redirectUri)}`;
-
     const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`);
     authUrl.searchParams.set('provider', 'google');
-    authUrl.searchParams.set('redirect_to', callbackUrl);
+    // Redirect straight back to the extension (implicit flow friendly).
+    authUrl.searchParams.set('redirect_to', redirectUri);
 
     res.redirect(302, authUrl.toString());
 }
