@@ -37,4 +37,4 @@ const postJson = async <T>(path: string, body: unknown): Promise<T> => {
 };
 
 export const fetchLinkPreview = async (input: string, type: InputType, name?: string) =>
-  postJson<LinkPreview>('/api/preview', { input, type, name });
+  postJson<LinkPreview>('/api/utils?action=preview', { input, type, name });

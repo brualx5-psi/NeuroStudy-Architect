@@ -59,7 +59,7 @@ export async function uploadFileForTranscription(
   mimeType: string,
   durationMinutes?: number
 ): Promise<{ fileUri: string; fileName: string }> {
-  const start = await postJson<{ uploadUrl: string }>('/api/youtube/transcribe', {
+  const start = await postJson<{ uploadUrl: string }>('/api/utils?action=transcribe', {
     action: 'start',
     mimeType,
     fileSize: file.size,
@@ -91,7 +91,7 @@ export const transcribeMedia = async (
   mimeType: string,
   durationMinutes?: number
 ): Promise<string> => {
-  const response = await postJson<{ transcript: string }>('/api/youtube/transcribe', {
+  const response = await postJson<{ transcript: string }>('/api/utils?action=transcribe', {
     action: 'transcribe',
     fileUri,
     fileName,
