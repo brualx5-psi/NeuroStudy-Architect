@@ -10,7 +10,7 @@ export type LinkPreview = {
   source: 'doi' | 'url';
 };
 
-const getAuthHeaders = async () => {
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
   if (!supabase) return {};
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;

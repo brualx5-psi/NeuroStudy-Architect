@@ -19,7 +19,7 @@ export const isUsageLimitError = (error: unknown): error is UsageLimitError => {
   return error instanceof UsageLimitError;
 };
 
-const getAuthHeaders = async () => {
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
   if (!supabase) return {};
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
