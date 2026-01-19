@@ -89,11 +89,13 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
 
     // Force production domain to match Supabase allowed list
     const baseUrl = 'https://www.neurostudy.com.br';
-    const callbackUrl = `${baseUrl}/api/extension/callback?extension_redirect=${encodeURIComponent(redirectUri)}`;
+    // Keep redirect_to static and pass the extension redirect via state.
+    const callbackUrl = `${baseUrl}/api/extension/callback`;
 
     const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`);
     authUrl.searchParams.set('provider', 'google');
     authUrl.searchParams.set('redirect_to', callbackUrl);
+    authUrl.searchParams.set('state', redirectUri);
 
     res.redirect(302, authUrl.toString());
 }
@@ -101,7 +103,8 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
 // ============== CALLBACK ==============
 async function handleCallback(req: any, res: any, requestUrl: URL | null) {
     const code = getQueryParam(req, requestUrl, 'code');
-    const extensionRedirect = getQueryParam(req, requestUrl, 'extension_redirect');
+    const extensionRedirect = getQueryParam(req, requestUrl, 'extension_redirect')
+        || getQueryParam(req, requestUrl, 'state');
     const accessToken = getQueryParam(req, requestUrl, 'access_token');
     const refreshToken = getQueryParam(req, requestUrl, 'refresh_token');
 
