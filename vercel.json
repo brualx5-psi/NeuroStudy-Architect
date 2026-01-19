@@ -1,6 +1,14 @@
 {
     "rewrites": [
         {
+            "source": "/api/extension/callback",
+            "destination": "/api/extension?action=callback"
+        },
+        {
+            "source": "/api/extension/authorize",
+            "destination": "/api/extension?action=authorize"
+        },
+        {
             "source": "/api/(.*)",
             "destination": "/api/$1"
         },
