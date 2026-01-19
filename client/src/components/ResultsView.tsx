@@ -180,6 +180,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     return (
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-48"> {/* pb-48 para dar espaço para a barra fixa */}
 
+            {/* CSS Animations for HUD */}
+            <style>{`
+                @keyframes confetti {
+                    0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+                    50% { opacity: 1; }
+                    100% { opacity: 0; transform: translateY(80px) rotate(720deg) scale(0.5); }
+                }
+                @keyframes shimmer {
+                    0% { background-position: 100% 0; }
+                    100% { background-position: -100% 0; }
+                }
+            `}</style>
+
             {/* HEADER - ADVANCE ORGANIZER (Contexto do Livro ou Material) */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full blur-3xl -z-10 opacity-50"></div>
@@ -549,25 +562,48 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
             {/* GAMIFIED PROGRESS HUD (Barra Fixa Inferior) */}
             {(!isParetoOnly || isBook) && (
-                <div className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 transition-all duration-500 animate-in slide-in-from-bottom-20 ${isCelebrating ? 'translate-y-[-10px] scale-105 border-green-400 bg-green-50/95' : ''}`}>
-                    <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 transition-all duration-500 animate-in slide-in-from-bottom-20 ${isCelebrating ? 'translate-y-[-8px] scale-[1.02] border-green-400 bg-gradient-to-r from-green-50/95 to-emerald-50/95 shadow-[0_-10px_60px_rgba(34,197,94,0.3)]' : ''}`}>
+
+                    {/* Confetti Animation Overlay */}
+                    {isCelebrating && (
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                            {[...Array(12)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="absolute w-3 h-3 animate-[confetti_1.5s_ease-out_forwards]"
+                                    style={{
+                                        left: `${10 + (i * 7)}%`,
+                                        top: '-10px',
+                                        animationDelay: `${i * 0.1}s`,
+                                        background: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'][i % 6],
+                                        borderRadius: i % 2 === 0 ? '50%' : '2px',
+                                        transform: `rotate(${i * 30}deg)`
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 relative">
 
                         {/* Seção da Barra de Progresso */}
                         <div className="w-full md:w-1/2 space-y-2">
                             <div className="flex justify-between items-end">
-                                <span className="text-xs font-extrabold uppercase tracking-wider text-gray-500 flex items-center gap-1">
-                                    <Target className="w-3 h-3" /> Progresso da Missão
+                                <span className={`text-xs font-extrabold uppercase tracking-wider flex items-center gap-1 transition-colors ${isCelebrating ? 'text-green-600' : 'text-gray-500'}`}>
+                                    <Target className={`w-3 h-3 ${isCelebrating ? 'animate-bounce' : ''}`} />
+                                    {isCelebrating ? '✨ Checkpoint Concluído!' : 'Progresso da Missão'}
                                 </span>
-                                <span className={`text-sm font-black ${percent === 100 ? 'text-green-600' : 'text-indigo-600'}`}>
+                                <span className={`text-sm font-black transition-all ${percent === 100 ? 'text-green-600' : isCelebrating ? 'text-green-600 scale-110' : 'text-indigo-600'}`}>
                                     {percent}%
                                 </span>
                             </div>
-                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner border border-gray-200">
+                            <div className={`w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner border transition-all ${isCelebrating ? 'border-green-300 shadow-green-200' : 'border-gray-200'}`}>
                                 <div
-                                    className={`h-full rounded-full transition-all duration-1000 ease-out ${percent === 100 ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 relative'}`}
+                                    className={`h-full rounded-full transition-all duration-1000 ease-out ${percent === 100 || isCelebrating ? 'bg-gradient-to-r from-green-400 via-emerald-500 to-green-600' : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600'} relative`}
                                     style={{ width: `${percent}%` }}
                                 >
-                                    {percent < 100 && <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>}
+                                    {percent < 100 && !isCelebrating && <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>}
+                                    {isCelebrating && <div className="absolute inset-0 bg-white/40 animate-pulse"></div>}
                                 </div>
                             </div>
                         </div>
@@ -582,20 +618,27 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         <p className="text-xs text-green-600">Você dominou este conteúdo.</p>
                                     </div>
                                 </div>
+                            ) : isCelebrating ? (
+                                <div className="flex items-center gap-3 bg-gradient-to-r from-green-100 to-emerald-100 px-5 py-3 rounded-xl border-2 border-green-300 shadow-lg shadow-green-200/50 animate-in zoom-in-95 duration-300">
+                                    <div className="bg-green-200 p-2 rounded-full animate-bounce">
+                                        <CheckCircle className="w-6 h-6 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-green-800 flex items-center gap-1">
+                                            Excelente! 🎉
+                                        </p>
+                                        <p className="text-xs text-green-600 font-medium">+1 checkpoint concluído!</p>
+                                    </div>
+                                </div>
                             ) : (
-                                <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 transition-all hover:bg-indigo-100">
+                                <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 transition-all hover:bg-indigo-100 max-w-full md:max-w-sm" title={nextTitle || undefined}>
                                     <div className="bg-indigo-100 p-2 rounded-full shrink-0">
                                         <Zap className="w-5 h-5 text-indigo-600" />
                                     </div>
-                                    <div>
+                                    <div className="min-w-0 flex-1">
                                         <p className="text-xs text-indigo-500 font-bold uppercase mb-0.5">Próximo Passo:</p>
-                                        <div className="overflow-hidden relative w-full group">
-                                            <p className={`text-sm font-medium text-indigo-900 leading-tight whitespace-nowrap hover:animate-none group-hover:whitespace-normal group-hover:line-clamp-none ${nextTitle && nextTitle.length > 40 ? 'animate-[marquee_10s_linear_infinite]' : ''}`}>
-                                                {nextTitle ? `Bora! Falta pouco. Descubra sobre "${nextTitle}"` : "Continue avançando!"}
-                                            </p>
-                                        </div>
-                                        <p className="text-[10px] text-indigo-400 mt-0.5 hidden sm:block">
-                                            Vai ser interessante conectar os pontos!
+                                        <p className="text-sm font-medium text-indigo-900 leading-tight line-clamp-2">
+                                            {nextTitle ? `Descubra: "${nextTitle}"` : "Continue avançando!"}
                                         </p>
                                     </div>
                                 </div>
