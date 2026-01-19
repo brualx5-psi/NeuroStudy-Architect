@@ -4,6 +4,14 @@
  * Versão sem imports externos para compatibilidade com Chrome Extensions
  */
 
+// ============== STARTUP DIAGNOSTICS ==============
+console.log('[Popup] Script loaded');
+console.log('[Popup] chrome.identity exists:', typeof chrome !== 'undefined' && typeof chrome.identity !== 'undefined');
+console.log('[Popup] chrome.identity.getRedirectURL exists:', typeof chrome !== 'undefined' && typeof chrome.identity !== 'undefined' && typeof chrome.identity.getRedirectURL === 'function');
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+    console.log('[Popup] Manifest permissions:', chrome.runtime.getManifest().permissions);
+}
+
 // ============== CONFIG ==============
 const API_BASE = 'https://www.neurostudy.com.br';
 
