@@ -5,7 +5,8 @@
     "description": "Capture transcrições de vídeos de cursos online e envie diretamente para seu estudo no NeuroStudy",
     "permissions": [
         "activeTab",
-        "storage"
+        "storage",
+        "identity"
     ],
     "host_permissions": [
         "https://neurostudy.com.br/*",
