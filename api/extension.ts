@@ -66,7 +66,9 @@ async function handleAuthorize(req: any, res: any) {
         return sendJson(res, 500, { error: 'supabase_not_configured' });
     }
 
-    const callbackUrl = `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'https://www.neurostudy.com.br'}/api/extension/callback?extension_redirect=${encodeURIComponent(redirectUri)}`;
+    // Force production domain to match Supabase allowed list
+    const baseUrl = 'https://www.neurostudy.com.br';
+    const callbackUrl = `${baseUrl}/api/extension/callback?extension_redirect=${encodeURIComponent(redirectUri)}`;
 
     const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`);
     authUrl.searchParams.set('provider', 'google');
