@@ -7,7 +7,6 @@
  * Requer plano Pro ou Starter (não disponível para Free)
  */
 
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getAuthContext } from '../_lib/auth.js';
 import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { sendJson, readJson } from '../_lib/http.js';
@@ -21,7 +20,7 @@ type CaptureBody = {
     videoUrl?: string;
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
     // CORS para extensões
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
