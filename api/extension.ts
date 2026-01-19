@@ -13,7 +13,7 @@ import type { PlanName } from './_lib/planLimits.js';
 import { createClient } from '@supabase/supabase-js';
 
 function getRequestUrl(req: any) {
-    const host = req.headers?.host || 'www.neurostudy.com.br';
+    const host = req.headers?.host || 'neurostudy.com.br';
     if (!req.url) {
         return null;
     }
@@ -92,7 +92,7 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
     }
 
     // Force production domain to match Supabase allowed list
-    const baseUrl = 'https://www.neurostudy.com.br';
+    const baseUrl = 'https://neurostudy.com.br';
     const callbackUrl = `${baseUrl}/api/extension/callback?extension_redirect=${encodeURIComponent(redirectUri)}`;
 
     const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`);

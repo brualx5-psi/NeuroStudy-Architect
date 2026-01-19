@@ -11,7 +11,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
         // Abrir página de boas-vindas
         chrome.tabs.create({
-            url: 'https://www.neurostudy.com.br/extension/welcome'
+            url: 'https://neurostudy.com.br/extension/welcome'
         });
     } else if (details.reason === 'update') {
         console.log('[NeuroStudy Capture] Extensão atualizada para versão:', chrome.runtime.getManifest().version);

@@ -13,7 +13,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 }
 
 // ============== CONFIG ==============
-const API_BASE = 'https://www.neurostudy.com.br';
+const API_BASE = 'https://neurostudy.com.br';
 
 // ============== AUTH FUNCTIONS ==============
 function getAuthParam(url, key) {
