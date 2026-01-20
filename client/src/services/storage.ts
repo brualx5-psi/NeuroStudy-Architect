@@ -24,7 +24,7 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
 
   if (!isCloudMode()) return;
 
- try {
+  try {
     const userId = await getAuthenticatedUserId();
     if (!userId) {
       console.warn('[Storage] Usuário não autenticado para salvar na nuvem.');
@@ -40,7 +40,7 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
           content: { studies, folders },
           updated_at: new Date().toISOString()
         },
-        { onConflict: 'user_id', returning: 'minimal' }
+        { onConflict: 'user_id' }
       );
 
     if (error) {
