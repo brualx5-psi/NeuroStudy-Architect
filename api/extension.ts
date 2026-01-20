@@ -94,7 +94,8 @@ async function handleAuthorize(req: any, res: any, requestUrl: URL | null) {
     }
 
     // Redireciona sempre para um callback do nosso dominio para evitar depender do ID da extensao
-    const callbackUrl = new URL('/api/extension/callback', SITE_URL);
+    const callbackUrl = new URL('/api/extension', SITE_URL);
+    callbackUrl.searchParams.set('action', 'callback');
     callbackUrl.searchParams.set('extension_redirect', redirectUri);
 
     const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`);

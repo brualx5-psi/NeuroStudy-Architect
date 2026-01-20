@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+CODEX.md
+.agent/FOCO.md
+CODEX.md

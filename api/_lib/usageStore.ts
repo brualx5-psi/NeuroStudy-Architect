@@ -139,7 +139,9 @@ export const ensureUsageRow = async (
       return normalizeUsageRow(data as UsageRow);
     }
 
-    const fresh = createEmptyUsage(userId, month, plan);
+    // When creating new record, fetch actual plan from users table to avoid using default 'free'
+    const actualPlan = await getUserPlan(userId);
+    const fresh = createEmptyUsage(userId, month, actualPlan);
     const { data: inserted, error: insertError } = await supabase
       .from('user_usage_monthly')
       .insert([fresh])
@@ -195,10 +197,14 @@ export const incrementUsage = async (
   const current = normalizeUsageRow(await ensureUsageRow(userId, month, plan));
   const updatedAt = new Date().toISOString();
 
+  // IMPORTANT: Preserve the existing plan from database, don't overwrite with default
+  // Only use the passed plan as fallback if current.plan is not set
+  const effectivePlan = current.plan || plan;
+
   const next: UsageRow = {
     ...current,
     ...deltas,
-    plan,
+    plan: effectivePlan,
     updated_at: updatedAt
   };
 

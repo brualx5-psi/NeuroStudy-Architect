@@ -31,16 +31,35 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
       return;
     }
 
-    const { error } = await supabase!
+    // First, check if record exists
+    const { data: existing } = await supabase!
       .from('user_data')
-      .upsert(
-        {
+      .select('user_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      // Record exists, update it
+      const result = await supabase!
+        .from('user_data')
+        .update({
+          content: { studies, folders },
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+      error = result.error;
+    } else {
+      // Record doesn't exist, insert it
+      const result = await supabase!
+        .from('user_data')
+        .insert({
           user_id: userId,
           content: { studies, folders },
           updated_at: new Date().toISOString()
-        },
-        { onConflict: 'user_id' }
-      );
+        });
+      error = result.error;
+    }
 
     if (error) {
       console.warn('[Storage] Erro ao salvar na nuvem (dados salvos localmente):', error.message);
