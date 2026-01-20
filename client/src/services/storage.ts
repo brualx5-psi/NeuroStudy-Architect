@@ -80,6 +80,8 @@ export const loadUserData = async (): Promise<{ studies: StudySession[]; folders
       .eq('user_id', userId)
       .maybeSingle();
 
+    console.log('[Storage] Resposta do banco:', { data, error, hasContent: !!data?.content, studiesCount: data?.content?.studies?.length });
+
     if (error) {
       console.warn('[Storage] Erro ao carregar da nuvem, usando localStorage como fallback:', error.message);
       const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -87,10 +89,12 @@ export const loadUserData = async (): Promise<{ studies: StudySession[]; folders
     }
 
     if (!data) {
+      console.warn('[Storage] Nenhum registro encontrado para este user_id, retornando dados vazios');
       // Não tenta criar linha aqui - deixa o primeiro saveUserData criar
       return defaultData;
     }
 
+    console.log('[Storage] Retornando dados:', { studies: data.content?.studies?.length || 0, folders: data.content?.folders?.length || 0 });
     return data.content || defaultData;
   } catch (err) {
     console.warn('[Storage] Exceção ao carregar da nuvem, usando localStorage:', err);
