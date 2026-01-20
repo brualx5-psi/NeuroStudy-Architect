@@ -17,15 +17,16 @@ const getAuthenticatedUserId = async () => {
 
 /**
  * Salva os dados do usuário, escolhendo entre Supabase (Modo Nuvem) ou LocalStorage (Modo Local/Amigos).
+ * Permite receber o userId já resolvido para evitar corrida com auth.getUser().
  */
-export const saveUserData = async (studies: StudySession[], folders: Folder[]) => {
+export const saveUserData = async (studies: StudySession[], folders: Folder[], userIdOverride?: string) => {
   // Sempre salva no localStorage como backup.
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ studies, folders }));
 
   if (!isCloudMode()) return;
 
   try {
-    const userId = await getAuthenticatedUserId();
+    const userId = userIdOverride ?? await getAuthenticatedUserId();
     if (!userId) {
       console.warn('[Storage] Usuário não autenticado para salvar na nuvem.');
       return;
@@ -60,8 +61,9 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
 
 /**
  * Carrega os dados, tentando primeiro o Supabase e, se não for configurado, usa o LocalStorage.
+ * Permite receber o userId já resolvido para evitar corrida com auth.getUser().
  */
-export const loadUserData = async (): Promise<{ studies: StudySession[]; folders: Folder[] }> => {
+export const loadUserData = async (userIdOverride?: string): Promise<{ studies: StudySession[]; folders: Folder[] }> => {
   const defaultData = { studies: [], folders: [] };
 
   if (!isCloudMode()) {
@@ -70,7 +72,7 @@ export const loadUserData = async (): Promise<{ studies: StudySession[]; folders
   }
 
   try {
-    const userId = await getAuthenticatedUserId();
+    const userId = userIdOverride ?? await getAuthenticatedUserId();
     if (!userId) {
       console.warn('[Storage] Usuário não autenticado, usando localStorage.');
       const localData = localStorage.getItem(LOCAL_STORAGE_KEY);

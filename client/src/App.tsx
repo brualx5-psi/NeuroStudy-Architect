@@ -132,9 +132,16 @@ export function AppContent() {
     useEffect(() => {
         let cancelled = false;
 
+        if (loading || !user?.id) {
+            lastLoadedUserIdRef.current = null;
+            return () => {
+                cancelled = true;
+            };
+        }
+
         const load = async () => {
             console.log('[App] Iniciando loadUserData...');
-            const data = await loadUserData();
+            const data = await loadUserData(user.id);
             console.log('[App] Dados carregados:', { studies: data?.studies?.length || 0, folders: data?.folders?.length || 0 });
             if (cancelled) return;
             if (data) {
@@ -152,13 +159,6 @@ export function AppContent() {
             console.log('[App] hasLoadedRef.current = true');
         };
 
-        if (!user) {
-            lastLoadedUserIdRef.current = null;
-            return () => {
-                cancelled = true;
-            };
-        }
-
         if (lastLoadedUserIdRef.current === user.id) {
             return () => {
                 cancelled = true;
@@ -171,7 +171,7 @@ export function AppContent() {
         return () => {
             cancelled = true;
         };
-    }, [user]);
+    }, [user?.id, loading]);
 
     useEffect(() => {
         // Só salva se o load inicial já completou (previne sobrescrever dados)
@@ -182,11 +182,11 @@ export function AppContent() {
         const timer = setTimeout(() => {
             if (studies.length > 0 || folders.length > 0) {
                 console.log('[App] Executando saveUserData:', { studies: studies.length, folders: folders.length });
-                saveUserData(studies, folders);
+                saveUserData(studies, folders, user?.id);
             }
         }, 2000);
         return () => clearTimeout(timer);
-    }, [studies, folders]);
+    }, [studies, folders, user?.id]);
 
     useEffect(() => {
         setIsEditingTitle(false);
