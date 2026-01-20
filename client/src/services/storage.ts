@@ -24,42 +24,24 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
 
   if (!isCloudMode()) return;
 
-  try {
+ try {
     const userId = await getAuthenticatedUserId();
     if (!userId) {
       console.warn('[Storage] Usuário não autenticado para salvar na nuvem.');
       return;
     }
 
-    // First, check if record exists
-    const { data: existing } = await supabase!
+    // Usa upsert para evitar condição de corrida e erros de chave duplicada
+    const { error } = await supabase!
       .from('user_data')
-      .select('user_id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    let error;
-    if (existing) {
-      // Record exists, update it
-      const result = await supabase!
-        .from('user_data')
-        .update({
-          content: { studies, folders },
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-      error = result.error;
-    } else {
-      // Record doesn't exist, insert it
-      const result = await supabase!
-        .from('user_data')
-        .insert({
+      .upsert(
+        {
           user_id: userId,
           content: { studies, folders },
           updated_at: new Date().toISOString()
-        });
-      error = result.error;
-    }
+        },
+        { onConflict: 'user_id', returning: 'minimal' }
+      );
 
     if (error) {
       console.warn('[Storage] Erro ao salvar na nuvem (dados salvos localmente):', error.message);
