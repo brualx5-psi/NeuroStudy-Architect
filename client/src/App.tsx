@@ -124,6 +124,7 @@ export function AppContent() {
 
     // Refs precisam ser declarados antes de qualquer return condicional
     const lastLoadedUserIdRef = useRef<string | null>(null);
+    const hasLoadedRef = useRef<boolean>(false); // Flag para prevenir save antes do load
     const paretoInputRef = useRef<HTMLInputElement>(null);
     const bookInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,12 +133,16 @@ export function AppContent() {
         let cancelled = false;
 
         const load = async () => {
+            console.log('[App] Iniciando loadUserData...');
             const data = await loadUserData();
+            console.log('[App] Dados carregados:', { studies: data?.studies?.length || 0, folders: data?.folders?.length || 0 });
             if (cancelled) return;
             if (data) {
                 if (data.studies) setStudies(data.studies || []);
                 if (data.folders) setFolders(data.folders || []);
             }
+            hasLoadedRef.current = true; // Marca que o load foi concluído
+            console.log('[App] hasLoadedRef.current = true');
         };
 
         if (!user) {
@@ -162,8 +167,14 @@ export function AppContent() {
     }, [user]);
 
     useEffect(() => {
+        // Só salva se o load inicial já completou (previne sobrescrever dados)
+        if (!hasLoadedRef.current) {
+            console.log('[App] Ignorando save - load ainda não completou');
+            return;
+        }
         const timer = setTimeout(() => {
             if (studies.length > 0 || folders.length > 0) {
+                console.log('[App] Executando saveUserData:', { studies: studies.length, folders: folders.length });
                 saveUserData(studies, folders);
             }
         }, 2000);
