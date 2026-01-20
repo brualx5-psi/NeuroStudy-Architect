@@ -213,7 +213,7 @@ async function handleFolders(req: any, res: any) {
 
     const { data, error } = await supabase
         .from('user_data')
-        .select('data')
+        .select('content')
         .eq('user_id', auth.userId)
         .single();
 
@@ -221,7 +221,7 @@ async function handleFolders(req: any, res: any) {
         return sendJson(res, 200, { folders: [] });
     }
 
-    const folders = (data?.data?.folders || []).map((f: any) => ({
+    const folders = (data?.content?.folders || []).map((f: any) => ({
         id: f.id,
         name: f.name
     }));
@@ -248,7 +248,7 @@ async function handleStudies(req: any, res: any) {
 
     const { data, error } = await supabase
         .from('user_data')
-        .select('data')
+        .select('content')
         .eq('user_id', auth.userId)
         .single();
 
@@ -256,7 +256,7 @@ async function handleStudies(req: any, res: any) {
         return sendJson(res, 200, { studies: [] });
     }
 
-    const studies = (data?.data?.studies || [])
+    const studies = (data?.content?.studies || [])
         .filter((s: any) => s.folderId === folderId)
         .map((s: any) => ({
             id: s.id,
@@ -312,7 +312,7 @@ async function handleCapture(req: any, res: any) {
 
     const { data: userData, error: fetchError } = await supabase
         .from('user_data')
-        .select('data')
+        .select('content')
         .eq('user_id', auth.userId)
         .single();
 
@@ -320,7 +320,7 @@ async function handleCapture(req: any, res: any) {
         return sendJson(res, 404, { error: 'user_data_not_found' });
     }
 
-    const data = userData?.data || { folders: [], studies: [] };
+    const data = userData?.content || { folders: [], studies: [] };
     const studies = data.studies || [];
     const studyIndex = studies.findIndex((s: any) => s.id === body.studyId);
 
@@ -352,7 +352,7 @@ async function handleCapture(req: any, res: any) {
 
     await supabase
         .from('user_data')
-        .update({ data: { ...data, studies } })
+        .update({ content: { ...data, studies } })
         .eq('user_id', auth.userId);
 
     return sendJson(res, 200, { success: true, sourceId: newSource.id });
