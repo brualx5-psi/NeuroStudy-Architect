@@ -138,7 +138,14 @@ export function AppContent() {
             console.log('[App] Dados carregados:', { studies: data?.studies?.length || 0, folders: data?.folders?.length || 0 });
             if (cancelled) return;
             if (data) {
-                if (data.studies) setStudies(data.studies || []);
+                if (data.studies) {
+                    setStudies(data.studies || []);
+                    // Se há estudos carregados, vai para a view do app
+                    if (data.studies.length > 0) {
+                        console.log('[App] Estudos encontrados, mudando view para app');
+                        setView('app');
+                    }
+                }
                 if (data.folders) setFolders(data.folders || []);
             }
             hasLoadedRef.current = true; // Marca que o load foi concluído
