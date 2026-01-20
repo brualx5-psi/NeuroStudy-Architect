@@ -32,22 +32,26 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[]) =
     }
 
     // Usa upsert para evitar condição de corrida e erros de chave duplicada
-    console.log('[Storage] Salvando para user_id:', userId, 'studies:', studies.length, 'folders:', folders.length);
-    const { error } = await supabase!
+    const payload = {
+      user_id: userId,
+      content: { studies, folders },
+      updated_at: new Date().toISOString()
+    };
+    console.log('[Storage] Salvando para user_id:', userId);
+    console.log('[Storage] Payload completo:', JSON.stringify(payload).slice(0, 500) + '...');
+    console.log('[Storage] Studies no payload:', payload.content.studies?.length || 0);
+
+    const { data, error } = await supabase!
       .from('user_data')
-      .upsert(
-        {
-          user_id: userId,
-          content: { studies, folders },
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: 'user_id' }
-      );
+      .upsert(payload, { onConflict: 'user_id' })
+      .select();
+
+    console.log('[Storage] Resposta do upsert:', { data, error });
 
     if (error) {
-      console.warn('[Storage] Erro ao salvar na nuvem (dados salvos localmente):', error.message);
+      console.warn('[Storage] Erro ao salvar na nuvem:', error.message, error.details, error.hint);
     } else {
-      console.log('[Storage] Salvo com sucesso na nuvem!');
+      console.log('[Storage] Salvo com sucesso! Data retornado:', data);
     }
   } catch (err) {
     console.warn('[Storage] Exceção ao salvar na nuvem (dados salvos localmente):', err);
