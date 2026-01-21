@@ -69,6 +69,13 @@ export const estimateTokensFromSources = (
   planName: PlanName = 'free'
 ) => {
   const totalChars = sources.reduce((sum, source) => sum + getSourceText(source).length, 0);
+
+  // If we couldn't extract any text (e.g. all binary PDFs), we shouldn't block.
+  // We assume 0 tokens and let the actual processing handle it (or fail there).
+  if (totalChars === 0 && sources.length > 0) {
+    return 0;
+  }
+
   return estimateTokens(totalChars, planName, taskType);
 };
 

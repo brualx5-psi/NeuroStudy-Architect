@@ -85,8 +85,6 @@ const createEmptyUsage = (userId: string, month: string, plan: PlanName): UsageR
   updated_at: new Date().toISOString()
 });
 
-export const getCurrentMonth = () => new Date().toISOString().substring(0, 7);
-
 export const getUserPlan = async (userId: string): Promise<PlanName> => {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 'free';
@@ -110,6 +108,41 @@ export const getUserAccess = async (userId: string): Promise<UserAccess> => {
     planName: mapPlanName(data?.subscription_status),
     isAdmin: Boolean(data?.is_admin)
   };
+};
+
+const getMonthFromDate = (date: Date, timeZone?: string): string => {
+  if (!timeZone) return date.toISOString().substring(0, 7);
+
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit'
+    }).formatToParts(date);
+
+    const year = parts.find((part) => part.type === 'year')?.value;
+    const month = parts.find((part) => part.type === 'month')?.value;
+
+    if (year && month) {
+      return `${year}-${month}`;
+    }
+  } catch {
+    // Fallback handled below if timezone is invalid
+  }
+
+  return date.toISOString().substring(0, 7);
+};
+
+export const getCurrentMonth = () => {
+  const timeZone = process.env.USAGE_TIMEZONE || process.env.TZ;
+  const now = new Date();
+
+  if (timeZone) {
+    return getMonthFromDate(now, timeZone);
+  }
+
+  const referenceDate = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+  return referenceDate.toISOString().substring(0, 7);
 };
 
 export const ensureUsageRow = async (
@@ -248,6 +281,11 @@ export const incrementUsage = async (
     }
 
     try {
+      const tokensUsed = toNumber(next.tokens_used);
+      const tokensEstimated = toNumber(next.tokens_estimated);
+      const chatTokensUsed = toNumber(next.chat_tokens_used);
+      const chatTokensEstimated = toNumber(next.chat_tokens_estimated);
+
       await supabase
         .from('user_usage')
         .update({
@@ -255,8 +293,8 @@ export const incrementUsage = async (
           youtube_minutes_used: next.youtube_minutes_used,
           web_research_used: next.web_searches_used,
           chat_messages: next.chat_messages,
-          monthly_tokens_used: next.tokens_estimated || next.tokens_used,
-          chat_tokens_used: next.chat_tokens_estimated || next.chat_tokens_used,
+          monthly_tokens_used: tokensUsed > 0 ? tokensUsed : tokensEstimated,
+          chat_tokens_used: chatTokensUsed > 0 ? chatTokensUsed : chatTokensEstimated,
           updated_at: next.updated_at
         })
         .eq('user_id', userId)
@@ -277,6 +315,14 @@ export const toUsageSnapshot = (row: UsageRow | null): UsageSnapshot => ({
   youtube_minutes_used: toNumber(row?.youtube_minutes_used),
   web_research_used: toNumber(row?.web_searches_used),
   chat_messages: toNumber(row?.chat_messages),
-  monthly_tokens_used: toNumber(row?.tokens_estimated ?? row?.tokens_used),
-  chat_tokens_used: toNumber(row?.chat_tokens_estimated ?? row?.chat_tokens_used)
+  monthly_tokens_used: (() => {
+    const actual = toNumber(row?.tokens_used);
+    const estimated = toNumber(row?.tokens_estimated);
+    return actual > 0 ? actual : estimated;
+  })(),
+  chat_tokens_used: (() => {
+    const actual = toNumber(row?.chat_tokens_used);
+    const estimated = toNumber(row?.chat_tokens_estimated);
+    return actual > 0 ? actual : estimated;
+  })()
 });

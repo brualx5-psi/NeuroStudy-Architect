@@ -9,6 +9,7 @@
  */
 
 import { PLAN_LIMITS, PlanName } from './planLimits.js';
+import { estimateTextFromBinary, extractTextFromPdfBase64 } from './textExtraction.js';
 
 // IDs de admin que podem usar qualquer link sem restrição de tipo
 // ATENÇÃO: Apenas para ambiente de desenvolvimento ou usuários específicos
@@ -74,6 +75,8 @@ const BLOCKED_PAID_DOMAINS = [
     'alura.com.br',
     'hotmart.com'
 ];
+
+const MAX_PDF_CHARS = 200_000;
 
 // Padrões de YouTube
 const YOUTUBE_PATTERNS = [
@@ -350,7 +353,31 @@ export const prepareSourcesForRoadmap = async (
             continue;
         }
 
-        // Texto/PDF/outros - usar conteúdo direto
+        if (sourceType === 'pdf') {
+            const rawBinary = typeof source.content === 'string'
+                ? source.content
+                : typeof source.textContent === 'string'
+                    ? source.textContent
+                    : '';
+            const extracted = extractTextFromPdfBase64(rawBinary);
+            const safeText = extracted || estimateTextFromBinary(rawBinary) || '';
+            const limitedText = safeText.slice(0, MAX_PDF_CHARS);
+            const charCount = limitedText.length;
+
+            normalizedSources.push({
+                id: sourceId,
+                originalType: source.type || 'PDF',
+                resolvedType: 'pdf',
+                name: source.name || 'PDF sem nome',
+                extractedText: limitedText,
+                charCount
+            });
+
+            totalCharCount += charCount;
+            continue;
+        }
+
+        // Texto/outros - usar conteúdo direto
         const textContent = source.textContent || source.content || '';
 
         normalizedSources.push({

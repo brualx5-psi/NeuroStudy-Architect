@@ -57,6 +57,41 @@ interface AuthContextType {
 
 const USAGE_STORAGE_PREFIX = 'neurostudy_usage';
 // TODO: localStorage é apenas fallback e não é seguro para planos pagos.
+const USAGE_TIMEZONE = import.meta.env.VITE_USAGE_TIMEZONE || '';
+
+const getMonthFromDate = (date: Date, timeZone?: string) => {
+    if (!timeZone) return date.toISOString().substring(0, 7);
+
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone,
+            year: 'numeric',
+            month: '2-digit'
+        }).formatToParts(date);
+
+        const year = parts.find((part) => part.type === 'year')?.value;
+        const month = parts.find((part) => part.type === 'month')?.value;
+
+        if (year && month) {
+            return `${year}-${month}`;
+        }
+    } catch {
+        // fallback handled below
+    }
+
+    return date.toISOString().substring(0, 7);
+};
+
+const getCurrentMonth = () => {
+    const now = new Date();
+
+    if (USAGE_TIMEZONE) {
+        return getMonthFromDate(now, USAGE_TIMEZONE);
+    }
+
+    const referenceDate = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+    return referenceDate.toISOString().substring(0, 7);
+};
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
@@ -94,8 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isAdmin = Boolean(profile?.is_admin);
     const isPaid = isAdmin || planName !== 'free';
     const isPro = planName === 'pro';
-
-    const getCurrentMonth = () => new Date().toISOString().substring(0, 7);
 
     const createEmptyUsage = (userId: string, month: string): UserUsage => ({
         user_id: userId,

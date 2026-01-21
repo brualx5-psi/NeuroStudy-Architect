@@ -30,11 +30,11 @@ export const extractTextFromPdfBase64 = (content: string): string => {
     });
   }
 
+  // If simple regex failed to find text, return empty string instead of raw binary garbage
   const extracted = chunks.join(' ').trim();
-  if (extracted) return extracted;
-
-  return extractPrintableText(raw);
+  return extracted;
 };
 
-export const estimateTextFromBinary = (content: string) =>
-  extractPrintableText(decodeBase64(content));
+// Safe fallback: if we can't extract text, we don't try to guess from binary
+export const estimateTextFromBinary = (_content: string) => '';
+
