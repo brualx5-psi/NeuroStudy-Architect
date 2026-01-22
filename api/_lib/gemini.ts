@@ -94,6 +94,32 @@ const getUsageTokens = (response: any) => {
   return total > 0 ? total : null;
 };
 
+const parseJsonArray = (raw: string) => {
+  const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  const tryParse = (input: string) => {
+    try {
+      const parsed = JSON.parse(input);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const direct = tryParse(cleaned);
+  if (direct) return direct;
+
+  const start = cleaned.indexOf('[');
+  const end = cleaned.lastIndexOf(']');
+  if (start !== -1 && end !== -1 && end > start) {
+    const sliced = cleaned.slice(start, end + 1);
+    const slicedParsed = tryParse(sliced);
+    if (slicedParsed) return slicedParsed;
+  }
+
+  throw new Error('INVALID_JSON_FROM_MODEL');
+};
+
 export const callGemini = async (options: CallGeminiOptions) => {
   const ai = getClient();
   const maxOutputTokens = PLAN_LIMITS[options.planName].max_output_tokens[options.taskType];
@@ -496,13 +522,18 @@ export const generateQuiz = async (
     responseMimeType: 'application/json'
   });
 
-  const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim() || '[]');
-  const quiz = Array.isArray(parsed)
-    ? parsed.map((q, index) => ({
-      ...q,
-      id: q.id || `quiz-${Date.now()}-${index}`
-    }))
-    : [];
+  let parsed: any[];
+  try {
+    parsed = parseJsonArray(text);
+  } catch (error) {
+    console.error('[generateQuiz] Failed to parse model JSON', error);
+    throw error;
+  }
+
+  const quiz = parsed.map((q, index) => ({
+    ...q,
+    id: q.id || `quiz-${Date.now()}-${index}`
+  }));
 
   return { quiz, usageTokens, rawResponse: response };
 };

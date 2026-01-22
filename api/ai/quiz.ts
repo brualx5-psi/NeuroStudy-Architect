@@ -54,6 +54,13 @@ export default async function handler(req: any, res: any) {
       }
     });
   } catch (error: any) {
+    if (error?.message === 'INVALID_JSON_FROM_MODEL') {
+      return sendJson(res, 502, {
+        error: 'gemini_parse_error',
+        message: 'Falha ao interpretar a resposta da IA. Tente novamente.'
+      });
+    }
+
     return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Gemini error' });
   }
 }
