@@ -770,8 +770,8 @@ const parseDiagramContext = (desc: string): DiagramContext => {
 
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     try {
-      const parsed = JSON.parse(trimmed) as Partial<DiagramContext> & { concepts?: string | string[] };
-      const conceptsRaw = Array.isArray(parsed.concepts)
+      const parsed = JSON.parse(trimmed) as Omit<Partial<DiagramContext>, 'concepts'> & { concepts?: string | string[] };
+      const conceptsRaw: string[] = Array.isArray(parsed.concepts)
         ? parsed.concepts
         : typeof parsed.concepts === 'string'
           ? parsed.concepts.split(/[;,•\n]/)
