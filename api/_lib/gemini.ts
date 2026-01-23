@@ -61,10 +61,9 @@ const selectModel = (
   sourceCount: number = 1,
   isBook: boolean = false
 ): string => {
-  const alwaysProTasks: TaskType[] = ['quiz', 'flashcard'];
-  if (alwaysProTasks.includes(taskType)) return MODEL_PRO;
-
-  const alwaysFlashTasks: TaskType[] = ['chat', 'tool', 'transcription', 'diagram'];
+  // Use Flash model for most tasks - it's more stable and faster
+  // PRO model only for heavy study guides
+  const alwaysFlashTasks: TaskType[] = ['chat', 'tool', 'transcription', 'diagram', 'quiz', 'flashcard'];
   if (alwaysFlashTasks.includes(taskType)) return MODEL_FLASH;
 
   if (taskType === 'studyGuide' || taskType === 'slides') {
