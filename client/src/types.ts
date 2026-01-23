@@ -133,6 +133,7 @@ export interface QuizQuestion {
   id: string;
   type: 'multiple_choice' | 'open';
   difficulty: 'easy' | 'medium' | 'hard';
+  topic?: string; // Subtopic of the question
   question: string;
   options?: string[];
   correctAnswer: number | string; // Index for MC, Expected Answer text for Open

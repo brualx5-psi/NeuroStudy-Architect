@@ -509,20 +509,22 @@ export const generateQuiz = async (
   - ${mcCount} questoes de Alternativa (type: 'multiple_choice')
   - ${openCount} questoes Dissertativas (type: 'open')
 
-  NIVEIS DE DIFICULDADE (distribua equilibradamente):
-  1. COMPREENSAO: Verificar se entendeu o conceito basico
-  2. APLICACAO: Usar o conhecimento em situacao nova (use mini-casos ou cenarios breves)
-  3. ANALISE: Comparar, contrastar, identificar padroes
+  DISTRIBUICAO DE DIFICULDADE:
+  - 40% easy (compreensao basica)
+  - 40% medium (aplicacao em situacao nova)
+  - 20% hard (analise, comparacao, padroes)
+
+  Cubra os principais topicos do guia sem repetir o mesmo subtema.
 
   REGRAS PARA QUESTOES DE QUALIDADE:
-  - Evite perguntas triviais de memorização (ex: "Qual a definição de X?")
-  - Prefira perguntas que exigem RACIOCINIO (ex: "Por que X causa Y?" ou "O que aconteceria se...?")
-  - Para aplicacao/analise, use mini-casos ou cenarios breves contextualizados no tema
+  - Evite memorização trivial; foque raciocinio e transferencia
+  - Para medium/hard, use mini-casos ou cenarios breves
   - Enunciados curtos, claros e auto-contidos
+  - Evite enunciados negativos (ex: "Qual NAO e...")
 
   REGRAS PARA ALTERNATIVAS (multiple_choice):
   - SEMPRE 4 opcoes mutuamente exclusivas
-  - Alternativas erradas devem refletir ERROS COMUNS de estudantes (nao aleatorias)
+  - Alternativas erradas = ERROS COMUNS de estudantes (nao aleatorias)
   - PROIBIDO usar "Todas as anteriores" ou "Nenhuma das anteriores"
   - Sem pistas gramaticais na alternativa correta
 
@@ -530,16 +532,20 @@ export const generateQuiz = async (
   [
     {
       "type": "multiple_choice",
+      "difficulty": "easy" | "medium" | "hard",
+      "topic": "subtema curto",
       "question": "pergunta aqui",
-      "options": ["opcao A", "opcao B", "opcao C", "opcao D"],
+      "options": ["A", "B", "C", "D"],
       "correctAnswer": 0,
-      "explanation": "Por que a correta esta certa e por que os distratores estao errados"
+      "explanation": "feedback curto: por que correta e por que distratores errados"
     },
     {
       "type": "open",
+      "difficulty": "medium",
+      "topic": "subtema",
       "question": "pergunta dissertativa",
       "correctAnswer": "criterios-chave da resposta esperada",
-      "explanation": "O que uma boa resposta deve conter"
+      "explanation": "o que uma boa resposta deve conter"
     }
   ]
 
