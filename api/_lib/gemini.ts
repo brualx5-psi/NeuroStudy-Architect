@@ -501,16 +501,32 @@ export const generateQuiz = async (
   const openCount = config?.distribution?.open ?? Math.floor(qty / 2);
 
   const prompt = `
-  Crie um Quiz DE ALTO NIVEL (Neuroscience-based) sobre: ${guide.subject}.
-  TOTAL DE QUESTOES: ${qty}.
-  DISTRIBUICAO OBRIGATORIA:
-  - ${mcCount} questoes de Alternativa (type: 'multiple_choice').
-  - ${openCount} questoes Dissertativas (type: 'open').
+  Voce e um especialista em avaliacao educacional baseada em Neurociencia.
+  
+  TEMA: ${guide.subject}
+  
+  CRIE UM QUIZ DE ALTA QUALIDADE com ${qty} questoes:
+  - ${mcCount} questoes de Alternativa (type: 'multiple_choice')
+  - ${openCount} questoes Dissertativas (type: 'open')
 
-  Para questoes 'open', o campo 'correctAnswer' deve conter a "Resposta Esperada/Gabarito" (texto ideal).
-  Para questoes 'multiple_choice', o campo 'correctAnswer' DEVE ser um NUMERO INTEIRO (0, 1, 2 ou 3) representando o INDICE da alternativa correta no array 'options'. NAO use letras (A, B, C, D), use apenas o indice numerico.
-  Foco: Testar compreensao profunda e aplicacao. JSON estrito.
+  NIVEIS DE DIFICULDADE (distribua equilibradamente):
+  1. COMPREENSAO: Verificar se entendeu o conceito basico
+  2. APLICACAO: Usar o conhecimento em situacao nova
+  3. ANALISE: Comparar, contrastar, identificar padroes
+
+  REGRAS PARA QUESTOES DE QUALIDADE:
+  - Evite perguntas triviais de memorização (ex: "Qual a definição de X?")
+  - Prefira perguntas que exigem RACIOCINIO (ex: "Por que X causa Y?" ou "O que aconteceria se...?")
+  - Alternativas erradas devem ser PLAUSIVEIS (erros comuns de estudantes)
+  - Questoes dissertativas devem pedir SINTESE ou APLICACAO PRATICA
+
+  FORMATO TECNICO:
+  - 'multiple_choice': correctAnswer = NUMERO INTEIRO (0-3) indicando o indice da resposta correta
+  - 'open': correctAnswer = texto com a resposta esperada/gabarito
+
+  Retorne APENAS o array JSON, sem explicacoes.
   `;
+
 
   const selectedModel = selectModel('quiz');
   const { text, usageTokens, response } = await callGemini({
@@ -605,22 +621,30 @@ export const generateTool = async (
       break;
     case 'interdisciplinary':
       const domainInstruction = safeDomain
-        ? `Conecte especificamente com a area de "${safeDomain}".`
-        : 'Conecte com outra area do conhecimento inusitada (pode ser arte, fisica, culinaria, esportes, musica, etc).';
-      prompt = `TAREFA: Fazer uma conexao interdisciplinar.
+        ? `AREA ALVO: "${safeDomain}" - conecte ESPECIFICAMENTE com esta area.`
+        : 'AREA ALVO: Escolha uma area INESPERADA (arte, fisica, biologia, economia, musica, arquitetura, gastronomia, esportes, etc).';
+      prompt = `Voce e um especialista em conexoes interdisciplinares e pensamento sistemico.
 
-      TEMA PRINCIPAL: "${safeTopic}"
-      CONTEXTO DO ESTUDO: ${safeContext.slice(0, 800)}
+      TEMA DO ESTUDO: "${safeTopic}"
+      CONTEXTO: ${safeContext.slice(0, 800)}
 
       ${domainInstruction}
 
-      REGRAS:
-      1. Mostre como os conceitos se cruzam de forma surpreendente e educativa.
-      2. A conexao deve ser REAL e baseada em ciencia ou fatos conhecidos.
-      3. Escreva um texto fluido de 3-5 frases.
-      4. NAO use formatacao markdown (sem **, *, #, etc). Apenas texto puro.
-      5. NAO invente informacoes. Se nao souber uma conexao real, escolha outra area.
-      6. O texto deve ser util para um estudante entender o tema de forma mais ampla.`;
+      SUA MISSAO: Revelar uma conexao SURPREENDENTE e EDUCATIVA entre o tema e outra area.
+
+      CRITERIOS DE QUALIDADE:
+      1. A conexao deve ser REAL (baseada em ciencia, historia ou fatos verificaveis)
+      2. Deve gerar um "AHA!" no estudante - uma insight que ele nunca teria sozinho
+      3. Deve APROFUNDAR a compreensao do tema original, nao apenas curiosidade
+      4. Use um exemplo concreto ou caso real quando possivel
+
+      ESTRUTURA DA RESPOSTA (3-5 frases):
+      - Frase 1: A ponte entre as areas (o que conecta)
+      - Frases 2-3: O "como" e "por que" (a mecanica da conexao)
+      - Frase final: O insight pratico (como isso ajuda a entender melhor o tema)
+
+      PROIBIDO: Markdown (**, #, etc), conexoes obvias, informacoes inventadas.
+      Escreva em texto fluido e natural.`;
       break;
     default:
       throw new Error('Ferramenta invalida.');
