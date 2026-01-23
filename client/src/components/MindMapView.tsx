@@ -19,8 +19,13 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ guide, onUpdateGuide, 
     setImageLoaded(false);
     try {
       // Build rich description from guide content
-      const concepts = guide.coreConcepts?.map(c => c.concept).join(', ') || '';
-      const description = `Tema: ${guide.subject}. Conceitos principais: ${concepts}. Visão geral: ${guide.overview?.slice(0, 200) || ''}`;
+      const concepts = guide.coreConcepts?.map(c => c.concept).slice(0, 6) || [];
+      const overview = (guide.overview || '').replace(/\s+/g, ' ').slice(0, 240);
+      const description = JSON.stringify({
+        subject: guide.subject,
+        concepts,
+        overview
+      });
 
       const { url } = await generateDiagram(description);
       onUpdateGuide({ ...guide, diagramUrl: url });
