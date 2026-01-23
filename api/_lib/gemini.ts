@@ -522,11 +522,17 @@ export const generateQuiz = async (
     responseMimeType: 'application/json'
   });
 
+  // Check for empty response before parsing
+  if (!text || text.trim() === '' || text.trim() === '[]') {
+    console.error('[generateQuiz] Gemini returned empty response');
+    throw new Error('INVALID_JSON_FROM_MODEL');
+  }
+
   let parsed: any[];
   try {
     parsed = parseJsonArray(text);
   } catch (error) {
-    console.error('[generateQuiz] Failed to parse model JSON', error);
+    console.error('[generateQuiz] Failed to parse model JSON. Raw:', text.slice(0, 300));
     throw error;
   }
 
