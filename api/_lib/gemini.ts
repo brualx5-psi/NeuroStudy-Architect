@@ -511,20 +511,39 @@ export const generateQuiz = async (
 
   NIVEIS DE DIFICULDADE (distribua equilibradamente):
   1. COMPREENSAO: Verificar se entendeu o conceito basico
-  2. APLICACAO: Usar o conhecimento em situacao nova
+  2. APLICACAO: Usar o conhecimento em situacao nova (use mini-casos ou cenarios breves)
   3. ANALISE: Comparar, contrastar, identificar padroes
 
   REGRAS PARA QUESTOES DE QUALIDADE:
   - Evite perguntas triviais de memorização (ex: "Qual a definição de X?")
   - Prefira perguntas que exigem RACIOCINIO (ex: "Por que X causa Y?" ou "O que aconteceria se...?")
-  - Alternativas erradas devem ser PLAUSIVEIS (erros comuns de estudantes)
-  - Questoes dissertativas devem pedir SINTESE ou APLICACAO PRATICA
+  - Para aplicacao/analise, use mini-casos ou cenarios breves contextualizados no tema
+  - Enunciados curtos, claros e auto-contidos
 
-  FORMATO TECNICO:
-  - 'multiple_choice': correctAnswer = NUMERO INTEIRO (0-3) indicando o indice da resposta correta
-  - 'open': correctAnswer = texto com a resposta esperada/gabarito
+  REGRAS PARA ALTERNATIVAS (multiple_choice):
+  - SEMPRE 4 opcoes mutuamente exclusivas
+  - Alternativas erradas devem refletir ERROS COMUNS de estudantes (nao aleatorias)
+  - PROIBIDO usar "Todas as anteriores" ou "Nenhuma das anteriores"
+  - Sem pistas gramaticais na alternativa correta
 
-  Retorne APENAS o array JSON, sem explicacoes.
+  FORMATO JSON OBRIGATORIO:
+  [
+    {
+      "type": "multiple_choice",
+      "question": "pergunta aqui",
+      "options": ["opcao A", "opcao B", "opcao C", "opcao D"],
+      "correctAnswer": 0,
+      "explanation": "Por que a correta esta certa e por que os distratores estao errados"
+    },
+    {
+      "type": "open",
+      "question": "pergunta dissertativa",
+      "correctAnswer": "criterios-chave da resposta esperada",
+      "explanation": "O que uma boa resposta deve conter"
+    }
+  ]
+
+  Retorne APENAS o JSON, sem comentarios, sem bloco markdown e sem texto extra.
   `;
 
 
