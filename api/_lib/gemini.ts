@@ -580,16 +580,54 @@ export const generateQuiz = async (
 
 export const generateFlashcards = async (planName: PlanName, guide: any) => {
   const selectedModel = selectModel('flashcard');
+
+  const prompt = `
+  Crie Flashcards OTIMIZADOS para memorização (Spaced Repetition).
+  
+  TEMA: ${guide.subject}
+  
+  REGRAS:
+  - Pergunta/Frente: curta, direta, tipo "gatilho mental"
+  - Resposta/Verso: clara, concisa, facil de memorizar
+  - Foco nos conceitos-chave que precisam ser memorizados
+  - Evite respostas longas demais
+
+  FORMATO JSON:
+  [
+    { "front": "Pergunta ou conceito", "back": "Resposta direta" }
+  ]
+  
+  Gere 8-12 flashcards. Retorne APENAS o JSON, sem markdown.
+  `;
+
   const { text, usageTokens, response } = await callGemini({
     planName,
     taskType: 'flashcards',
-    prompt: `Crie Flashcards OTIMIZADOS PARA MEMORIZACAO (Spaced Repetition) sobre: ${guide.subject}. Foco: Pergunta gatilho -> Resposta direta e clara. JSON estrito.`,
+    prompt,
     responseMimeType: 'application/json',
     model: selectedModel
   });
 
-  const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim() || '[]');
-  return { flashcards: Array.isArray(parsed) ? parsed : [], usageTokens, rawResponse: response };
+  // Check for empty response
+  if (!text || text.trim() === '' || text.trim() === '[]') {
+    console.error('[generateFlashcards] Gemini returned empty response');
+    throw new Error('INVALID_JSON_FROM_MODEL');
+  }
+
+  let parsed: any[];
+  try {
+    parsed = parseJsonArray(text);
+  } catch (error) {
+    console.error('[generateFlashcards] Failed to parse JSON. Raw:', text.slice(0, 300));
+    throw error;
+  }
+
+  const flashcards = parsed.map((f, index) => ({
+    ...f,
+    id: f.id || `fc-${Date.now()}-${index}`
+  }));
+
+  return { flashcards, usageTokens, rawResponse: response };
 };
 
 export const sendChatMessage = async (
