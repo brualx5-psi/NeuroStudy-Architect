@@ -582,22 +582,34 @@ export const generateFlashcards = async (planName: PlanName, guide: any) => {
   const selectedModel = selectModel('flashcard');
 
   const prompt = `
-  Crie Flashcards OTIMIZADOS para memorização (Spaced Repetition).
+  Voce e um especialista em Spaced Repetition e Active Recall.
   
   TEMA: ${guide.subject}
   
-  REGRAS:
-  - Pergunta/Frente: curta, direta, tipo "gatilho mental"
-  - Resposta/Verso: clara, concisa, facil de memorizar
-  - Foco nos conceitos-chave que precisam ser memorizados
-  - Evite respostas longas demais
+  Crie flashcards baseados APENAS nos conceitos centrais do guia (nao invente).
 
-  FORMATO JSON:
+  QUANTIDADE: 10-14 cartoes.
+
+  REGRAS DE QUALIDADE:
+  - Um cartao = UMA ideia/fato (atomico). PROIBIDO lista longa ou varios conceitos no mesmo cartao.
+  - Frente (front): curta (max 90 chars), especifica e sem ambiguidade. Use "gatilho" + contexto minimo.
+  - Verso (back): conciso (max 180 chars), direto e memorizavel.
+
+  VARIE OS TIPOS DE RECALL:
+  1) Definicao em 1 frase
+  2) Diferenca A vs B (1 frase)
+  3) Exemplo ou contraexemplo
+  4) "Se/entao" (aplicacao rapida)
+  5) Erro comum + correcao (1-2 cartoes)
+
+  Quando util, use estilo cloze: "X e ____ porque ____".
+
+  FORMATO JSON (apenas isso, sem markdown):
   [
-    { "front": "Pergunta ou conceito", "back": "Resposta direta" }
+    { "front": "...", "back": "..." }
   ]
-  
-  Gere 8-12 flashcards. Retorne APENAS o JSON, sem markdown.
+
+  Retorne APENAS o JSON.
   `;
 
   const { text, usageTokens, response } = await callGemini({
