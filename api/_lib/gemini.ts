@@ -739,26 +739,33 @@ export const generateTool = async (
 export const generateDiagram = async (planName: PlanName, desc: string) => {
   const safeDesc = desc || 'Mapa conceitual do tema estudado';
   const prompt = `
-    Crie um diagrama Mermaid.js (graph TD) visualmente organizado para: "${safeDesc}".
+    Voce e um especialista em design de informacao e diagramas conceituais.
+    Crie um diagrama Mermaid.js (graph TD) ESTRUTURADO para: "${safeDesc}".
 
-    REGRAS OBRIGATORIAS:
-    1. Use APENAS sintaxe Mermaid valida (graph TD).
-    2. Use IDs simples sem caracteres especiais (ex: A, B, C ou node1, node2).
-    3. Textos dos nos devem estar entre colchetes: A[Texto do No]
-    4. Conexoes simples: A --> B
-    5. Maximo 8-12 nos para manter legibilidade.
-    6. Adicione estilos classDef para cores (opcional).
+    REGRAS DE OURO:
+    1. Hierarquia Clara: Conceito Central (A) -> Subtemas (B, C) -> Detalhes/Exemplos.
+    2. Agrupamento: Use 'subgraph' para cada subtema principal.
+    3. Nos: ID[Texto Curto 3-7 palavras]. Sem caracteres especiais no ID.
+    4. Relacoes: Use '-->' para hierarquia. Use '-->|texto|' para causalidade ou sequencia (max 4 setas rotuladas).
+    5. Estilo: Defina classDef para 'central', 'subtema' e 'detalhe' com cores distintas e alto contraste.
 
-    EXEMPLO DE FORMATO CORRETO:
+    EXEMPLO DE ESTRUTURA:
     graph TD
-        A[Conceito Principal] --> B[Sub-conceito 1]
-        A --> C[Sub-conceito 2]
-        B --> D[Detalhe]
-        classDef principal fill:#6366f1,stroke:#333,color:white
-        class A principal
+      A[Tema Central] --> B[Subtema 1]
+      B --> C[Detalhe A]
+      subgraph Grupo1 [Subtema 1]
+        B
+        C
+      end
+      classDef central fill:#6366f1,stroke:#333,color:white,stroke-width:2px
+      classDef subtema fill:#a5b4fc,stroke:#333,color:#1e1b4b
+      classDef detalhe fill:#f1f5f9,stroke:#333,color:#475569
+      class A central
+      class B subtema
+      class C detalhe
 
-    Retorne APENAS o codigo mermaid. Sem markdown, sem crases, sem explicacao.
-    `;
+    Retorne APENAS o codigo mermaid, sem explicações ou blocos de codigo markdown.
+  `;
 
   const selectedModel = selectModel('diagram');
   const { text, usageTokens, response } = await callGemini({
