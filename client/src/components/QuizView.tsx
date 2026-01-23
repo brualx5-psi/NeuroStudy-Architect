@@ -280,7 +280,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                   q.type === 'open' ? (
                     <button onClick={() => handleAiEvaluation(q)} disabled={!isAnswered || evaluatingId === q.id} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-lg font-bold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                       {evaluatingId === q.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
-                      {evaluatingId === q.id ? 'Avaliando Inteligência...' : 'Avaliar com IA'}
+                      {evaluatingId === q.id ? 'Avaliando...' : 'Avaliar'}
                     </button>
                   ) : (
                     <button onClick={() => handleCheckAnswer(q.id)} disabled={!isAnswered} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50 shadow-md">Verificar Resposta</button>
