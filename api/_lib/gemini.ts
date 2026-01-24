@@ -341,24 +341,27 @@ export const generateStudyGuide = async (
   MODO LIVRO AVANCADO (ESTRUTURA HIERARQUICA):
   1. ADVANCE ORGANIZER ('overview'):
      - O QUE E: Preparacao cognitiva. Diga o que esperar do livro como um todo.
-  2. PARETO GLOBAL ('coreConcepts' fora dos capitulos - OPCIONAL/VAZIO se redundante):
-     - De preferencia por colocar conceitos DENTRO dos capitulos. Use o global apenas se for transversal.
+  2. PARETO GLOBAL ('coreConcepts' fora dos capitulos):
+     - CRITERIO OBJETIVO: Inclua APENAS se houver conceitos transversais repetidos em 3+ capitulos.
+     - Se nao houver, deixe VAZIO []. De preferencia por colocar conceitos DENTRO dos capitulos.
 
   3. CAPITULOS ('chapters') - A ALMA DO GUIA:
      - REGRA DE OURO 1: Voce DEVE gerar uma entrada para CADA um dos capitulos do livro. Se o livro tem 20 capitulos, o array deve ter 20 itens.
      - REGRA DE OURO 2: O campo 'title' e SAGRADO. Deve conter o NOME REAL do capitulo.
          - PROIBIDO ABSOLUTAMENTE usar "N/A", "Unknown" ou "Capitulo X" sem nome.
-         - Se o indice nao estiver claro, LEIA o conteudo e crie um titulo descritivo.
+         - Se o indice nao estiver claro, sinalize "[TITULO INFERIDO]" e crie um titulo descritivo baseado no conteudo.
 
      Para CADA capitulo:
      - 'title': Titulo do Capitulo (ex: "Capitulo 1: Introducao a Ansiedade"). NAO USE "N/A".
      - 'content': TEXTO CORRIDO e NARRATIVO. Nao faca topicos. Explique o capitulo como um professor contando uma historia.
-         * MODO SOBREVIVENCIA: 1 paragrafo curto e direto (mas faca para todos os capitulos).
-         * MODO NORMAL: Texto fluido, completo e denso.
-     - 'paretoChunk': O "Insight de Ouro" (80/20) especifico deste capitulo.
-     - 'coreConcepts': Extraia 2 ou 3 conceitos-chave DESTE capitulo. Defina-os aqui.
+         * MODO SOBREVIVENCIA: 80-120 palavras por capitulo (1 paragrafo curto e direto).
+         * MODO NORMAL: 150-250 palavras por capitulo (texto fluido e completo).
+         * MODO HARD: 250-400 palavras por capitulo (analise profunda).
+     - 'paretoChunk': O "Insight de Ouro" (80/20) especifico deste capitulo. DEVE estar ancorado em um termo ou conceito EXPLICITO do material.
+     - 'coreConcepts': Extraia 2 ou 3 conceitos-chave DESTE capitulo. Cada conceito DEVE citar ao menos 1 termo ou exemplo do texto original.
      - 'supportConcepts': Se as Fontes Complementares trouxerem algo sobre este capitulo, insira aqui.
      - 'reflectionQuestion': Uma pergunta direta para o aluno testar se entendeu a essencia do capitulo.
+     - 'learningOutcome': (NOVO) "Ao final deste capitulo, o estudante deve ser capaz de..." (1 frase objetiva).
   ` : ''}
 
   ${mode === 'PARETO' && !isBook ? `
@@ -411,6 +414,9 @@ export const generateStudyGuide = async (
   REGRAS DE OURO:
   1. HIERARQUIA: A Fonte Principal manda na ordem. As complementares mandam na profundidade.
   2. CITACOES: Sempre que usar uma info chave de uma complementar, cite a origem (ex: "Ref: Artigo Y").
+  3. ANCORAGEM TEXTUAL: Cada capitulo/checkpoint DEVE citar ao menos 1 termo, conceito ou exemplo EXPLICITO do material original.
+  4. CONSISTENCIA: Use SEMPRE o mesmo estilo de linguagem (narrativo e didatico) em todos os capitulos.
+  5. PROIBIDO INVENTAR: Se uma informacao nao estiver no material, NAO inclua. Prefira "nao abordado no texto" a inventar.
 
   JSON estrito e valido.
 
@@ -709,17 +715,23 @@ export const generateTool = async (
       SUA MISSAO: Revelar uma conexao SURPREENDENTE e EDUCATIVA entre o tema e outra area.
 
       CRITERIOS DE QUALIDADE:
-      1. A conexao deve ser REAL (baseada em ciencia, historia ou fatos verificaveis)
-      2. Deve gerar um "AHA!" no estudante - uma insight que ele nunca teria sozinho
-      3. Deve APROFUNDAR a compreensao do tema original, nao apenas curiosidade
-      4. Use um exemplo concreto ou caso real quando possivel
+      1. ANCORAGEM OBRIGATORIA: A conexao DEVE partir de um termo, conceito ou exemplo EXPLICITO do contexto fornecido. Cite-o.
+      2. A conexao deve ser REAL (baseada em ciencia, historia ou fatos verificaveis).
+      3. Deve gerar um "AHA!" no estudante - uma insight que ele nunca teria sozinho.
+      4. Deve APROFUNDAR a compreensao do tema original, nao apenas curiosidade.
+      5. Use um exemplo concreto ou caso real quando possivel.
 
-      ESTRUTURA DA RESPOSTA (3-5 frases):
-      - Frase 1: A ponte entre as areas (o que conecta)
-      - Frases 2-3: O "como" e "por que" (a mecanica da conexao)
-      - Frase final: O insight pratico (como isso ajuda a entender melhor o tema)
+      ESTRUTURA DA RESPOSTA (60-100 palavras):
+      - Frase 1: A ponte entre as areas (o que conecta) - CITE o termo do contexto.
+      - Frases 2-3: O "como" e "por que" (a mecanica da conexao).
+      - Frase final: O insight pratico (como isso ajuda a entender melhor o tema).
 
-      PROIBIDO: Markdown (**, #, etc), conexoes obvias, informacoes inventadas.
+      REGRAS ANTI-INVENCAO:
+      - Se voce nao tiver certeza de um fato, OMITA. Nao invente.
+      - Prefira conexoes classicas e documentadas a conexoes obscuras nao verificaveis.
+      - Se a area alvo nao tiver conexao real com o tema, diga: "Nao encontrei conexao verificavel com [area]."
+
+      PROIBIDO: Markdown (**, #, etc), conexoes obvias, informacoes inventadas, textos longos.
       Escreva em texto fluido e natural.`;
       break;
     default:
