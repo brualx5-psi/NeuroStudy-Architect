@@ -140,9 +140,14 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export type FlashcardDifficulty = 'easy' | 'medium' | 'hard' | 'unrated';
+
 export interface Flashcard {
+  id?: string;
   front: string;
   back: string;
+  difficulty?: FlashcardDifficulty;
+  lastReviewedAt?: number;
 }
 
 // === PERFIL DO USUÁRIO (Onboarding) ===
