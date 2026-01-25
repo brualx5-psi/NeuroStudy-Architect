@@ -25,7 +25,7 @@ export default async function handler(req: any, res: any) {
 
   const body = await readJson<{
     guide: any;
-    config?: { quantity: number; distribution?: { mc: number; open: number } };
+    config?: { quantity: number; difficulty?: 'easy' | 'medium' | 'hard' | 'mixed'; distribution?: { mc: number; open: number } };
   }>(req);
 
   const { planName, isAdmin } = await getUserAccess(auth.userId);

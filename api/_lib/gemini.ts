@@ -501,11 +501,29 @@ export const generateSlides = async (planName: PlanName, guide: any) => {
 export const generateQuiz = async (
   planName: PlanName,
   guide: any,
-  config?: { quantity: number; distribution?: { mc: number; open: number } }
+  config?: { quantity: number; difficulty?: 'easy' | 'medium' | 'hard' | 'mixed'; distribution?: { mc: number; open: number } }
 ) => {
   const qty = config?.quantity || 6;
   const mcCount = config?.distribution?.mc ?? Math.ceil(qty / 2);
   const openCount = config?.distribution?.open ?? Math.floor(qty / 2);
+  const difficulty = config?.difficulty || 'mixed';
+
+  // Build difficulty instruction based on user selection
+  let difficultyInstruction = '';
+  if (difficulty === 'mixed') {
+    difficultyInstruction = `DISTRIBUICAO DE DIFICULDADE:
+  - 40% easy (compreensao basica)
+  - 40% medium (aplicacao em situacao nova)
+  - 20% hard (analise, comparacao, padroes)`;
+  } else {
+    const difficultyMap = {
+      easy: 'easy (compreensao basica - questoes diretas sobre conceitos fundamentais)',
+      medium: 'medium (aplicacao em situacao nova - requer raciocinio e conexao de ideias)',
+      hard: 'hard (analise, comparacao e identificacao de padroes - questoes complexas)'
+    };
+    difficultyInstruction = `DIFICULDADE: TODAS as ${qty} questoes devem ser de nivel ${difficultyMap[difficulty]}.
+  NAO gere questoes de outros niveis. APENAS "${difficulty}".`;
+  }
 
   const prompt = `
   Voce e um especialista em avaliacao educacional baseada em Neurociencia.
@@ -516,10 +534,7 @@ export const generateQuiz = async (
   - ${mcCount} questoes de Alternativa (type: 'multiple_choice')
   - ${openCount} questoes Dissertativas (type: 'open')
 
-  DISTRIBUICAO DE DIFICULDADE:
-  - 40% easy (compreensao basica)
-  - 40% medium (aplicacao em situacao nova)
-  - 20% hard (analise, comparacao, padroes)
+  ${difficultyInstruction}
 
   Cubra os principais topicos do guia sem repetir o mesmo subtema.
 
