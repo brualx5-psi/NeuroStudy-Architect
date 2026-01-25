@@ -194,7 +194,7 @@ export const SlidesView: React.FC<SlidesViewProps> = ({ slides, onUpdateSlides }
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-4">
-      {/* Banner Feynman - Técnica de Ensino */}
+      {/* Banner de Técnica de Ensino */}
       <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-violet-50 border border-purple-200 rounded-xl p-4 shadow-sm">
         <div className="flex items-start gap-4">
           <div className="p-3 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-xl text-purple-600 shadow-inner">
@@ -202,7 +202,7 @@ export const SlidesView: React.FC<SlidesViewProps> = ({ slides, onUpdateSlides }
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-purple-800 flex items-center gap-2">
-              <span>🧠 Técnica Feynman: Ensine para Aprender</span>
+              <span>🧠 Técnica: Ensinando para Aprender</span>
             </h3>
             <p className="text-purple-700 text-sm mt-1 leading-relaxed">
               Use estes slides para <strong>explicar o conteúdo como se estivesse ensinando outra pessoa</strong>.
@@ -317,7 +317,7 @@ export const SlidesView: React.FC<SlidesViewProps> = ({ slides, onUpdateSlides }
 
       {/* Keyboard hint */}
       <p className="text-xs text-gray-400 text-center">
-        💡 <strong>Dica Feynman:</strong> Leia as notas em voz alta como se estivesse explicando para um amigo.
+        💡 <strong>Dica:</strong> Leia as notas em voz alta como se estivesse explicando para um amigo.
       </p>
     </div>
   );
