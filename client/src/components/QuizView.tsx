@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { QuizQuestion } from '../types';
 import { evaluateOpenAnswer, isUsageLimitError } from '../services/geminiService';
-import { CheckCircle, HelpCircle, FileText, RefreshCw, Trash, Mic, Settings, Play, GradCap, AlertTriangle, Eye, EyeOff, Bot } from './Icons';
+import { CheckCircle, HelpCircle, FileText, RefreshCw, Trash, Mic, Settings, Play, GradCap, AlertTriangle, Eye, EyeOff, Bot, Target, Lightbulb, Activity } from './Icons';
 import { LimitReason } from '../services/usageLimits';
 
 interface QuizViewProps {
@@ -16,6 +16,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
   const [showExplanation, setShowExplanation] = useState<Record<string, boolean>>({});
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
+  const [showResults, setShowResults] = useState(false);
 
   // Estados de Configuração
   const [quantity, setQuantity] = useState(6);
@@ -30,6 +31,81 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
   // Estados de Avaliação AI
   const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
   const [evaluations, setEvaluations] = useState<Record<string, { status: 'correct' | 'partial' | 'wrong', feedback: string }>>({});
+
+  // Performance Analysis
+  const performanceStats = useMemo(() => {
+    if (!questions || questions.length === 0) return null;
+
+    const answered = Object.keys(checkedState).filter(id => checkedState[id]);
+    const total = questions.length;
+    const answeredCount = answered.length;
+
+    let correct = 0;
+    let partial = 0;
+    let wrong = 0;
+
+    const byDifficulty: Record<string, { correct: number; total: number }> = {
+      easy: { correct: 0, total: 0 },
+      medium: { correct: 0, total: 0 },
+      hard: { correct: 0, total: 0 }
+    };
+
+    const byType: Record<string, { correct: number; total: number }> = {
+      multiple_choice: { correct: 0, total: 0 },
+      open: { correct: 0, total: 0 }
+    };
+
+    const wrongTopics: Array<{ question: string; topic: string; difficulty: string }> = [];
+
+    for (const q of questions) {
+      if (!checkedState[q.id]) continue;
+
+      byDifficulty[q.difficulty].total++;
+      byType[q.type].total++;
+
+      let isCorrect = false;
+
+      if (q.type === 'multiple_choice') {
+        isCorrect = answers[q.id] === String(Number(q.correctAnswer));
+      } else {
+        const evalStatus = evaluations[q.id]?.status;
+        isCorrect = evalStatus === 'correct';
+        if (evalStatus === 'partial') partial++;
+      }
+
+      if (isCorrect) {
+        correct++;
+        byDifficulty[q.difficulty].correct++;
+        byType[q.type].correct++;
+      } else {
+        wrong++;
+        // Extract topic from question for recommendations
+        const topicMatch = q.question.match(/(?:sobre|acerca de|relacionado a|conceito de)\s+(.+?)(?:\?|\.|\,|$)/i);
+        const topic = topicMatch?.[1] || q.question.slice(0, 50) + '...';
+        wrongTopics.push({
+          question: q.question,
+          topic,
+          difficulty: q.difficulty
+        });
+      }
+    }
+
+    const percentage = answeredCount > 0 ? Math.round((correct / answeredCount) * 100) : 0;
+    const isComplete = answeredCount === total;
+
+    return {
+      total,
+      answeredCount,
+      correct,
+      partial,
+      wrong,
+      percentage,
+      isComplete,
+      byDifficulty,
+      byType,
+      wrongTopics
+    };
+  }, [questions, checkedState, answers, evaluations]);
 
   const handleSelectOption = (questionId: string, optionIndex: number) => { setAnswers(prev => ({ ...prev, [questionId]: optionIndex.toString() })); };
   const handleTextAnswer = (questionId: string, text: string) => { setAnswers(prev => ({ ...prev, [questionId]: text })); }
@@ -67,12 +143,9 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
     if (!userAnswer) return;
     setEvaluatingId(q.id);
     try {
-      // Usa correctAnswer como gabarito. Se for MC, converte index para texto.
-      // Para MC, a avaliação é determinística, mas se quiser AI feedback... O pedido foi especificamente para Dissertativa.
-      // Vou manter AI Evaluation apenas para OPEN.
       const result = await evaluateOpenAnswer(q.question, userAnswer, q.explanation || "Verifique a compreensão.");
       setEvaluations(prev => ({ ...prev, [q.id]: result }));
-      setCheckedState(prev => ({ ...prev, [q.id]: true })); // Marca como checado também
+      setCheckedState(prev => ({ ...prev, [q.id]: true }));
     } catch (error) {
       if (isUsageLimitError(error)) {
         onUsageLimit?.(error.reason as LimitReason);
@@ -84,13 +157,19 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
     }
   };
 
-  // Atualiza contadores quando quantidade muda (mantém 50/50)
   React.useEffect(() => {
     if (distMode === 'auto') {
       setMcCount(Math.ceil(quantity / 2));
       setOpenCount(Math.floor(quantity / 2));
     }
   }, [quantity, distMode]);
+
+  // Auto-show results when quiz is complete
+  React.useEffect(() => {
+    if (performanceStats?.isComplete && !showResults) {
+      setShowResults(true);
+    }
+  }, [performanceStats?.isComplete]);
 
   const getDifficultyBadge = (diff: 'easy' | 'medium' | 'hard') => {
     switch (diff) {
@@ -99,6 +178,22 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
       case 'hard': return <span className="text-xs px-2 py-0.5 rounded border border-red-200 bg-red-50 text-red-700 font-bold uppercase tracking-wider">Difícil</span>;
       default: return null;
     }
+  };
+
+  const getScoreEmoji = (percentage: number) => {
+    if (percentage >= 90) return '🏆';
+    if (percentage >= 70) return '🎉';
+    if (percentage >= 50) return '👍';
+    if (percentage >= 30) return '💪';
+    return '📚';
+  };
+
+  const getScoreMessage = (percentage: number) => {
+    if (percentage >= 90) return 'Excelente! Você dominou o conteúdo!';
+    if (percentage >= 70) return 'Muito bom! Continue assim!';
+    if (percentage >= 50) return 'Bom progresso! Revise os erros.';
+    if (percentage >= 30) return 'Continue estudando, você está melhorando!';
+    return 'Hora de revisar o material. Não desista!';
   };
 
   if (!questions || questions.length === 0) {
@@ -119,7 +214,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
             </div>
           </div>
 
-          {/* DISTRIBUIÇÃO */}
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <label className="text-sm font-bold text-gray-700">Distribuição de Tipos</label>
@@ -169,33 +263,187 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-8 pb-12 animate-fade-in">
+    <div className="w-full max-w-3xl mx-auto space-y-6 pb-12 animate-fade-in">
+      {/* Results Dashboard - Shows when quiz is complete */}
+      {showResults && performanceStats && (
+        <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-indigo-200 shadow-lg overflow-hidden animate-in slide-in-from-top-4">
+          <div className="p-6 border-b border-indigo-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-xl shadow-lg">
+                  <Activity className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 text-lg">Resultado do Quiz</h3>
+                  <p className="text-sm text-gray-500">{performanceStats.answeredCount} de {performanceStats.total} questões respondidas</p>
+                </div>
+              </div>
+              <button onClick={() => setShowResults(false)} className="text-gray-400 hover:text-gray-600 text-sm font-medium">
+                Minimizar
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Score */}
+            <div className="text-center">
+              <div className="text-6xl mb-2">{getScoreEmoji(performanceStats.percentage)}</div>
+              <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                {performanceStats.percentage}%
+              </div>
+              <p className="text-gray-600 font-medium mt-2">{getScoreMessage(performanceStats.percentage)}</p>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-green-100">
+                <div className="text-2xl font-bold text-green-600">{performanceStats.correct}</div>
+                <div className="text-xs text-green-700 font-medium uppercase">Corretas</div>
+              </div>
+              {performanceStats.partial > 0 && (
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-yellow-100">
+                  <div className="text-2xl font-bold text-yellow-600">{performanceStats.partial}</div>
+                  <div className="text-xs text-yellow-700 font-medium uppercase">Parciais</div>
+                </div>
+              )}
+              <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-red-100">
+                <div className="text-2xl font-bold text-red-600">{performanceStats.wrong}</div>
+                <div className="text-xs text-red-700 font-medium uppercase">Incorretas</div>
+              </div>
+            </div>
+
+            {/* Performance by Difficulty */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <h4 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
+                <Target className="w-4 h-4 text-indigo-500" />
+                Desempenho por Dificuldade
+              </h4>
+              <div className="space-y-2">
+                {(['easy', 'medium', 'hard'] as const).map(diff => {
+                  const data = performanceStats.byDifficulty[diff];
+                  if (data.total === 0) return null;
+                  const pct = Math.round((data.correct / data.total) * 100);
+                  const colors = {
+                    easy: { bg: 'bg-green-100', fill: 'bg-green-500', text: 'text-green-700' },
+                    medium: { bg: 'bg-yellow-100', fill: 'bg-yellow-500', text: 'text-yellow-700' },
+                    hard: { bg: 'bg-red-100', fill: 'bg-red-500', text: 'text-red-700' }
+                  };
+                  return (
+                    <div key={diff} className="flex items-center gap-3">
+                      <span className={`text-xs font-bold uppercase w-16 ${colors[diff].text}`}>
+                        {diff === 'easy' ? 'Fácil' : diff === 'medium' ? 'Médio' : 'Difícil'}
+                      </span>
+                      <div className={`flex-1 h-2 rounded-full ${colors[diff].bg}`}>
+                        <div className={`h-full rounded-full ${colors[diff].fill} transition-all`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 w-12 text-right">{data.correct}/{data.total}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Recommendations */}
+            {performanceStats.wrongTopics.length > 0 && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
+                <h4 className="font-bold text-amber-800 text-sm mb-3 flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4" />
+                  Recomendações de Estudo
+                </h4>
+                <p className="text-sm text-amber-700 mb-3">
+                  Com base nos seus erros, recomendamos revisar:
+                </p>
+                <ul className="space-y-2">
+                  {performanceStats.wrongTopics.slice(0, 5).map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-amber-900">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span className="flex-1">{item.question.length > 80 ? item.question.slice(0, 80) + '...' : item.question}</span>
+                      {getDifficultyBadge(item.difficulty as 'easy' | 'medium' | 'hard')}
+                    </li>
+                  ))}
+                </ul>
+                {performanceStats.wrongTopics.length > 5 && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    +{performanceStats.wrongTopics.length - 5} outros tópicos para revisar
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={onClear}
+                className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Novo Quiz
+              </button>
+              <button
+                onClick={() => setShowResults(false)}
+                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                Ver Questões
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Progress Bar */}
+      {performanceStats && !showResults && (
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-bold text-gray-700">Progresso</span>
+            <span className="text-sm text-gray-500">{performanceStats.answeredCount}/{performanceStats.total} respondidas</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-3">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500"
+              style={{ width: `${(performanceStats.answeredCount / performanceStats.total) * 100}%` }}
+            />
+          </div>
+          {performanceStats.isComplete && (
+            <button
+              onClick={() => setShowResults(true)}
+              className="w-full mt-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2"
+            >
+              <Activity className="w-4 h-4" />
+              Ver Resultado Final
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <h2 className="font-bold text-gray-700 flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-500" /> Quiz ({questions.length} questões)</h2>
-        <div className="flex gap-2"><button onClick={() => onGenerate({ quantity, difficulty, distribution: { mc: mcCount, open: openCount } })} className="text-xs flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors" title="Regerar"><RefreshCw className="w-3 h-3" /> Regerar</button><button onClick={onClear} className="text-xs flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors" title="Limpar"><Trash className="w-3 h-3" /> Limpar</button></div>
+        <div className="flex gap-2">
+          <button onClick={() => onGenerate({ quantity, difficulty, distribution: { mc: mcCount, open: openCount } })} className="text-xs flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors" title="Regerar"><RefreshCw className="w-3 h-3" /> Regerar</button>
+          <button onClick={onClear} className="text-xs flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors" title="Limpar"><Trash className="w-3 h-3" /> Limpar</button>
+        </div>
       </div>
+
+      {/* Questions */}
       {questions.map((q, index) => {
         const isAnswered = answers[q.id] !== undefined;
         const isChecked = checkedState[q.id];
-        const isRevealed = revealedAnswers[q.id]; // Para MC: mostra resposta certa. Para Open: mostra feedback extra.
+        const isRevealed = revealedAnswers[q.id];
         const evaluation = evaluations[q.id];
 
         let containerClass = "bg-white rounded-xl paper-shadow border transition-all overflow-hidden ";
 
-        // Estilização condicional baseada no status
         if (isChecked) {
           if (q.type === 'multiple_choice') {
-            const isUserCorrect = answers[q.id] === String(Number(q.correctAnswer)); // MC CorrectAnswer armazena o índice (mock service) ou letra? Types diz number. IA gera number ou string? Service parseia QuizQuestion.
-            // Wait, QuizQuestion defines correctAnswer as number. IA gera JSON.
-            // Se o usuário acertou: Verde. Se errou: Vermelho (mas não mostra a certa ainda).
+            const isUserCorrect = answers[q.id] === String(Number(q.correctAnswer));
             if (isUserCorrect) containerClass += "border-green-300 bg-green-50/30";
             else containerClass += "border-red-300 bg-red-50/30";
           } else {
-            // Open question
             if (evaluation?.status === 'correct') containerClass += "border-green-300 bg-green-50/30";
             else if (evaluation?.status === 'partial') containerClass += "border-yellow-300 bg-yellow-50/30";
             else if (evaluation?.status === 'wrong') containerClass += "border-red-300 bg-red-50/30";
-            else containerClass += "border-gray-200"; // Ainda não avaliado (ou manual check)
+            else containerClass += "border-gray-200";
           }
         } else {
           containerClass += "border-gray-100";
@@ -210,14 +458,11 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
             <div className="p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-6">{q.question}</h3>
 
-              {/* --- LÓGICA ALTERNATIVA --- */}
               {q.type === 'multiple_choice' && q.options && (
                 <div className="space-y-3">
                   {q.options.map((opt, optIdx) => {
                     const isSelected = answers[q.id] === optIdx.toString();
-                    const isCorrectOption = Number(q.correctAnswer) === optIdx; // Force number comparison
-                    // Se estiver checado e o usuário errou, NÃO mostra qual é a correta imediatamente, só marca a errada.
-                    // A correta só aparece se isRevealed for true.
+                    const isCorrectOption = Number(q.correctAnswer) === optIdx;
 
                     let btnClass = "w-full text-left p-4 rounded-lg border-2 transition-all relative ";
 
@@ -227,7 +472,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                       } else if (isSelected && !isCorrectOption) {
                         btnClass += "border-red-500 bg-red-100 text-red-900 shadow-sm";
                       } else if (isRevealed && isCorrectOption) {
-                        // Só mostra a correta (se não for a selecionada) se REVEALED
                         btnClass += "border-green-500 border-dashed bg-green-50 text-green-900";
                       } else {
                         btnClass += "border-gray-200 opacity-50";
@@ -250,14 +494,12 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                 </div>
               )}
 
-              {/* --- LÓGICA DISSERTATIVA --- */}
               {q.type === 'open' && (
                 <div className="space-y-4">
                   <div className="relative">
                     <textarea className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[120px] ${isChecked ? 'bg-gray-50 text-gray-800' : 'bg-white border-gray-300'}`} placeholder="Escreva sua resposta aqui..." value={answers[q.id] || ''} onChange={(e) => handleTextAnswer(q.id, e.target.value)} disabled={isChecked && evaluation?.status !== undefined} />
                     {!isChecked && (<button onClick={() => handleSpeechInput(q.id)} className={`absolute bottom-3 right-3 p-2 rounded-full shadow-sm transition-all ${listeningId === q.id ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-600'}`} title="Falar Resposta"><Mic className="w-5 h-5" /></button>)}
                   </div>
-                  {/* Feedback Status Box */}
                   {evaluation && (
                     <div className={`p-4 rounded-xl border flex items-start gap-3 ${evaluation.status === 'correct' ? 'bg-green-50 border-green-200' : evaluation.status === 'partial' ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
                       {evaluation.status === 'correct' && <CheckCircle className="w-6 h-6 text-green-600 mt-1" />}
@@ -274,7 +516,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                 </div>
               )}
 
-              {/* --- BOTÕES DE AÇÃO --- */}
               <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
                 {!isChecked ? (
                   q.type === 'open' ? (
@@ -302,7 +543,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                 )}
               </div>
 
-              {/* --- EXPLICAÇÃO EXPANDIDA --- */}
               {showExplanation[q.id] && (
                 <div className="mt-4 w-full bg-slate-50 border border-slate-200 rounded-lg p-4 animate-fade-in text-left">
                   <div className="flex items-start gap-3">
@@ -313,14 +553,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                       {q.type === 'open' && (
                         <div className="mt-3 p-3 bg-white border border-slate-200 rounded text-sm text-slate-600">
                           <strong className="block text-slate-800 mb-1">Gabarito Sugerido:</strong>
-                          {/* Nota: Para open questions, 'correctAnswer' era string no modelo antigo, mas aqui pode ser usado como ref */}
-                          {q.type === 'open' ? q.explanation : "Verifique a explicação acima."}
-                          {/* Na verdade, o prompt diz para por em 'correctAnswer' o gabarito. Wait. QuizQuestion type correctAnswer is number usually.
-                                        Vou assumir que o prompt force-cast para string se eu pedir JSON. 
-                                        Melhor: O prompt diz "campo 'correctAnswer' deve conter a Resposta Esperada". 
-                                        Se a interface espera number, vai dar pau.
-                                        Vou castar: (q as any).correctAnswer se for Open.
-                                     */}
                           {(q as any).correctAnswer}
                         </div>
                       )}
