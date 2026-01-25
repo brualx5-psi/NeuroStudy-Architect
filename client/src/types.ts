@@ -64,6 +64,7 @@ export interface StudyGuide {
   flashcards?: Flashcard[];
 
   diagramUrl?: string;
+  diagramCode?: string;
   tools?: {
     mnemonics?: string;
     interdisciplinary?: string;
