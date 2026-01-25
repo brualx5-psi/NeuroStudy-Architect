@@ -493,7 +493,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         </div>
                                     </div>
                                 </div>
-                                <div className="w-full md:w-1/3 flex flex-col justify-center items-center border-l border-gray-100 pl-0 md:pl-6 pt-4 md:pt-0">
+                                <div className="w-full md:w-2/5 flex flex-col justify-center items-center border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
                                     {checkpoint.diagramCode ? (
                                         <MermaidEditor
                                             initialCode={checkpoint.diagramCode}
@@ -509,10 +509,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="text-center w-full bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-                                            <p className="text-xs text-gray-400 mb-3 font-medium">Não entendeu o desenho?</p>
-                                            <button onClick={() => handleGenerateCheckpointDiagram(checkpoint.id, checkpoint.drawExactly)} disabled={loadingDiagramForCheckpoint === checkpoint.id} className="w-full py-3 px-4 bg-white border border-orange-200 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-50 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                                {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />} Gerar Diagrama Visual
+                                        <div className="w-full min-h-[180px] bg-gradient-to-br from-slate-50 to-gray-100 p-6 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:from-orange-50/30 hover:to-amber-50/30 transition-all group">
+                                            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                <PenTool className="w-6 h-6 text-orange-500" />
+                                            </div>
+                                            <p className="text-sm font-bold text-gray-600 mb-1">Diagrama de Referência</p>
+                                            <p className="text-xs text-gray-400 mb-4 max-w-[200px]">Não entendeu como desenhar? Gere um exemplo visual para se inspirar.</p>
+                                            <button
+                                                onClick={() => handleGenerateCheckpointDiagram(checkpoint.id, checkpoint.drawExactly)}
+                                                disabled={loadingDiagramForCheckpoint === checkpoint.id}
+                                                className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                            >
+                                                {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                                                {loadingDiagramForCheckpoint === checkpoint.id ? 'Gerando...' : 'Gerar Diagrama'}
                                             </button>
                                         </div>
                                     )}
