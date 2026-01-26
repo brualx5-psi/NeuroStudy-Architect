@@ -168,10 +168,23 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         });
 
         // Determinar o plano baseado no plan_id
-        const planName = PLAN_ID_MAP[subscription.preapproval_plan_id];
+        let planName = PLAN_ID_MAP[subscription.preapproval_plan_id];
+
+        // Se não estiver no mapa estático, tentar ler do external_reference (planos dinâmicos com cupom)
+        if (!planName && subscription.external_reference) {
+            try {
+                const ref = JSON.parse(subscription.external_reference);
+                if (ref.role && (ref.role === 'starter' || ref.role === 'pro')) {
+                    planName = ref.role;
+                    console.log(`[MP Webhook] Plano dinâmico identificado via ref: ${planName}`);
+                }
+            } catch (e) {
+                console.warn('[MP Webhook] Erro ao parsear external_reference:', subscription.external_reference);
+            }
+        }
 
         if (!planName) {
-            console.warn('[MP Webhook] Plan ID não mapeado:', subscription.preapproval_plan_id);
+            console.warn('[MP Webhook] Plan ID não mapeado e referências vazias:', subscription.preapproval_plan_id);
         }
 
         // Processar baseado no status
