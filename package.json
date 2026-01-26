@@ -7,9 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:open:android": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/cli": "^8.0.1",
+    "@capacitor/core": "^8.0.1",
     "@google/genai": "*",
     "@supabase/supabase-js": "^2.39.0",
     "@types/dagre": "^0.7.53",
