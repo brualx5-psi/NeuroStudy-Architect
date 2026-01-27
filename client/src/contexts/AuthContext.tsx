@@ -3,6 +3,9 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { PLAN_LABELS, PLAN_LIMITS, PlanLimits, PlanName } from '../config/planLimits';
+import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 
 // Definição dos tipos
 type SubscriptionStatus = 'free' | 'starter' | 'pro' | 'premium';
@@ -175,6 +178,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return supabase;
     };
+
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const handleUrl = async (url?: string) => {
+            if (!url) return;
+            console.log('[Auth] Deep link recebido:', url);
+
+            // FIX: Manual parsing for Implicit Flow (Hashes) from Deep Links
+            // getSessionFromUrl often fails with custom schemes in Capacitor
+            if (url.includes('access_token') && (url.includes('#') || url.includes('?'))) {
+                try {
+                    console.log('🔵 [Auth] Tentando parse manual do token no deep link...');
+                    // Extract the part after # or ?
+                    const fragment = url.includes('#') ? url.split('#')[1] : url.split('?')[1];
+                    const params = new URLSearchParams(fragment);
+                    const access_token = params.get('access_token');
+                    const refresh_token = params.get('refresh_token');
+
+                    if (access_token && refresh_token) {
+                        const { data, error } = await client.auth.setSession({ access_token, refresh_token });
+                        if (error) throw error;
+                        console.log('🟢 [Auth] Sessão via Deep Link definida com sucesso:', data.session?.user?.email);
+                        return; // Sucesso, não precisa tentar os outros métodos
+                    }
+                } catch (err) {
+                    console.error('🔴 [Auth] Erro no parse manual do deep link:', err);
+                }
+            }
+
+            try {
+                // Em v2, exchangeCodeForSession é para PKCE. Se falhar, tentamos o manual acima.
+                // Se chegou aqui, talvez seja um link com 'code' (PKCE)
+                if (url.includes('code=')) {
+                    const { error } = await client.auth.exchangeCodeForSession(url);
+                    if (error) throw error;
+                }
+            } catch (error) {
+                console.error('Erro ao processar callback OAuth:', error);
+            } finally {
+                try {
+                    await Browser.close();
+                } catch {
+                    // ignore
+                }
+            }
+        };
+
+        // Deep link quando o app já está aberto
+        // App.addListener retorna uma Promise com o handle
+        let listenerHandle: any;
+        App.addListener('appUrlOpen', ({ url }) => handleUrl(url)).then(handle => {
+            listenerHandle = handle;
+        });
+
+        // Deep link quando o app abre "frio"
+        App.getLaunchUrl()
+            .then((launchUrl) => {
+                if (launchUrl && launchUrl.url) {
+                    handleUrl(launchUrl.url);
+                }
+            })
+            .catch((error) => console.error('Erro ao ler launchUrl:', error));
+
+        return () => {
+            if (listenerHandle) {
+                listenerHandle.remove();
+            }
+        };
+    }, []);
 
     const syncGoogleProfile = async (authUser: User) => {
         const client = getSupabaseClient();

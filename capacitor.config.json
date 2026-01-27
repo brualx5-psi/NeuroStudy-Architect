@@ -1,0 +1,6 @@
+{
+  "appId": "com.neurostudy.app",
+  "appName": "NeuroStudy",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
