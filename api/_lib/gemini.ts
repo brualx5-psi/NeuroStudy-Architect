@@ -692,13 +692,28 @@ export const sendChatMessage = async (
   message: string
 ) => {
   const ai = getClient();
+
+  // Keep chat snappy: limit history and truncate long messages.
+  const maxHistory = Number(process.env.GEMINI_CHAT_HISTORY_MAX || 4);
+  const maxChars = Number(process.env.GEMINI_CHAT_MSG_MAX_CHARS || 900);
+  const systemInstruction =
+    process.env.GEMINI_CHAT_SYSTEM ||
+    'Professor virtual socratico e ativo. Responda em PT-BR. Seja natural, curto e interativo. Use 1 pergunta por vez.';
+
+  const trimmedHistory = (history || [])
+    .slice(-Math.max(0, maxHistory))
+    .map((m) => ({
+      role: m.role,
+      parts: [{ text: (m.text || '').slice(0, maxChars) }]
+    }));
+
   const chat = ai.chats.create({
     model: MODEL_FLASH,
-    history: history.slice(-5).map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-    config: { systemInstruction: 'Mentor de Aprendizado.' }
+    history: trimmedHistory,
+    config: { systemInstruction }
   });
 
-  const response = await chat.sendMessage({ message });
+  const response = await chat.sendMessage({ message: (message || '').slice(0, maxChars) });
   const text = response?.text || '';
   return { text, usageTokens: getUsageTokens(response), rawResponse: response };
 };
