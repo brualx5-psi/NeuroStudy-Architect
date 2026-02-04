@@ -2,8 +2,14 @@
 import { GoogleGenAI, Schema, Type } from '@google/genai';
 import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits.js';
 
-const MODEL_FLASH = 'gemini-2.0-flash';
-const MODEL_PRO = 'gemini-pro-latest';
+// Default models can be overridden via env vars (useful for Vercel)
+// Examples:
+//   GEMINI_MODEL_FLASH=gemini-2.5-flash
+//   GEMINI_MODEL_PRO=gemini-2.5-pro
+//   GEMINI_MODEL_DIAGRAM=models/nano-banana-pro-preview
+const MODEL_FLASH = process.env.GEMINI_MODEL_FLASH || 'gemini-2.0-flash';
+const MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-pro-latest';
+const MODEL_DIAGRAM = process.env.GEMINI_MODEL_DIAGRAM || MODEL_FLASH;
 
 type TaskType =
   | 'chat'
@@ -64,8 +70,11 @@ const selectModel = (
 ): string => {
   // Use Flash model for most tasks - it's more stable and faster
   // PRO model only for heavy study guides
-  const alwaysFlashTasks: TaskType[] = ['chat', 'tool', 'transcription', 'diagram', 'quiz', 'flashcard'];
+  // Most tasks default to Flash for stability/cost.
+  // Diagram generation can be overridden separately (MODEL_DIAGRAM) because Mermaid is more sensitive to model behavior.
+  const alwaysFlashTasks: TaskType[] = ['chat', 'tool', 'transcription', 'quiz', 'flashcard'];
   if (alwaysFlashTasks.includes(taskType)) return MODEL_FLASH;
+  if (taskType === 'diagram') return MODEL_DIAGRAM;
 
   if (taskType === 'studyGuide' || taskType === 'slides') {
     if (isBook || contentLength > 50000 || sourceCount >= 3) {
