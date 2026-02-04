@@ -149,11 +149,17 @@ export const callGemini = async (options: CallGeminiOptions) => {
     ? { role: 'user', parts: options.parts }
     : { parts: [{ text: options.prompt }] };
 
-  const model = options.model || MODEL_FLASH;
+  let model = options.model || MODEL_FLASH;
+
+  // Plan gating: free plan should not use PRO-tier models (cost control)
+  // If a caller selects MODEL_PRO explicitly (or via env), downgrade to flash for free.
+  if (options.planName === 'free' && model === MODEL_PRO) {
+    model = MODEL_FLASH;
+  }
 
   // Debug: log which model is used per task without leaking prompts/user data.
   if (process.env.DEBUG_MODEL_LOGS === '1') {
-    console.log(`[gemini] task=${String(options.taskType)} model=${model}`);
+    console.log(`[gemini] plan=${options.planName} task=${String(options.taskType)} model=${model}`);
   }
 
   const request = {
