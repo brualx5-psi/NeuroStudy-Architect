@@ -149,8 +149,15 @@ export const callGemini = async (options: CallGeminiOptions) => {
     ? { role: 'user', parts: options.parts }
     : { parts: [{ text: options.prompt }] };
 
+  const model = options.model || MODEL_FLASH;
+
+  // Debug: log which model is used per task without leaking prompts/user data.
+  if (process.env.DEBUG_MODEL_LOGS === '1') {
+    console.log(`[gemini] task=${String(options.taskType)} model=${model}`);
+  }
+
   const request = {
-    model: options.model || MODEL_FLASH,
+    model,
     contents,
     config
   };
