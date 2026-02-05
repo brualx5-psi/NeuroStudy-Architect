@@ -910,6 +910,14 @@ const buildFallbackDiagram = (context: DiagramContext) => {
 export const generateDiagram = async (planName: PlanName, desc: string) => {
   const safeDesc = desc || 'Mapa conceitual do tema estudado';
   const context = parseDiagramContext(safeDesc);
+
+  if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
+    console.log('[diagram] parsedContext', {
+      hasSubject: !!context.subject,
+      concepts: context.concepts.length,
+      overviewChars: (context.overview || '').length
+    });
+  }
   const subjectLine = context.subject ? `TEMA PRINCIPAL: ${context.subject}` : 'TEMA PRINCIPAL: (nao informado)';
   const conceptsLine = context.concepts.length
     ? `CONCEITOS PRINCIPAIS (use APENAS estes):\n- ${context.concepts.join('\n- ')}`
@@ -978,7 +986,18 @@ export const generateDiagram = async (planName: PlanName, desc: string) => {
   if (!code || !isDiagramRelated(code, context)) {
     const hasContext = context.subject || context.concepts.length > 0;
     if (!hasContext) {
+      if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
+        console.log('[diagram] emptyContext', { safeDescPreview: safeDesc.slice(0, 200) });
+      }
       return { code: '', url: '', usageTokens, rawResponse: response };
+    }
+    if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
+      console.log('[diagram] usingFallback', {
+        hadModelCode: !!code,
+        codeChars: code.length,
+        subject: context.subject || null,
+        concepts: context.concepts.slice(0, 6)
+      });
     }
     code = buildFallbackDiagram(context);
   }
