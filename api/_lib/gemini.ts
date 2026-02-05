@@ -1036,6 +1036,16 @@ export const generateDiagram = async (planName: PlanName, desc: string) => {
     .replace(/\//g, '_')
     .replace(/=+$/g, '');
   const url = `https://mermaid.ink/img/${encoded}?bgColor=FFFFFF`;
+
+  if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
+    console.log('[diagram] output', {
+      codeChars: code.length,
+      encodedChars: encoded.length,
+      urlChars: url.length,
+      urlPreview: url.slice(0, 120)
+    });
+  }
+
   return { code, url, usageTokens, rawResponse: response };
 };
 

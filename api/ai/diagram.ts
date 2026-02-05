@@ -37,6 +37,10 @@ export default async function handler(req: any, res: any) {
 
   try {
     const { code, url, usageTokens } = await generateDiagram(planName, body.description || '');
+
+    if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
+      console.log('[diagram] apiResponse', { codeChars: (code || '').length, hasUrl: !!url });
+    }
     await incrementUsage(auth.userId, month, planName, {
       tokens_estimated: check.estimatedTokens || 0,
       tokens_used: usageTokens || 0
