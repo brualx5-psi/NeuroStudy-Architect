@@ -136,6 +136,12 @@ export const generateDiagram = async (desc: string): Promise<{ code: string; url
   });
 };
 
+export const generateDiagramSvg = async (desc: string): Promise<{ url: string }> => {
+  return await postJson<{ url: string }>('/api/ai/diagram-svg', {
+    description: desc
+  });
+};
+
 export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
   const response = await postJson<{ slides: Slide[] }>('/api/ai/slides', { guide });
   return response.slides || [];

@@ -1049,6 +1049,70 @@ export const generateDiagram = async (planName: PlanName, desc: string) => {
   return { code, url, usageTokens, rawResponse: response };
 };
 
+export const generateDiagramSvg = async (planName: PlanName, desc: string, userId: string) => {
+  const safeDesc = (desc || '').trim() || 'Desenho simples para estudo';
+
+  const prompt = `
+Voce vai gerar um SVG simples, preto no branco, facil de copiar a mao.
+
+TAREFA DO DESENHO (do usuario):
+${safeDesc}
+
+REQUISITOS DO SVG:
+- Retorne APENAS um SVG valido (com <svg>...</svg>), sem markdown.
+- Fundo branco (#ffffff).
+- Traço preto (#111), stroke-width 4.
+- Sem preenchimentos (fill="none"), exceto textos.
+- Tamanho: width=900 height=420, viewBox="0 0 900 420".
+- Use formas basicas: line, rect, circle, path simples, polygon.
+- Texto curto e legivel (font-family Arial, font-size 18-22).
+- Nao desenhe detalhes artisticos; prefira simbolos/icone simples.
+- Se precisar representar algo complexo (ex.: cerebro), use um contorno simplificado.
+
+IMPORTANTE:
+- O desenho deve ser util como "guia para copiar", nao como arte.
+`;
+
+  const selectedModel = selectModel('chat');
+  const { text, usageTokens, response } = await callGemini({
+    planName,
+    taskType: 'chat',
+    prompt,
+    model: selectedModel,
+    responseMimeType: 'text/plain',
+    temperature: 0.2
+  });
+
+  const svg = (text || '').trim().replace(/```svg/gi, '').replace(/```/g, '').trim();
+  if (!svg.startsWith('<svg') || !svg.includes('</svg>')) {
+    console.error('[diagram-svg] invalid svg. Raw:', (svg || '').slice(0, 200));
+    throw new Error('INVALID_SVG_FROM_MODEL');
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    // Fallback: data URL
+    const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
+    return { url: dataUrl, svg, usageTokens, rawResponse: response };
+  }
+
+  const bucket = process.env.SUPABASE_DIAGRAMS_BUCKET || 'diagrams';
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.svg`;
+  const objectPath = `${userId}/${fileName}`;
+
+  const upload = await supabase.storage.from(bucket).upload(objectPath, Buffer.from(svg, 'utf8'), {
+    contentType: 'image/svg+xml',
+    upsert: true
+  });
+  if (upload.error) throw upload.error;
+
+  const pub = supabase.storage.from(bucket).getPublicUrl(objectPath);
+  const publicUrl = pub?.data?.publicUrl;
+  if (!publicUrl) throw new Error('FAILED_TO_GET_PUBLIC_URL');
+
+  return { url: publicUrl, svg, usageTokens, rawResponse: response };
+};
+
 export const evaluateOpenAnswer = async (
   planName: PlanName,
   question: string,

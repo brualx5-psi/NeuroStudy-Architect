@@ -1,0 +1,56 @@
+import { getAuthContext } from '../_lib/auth.js';
+import { buildLimitResponse } from '../_lib/limitResponses.js';
+import { getClientIp, readJson, sendJson } from '../_lib/http.js';
+import { rateLimit } from '../_lib/rateLimit.js';
+import { canPerformAction } from '../_lib/usageLimits.js';
+import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
+import { generateDiagramSvg } from '../_lib/gemini.js';
+
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') {
+    return sendJson(res, 405, { error: 'method_not_allowed' });
+  }
+
+  const auth = await getAuthContext(req);
+  if (!auth) {
+    return sendJson(res, 401, { error: 'unauthorized' });
+  }
+
+  const ip = getClientIp(req);
+  const rateKey = `diagram-svg:${auth.userId || ip}`;
+  const rate = rateLimit(rateKey, { windowMs: 60_000, limit: 30 });
+  if (!rate.allowed) {
+    return sendJson(res, 429, buildLimitResponse('rate_limited'));
+  }
+
+  const body = await readJson<{ description: string }>(req);
+
+  const { planName, isAdmin } = await getUserAccess(auth.userId);
+  const month = getCurrentMonth();
+  const usageRow = await ensureUsageRow(auth.userId, month, planName);
+  const usageSnapshot = toUsageSnapshot(usageRow);
+
+  const check = canPerformAction(planName, usageSnapshot, [], 'chat', { textInput: body.description || '', isAdmin });
+  if (!check.allowed) {
+    return sendJson(res, 402, buildLimitResponse(check.reason || 'monthly_tokens_exhausted', check.actionSuggestion));
+  }
+
+  try {
+    const { url, usageTokens } = await generateDiagramSvg(planName, body.description || '', auth.userId);
+
+    await incrementUsage(auth.userId, month, planName, {
+      tokens_estimated: check.estimatedTokens || 0,
+      tokens_used: usageTokens || 0
+    });
+
+    return sendJson(res, 200, {
+      url,
+      usage: {
+        estimatedTokens: check.estimatedTokens || 0,
+        actualTokens: usageTokens || null
+      }
+    });
+  } catch (error: any) {
+    return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Gemini error' });
+  }
+}

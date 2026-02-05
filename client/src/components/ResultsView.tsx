@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { StudyGuide, CoreConcept } from '../types';
-import { generateTool, generateDiagram, isUsageLimitError } from '../services/geminiService';
+import { generateTool, generateDiagram, generateDiagramSvg, isUsageLimitError } from '../services/geminiService';
 import {
     CheckCircle, BookOpen, Brain, Target,
     Smile, RefreshCw, Layers, Calendar, Clock,
@@ -111,9 +111,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const handleGenerateCheckpointDiagram = async (checkpointId: string, description: string) => {
         setLoadingDiagramForCheckpoint(checkpointId);
         try {
-            const { code, url } = await generateDiagram(description);
+            // For checkpoints, prefer simple SVG "copyable" illustrations.
+            const { url } = await generateDiagramSvg(description);
             const newCheckpoints = guide.checkpoints?.map(c =>
-                c.id === checkpointId ? { ...c, imageUrl: url, diagramCode: code } : c
+                c.id === checkpointId ? { ...c, imageUrl: url, diagramCode: '' } : c
             );
             onUpdateGuide({ ...guide, checkpoints: newCheckpoints });
         } catch (error) {
