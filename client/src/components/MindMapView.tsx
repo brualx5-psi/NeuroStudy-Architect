@@ -105,7 +105,8 @@ const MindMapContent: React.FC<MindMapViewProps> = ({ guide, onUpdateGuide, onUs
     }
   };
 
-  const showInteractive = !!guide.diagramCode;
+  // Only show interactive mode if we were able to parse nodes from Mermaid.
+  const showInteractive = !!guide.diagramCode && nodes.length > 0;
   const showStatic = !showInteractive && !!guide.diagramUrl;
   const showEmpty = !showInteractive && !showStatic;
 

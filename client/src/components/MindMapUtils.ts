@@ -45,6 +45,10 @@ export const parseMermaidToFlow = (mermaidCode: string): { nodes: Node[], edges:
                 let sourceRaw = parts[0].trim();
                 let targetRaw = parts[1].trim();
 
+                // Handle Mermaid labeled arrows: A -->|label| B
+                sourceRaw = sourceRaw.replace(/\|[^|]*\|\s*$/g, '').trim();
+                targetRaw = targetRaw.replace(/^\|[^|]*\|\s*/g, '').trim();
+
                 const sourceMatch = sourceRaw.match(nodeRegex);
                 const targetMatch = targetRaw.match(nodeRegex);
 

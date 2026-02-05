@@ -983,7 +983,12 @@ export const generateDiagram = async (planName: PlanName, desc: string) => {
     code = buildFallbackDiagram(context);
   }
 
-  const encoded = Buffer.from(code, 'utf8').toString('base64');
+  // mermaid.ink expects URL-safe base64 in the path.
+  const encoded = Buffer.from(code, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
   const url = `https://mermaid.ink/img/${encoded}?bgColor=FFFFFF`;
   return { code, url, usageTokens, rawResponse: response };
 };
