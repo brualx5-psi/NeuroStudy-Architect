@@ -5,7 +5,8 @@ import { generateTool, generateDiagram, isUsageLimitError } from '../services/ge
 import {
     CheckCircle, BookOpen, Brain, Target,
     Smile, RefreshCw, Layers, Calendar, Clock,
-    ChevronDown, ChevronRight, PenTool, Zap, Lightbulb, Crown, FileDown, Rocket as NotionIcon
+    ChevronDown, ChevronRight, PenTool, Zap, Lightbulb, Crown, FileDown, Rocket as NotionIcon,
+    Eye, X, Download
 } from './Icons';
 import { MermaidEditor } from './MermaidEditor';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,6 +38,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
     const [loadingDiagramForCheckpoint, setLoadingDiagramForCheckpoint] = useState<string | null>(null);
     const [isCelebrating, setIsCelebrating] = useState(false); // Estado para animação de celebração
+    const [openDiagram, setOpenDiagram] = useState<{ url: string; title?: string } | null>(null);
 
     // Função "Insight Cerebral": Apenas expande a visualização. A geração agora é sob demanda (lazy).
     const handleInsightClick = (index: number) => {
@@ -179,6 +181,51 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-48"> {/* pb-48 para dar espaço para a barra fixa */}
+
+            {/* Modal: Visualizar diagrama */}
+            {openDiagram?.url && (
+                <div
+                    className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                    onClick={() => setOpenDiagram(null)}
+                >
+                    <div
+                        className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                            <div className="min-w-0">
+                                <p className="text-sm font-bold text-gray-900 truncate">{openDiagram.title || 'Diagrama'}</p>
+                                <p className="text-xs text-gray-500">Visualização</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={openDiagram.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 flex items-center gap-2"
+                                >
+                                    <Download className="w-3 h-3" /> Abrir/baixar
+                                </a>
+                                <button
+                                    onClick={() => setOpenDiagram(null)}
+                                    className="p-2 text-gray-500 hover:text-gray-800"
+                                    aria-label="Fechar"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="max-h-[85vh] overflow-auto bg-gray-50">
+                            <img
+                                src={openDiagram.url}
+                                alt="Diagrama"
+                                className="w-full h-auto object-contain"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* CSS Animations for HUD */}
             <style>{`
@@ -500,12 +547,28 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                             onUpdate={(code, url) => handleUpdateDiagram(checkpoint.id, code, url)}
                                         />
                                     ) : checkpoint.imageUrl ? (
-                                        <div className="relative w-full group">
-                                            <img src={checkpoint.imageUrl} alt="Diagrama" className="w-full rounded-lg shadow-sm border border-gray-200" />
-                                            <div className="absolute inset-x-0 bottom-0 p-2 bg-white/90 backdrop-blur text-center">
-                                                <button onClick={() => handleGenerateCheckpointDiagram(checkpoint.id, checkpoint.drawExactly)} disabled={loadingDiagramForCheckpoint === checkpoint.id} className="text-xs text-orange-600 font-bold flex items-center justify-center gap-2 w-full hover:underline">
-                                                    {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Regerar para Editar
-                                                </button>
+                                        <div className="w-full">
+                                            <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+                                                <img
+                                                    src={checkpoint.imageUrl}
+                                                    alt="Diagrama"
+                                                    className="w-full h-[140px] object-contain bg-gradient-to-br from-slate-50 to-gray-100"
+                                                />
+                                                <div className="absolute inset-x-0 bottom-0 p-2 bg-white/90 backdrop-blur flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setOpenDiagram({ url: checkpoint.imageUrl, title: checkpoint.mission })}
+                                                        className="flex-1 text-xs text-indigo-700 font-bold flex items-center justify-center gap-2 w-full hover:underline"
+                                                    >
+                                                        <Eye className="w-3 h-3" /> Visualizar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleGenerateCheckpointDiagram(checkpoint.id, checkpoint.drawExactly)}
+                                                        disabled={loadingDiagramForCheckpoint === checkpoint.id}
+                                                        className="flex-1 text-xs text-orange-600 font-bold flex items-center justify-center gap-2 w-full hover:underline disabled:opacity-50"
+                                                    >
+                                                        {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Regerar
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ) : (
