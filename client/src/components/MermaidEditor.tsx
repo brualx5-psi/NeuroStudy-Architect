@@ -16,7 +16,11 @@ export const MermaidEditor: React.FC<MermaidEditorProps> = ({ initialCode, onUpd
     // Função para gerar URL do Mermaid.ink
     const generateUrl = (mermaidCode: string) => {
         try {
-            const encoded = btoa(unescape(encodeURIComponent(mermaidCode)));
+            // mermaid.ink expects URL-safe base64 in the path
+            const encoded = btoa(unescape(encodeURIComponent(mermaidCode)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/g, '');
             return `https://mermaid.ink/img/${encoded}?bgColor=FFFFFF`;
         } catch (e) {
             console.error(e);
