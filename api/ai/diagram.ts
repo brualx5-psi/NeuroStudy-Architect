@@ -4,6 +4,7 @@ import { getClientIp, readJson, sendJson } from '../_lib/http.js';
 import { rateLimit } from '../_lib/rateLimit.js';
 import { canPerformAction } from '../_lib/usageLimits.js';
 import { generateDiagram } from '../_lib/gemini.js';
+import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
 
 export default async function handler(req: any, res: any) {
@@ -38,16 +39,48 @@ export default async function handler(req: any, res: any) {
   try {
     const { code, url, usageTokens } = await generateDiagram(planName, body.description || '');
 
-    if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
-      console.log('[diagram] apiResponse', { codeChars: (code || '').length, hasUrl: !!url });
+    // Optional: fetch rendered image and upload to Supabase Storage, then return a public URL.
+    // This avoids client-side CORS/CSP issues with third-party renderers (mermaid.ink).
+    let publicUrl = url;
+    const supabase = getSupabaseAdmin();
+    const bucket = process.env.SUPABASE_DIAGRAMS_BUCKET || 'diagrams';
+
+    if (supabase && url) {
+      try {
+        const imageRes = await fetch(url);
+        if (!imageRes.ok) throw new Error(`failed_to_fetch_mermaid_image status=${imageRes.status}`);
+        const contentType = imageRes.headers.get('content-type') || 'image/jpeg';
+        const bytes = new Uint8Array(await imageRes.arrayBuffer());
+
+        const fileExt = contentType.includes('png') ? 'png' : 'jpg';
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const objectPath = `${auth.userId}/${fileName}`;
+
+        const upload = await supabase.storage.from(bucket).upload(objectPath, bytes, {
+          contentType,
+          upsert: true
+        });
+        if (upload.error) throw upload.error;
+
+        const pub = supabase.storage.from(bucket).getPublicUrl(objectPath);
+        publicUrl = pub?.data?.publicUrl || url;
+      } catch (e: any) {
+        console.warn('[diagram] upload_failed', e?.message || e);
+      }
     }
+
+    if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
+      console.log('[diagram] apiResponse', { codeChars: (code || '').length, hasUrl: !!url, hasPublicUrl: !!publicUrl });
+    }
+
     await incrementUsage(auth.userId, month, planName, {
       tokens_estimated: check.estimatedTokens || 0,
       tokens_used: usageTokens || 0
     });
+
     return sendJson(res, 200, {
       code,
-      url,
+      url: publicUrl,
       usage: {
         estimatedTokens: check.estimatedTokens || 0,
         actualTokens: usageTokens || null
