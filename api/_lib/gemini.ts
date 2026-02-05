@@ -918,6 +918,33 @@ export const generateDiagram = async (planName: PlanName, desc: string) => {
       overviewChars: (context.overview || '').length
     });
   }
+  // If the caller didn't pass structured JSON, treat the whole description as context.
+  if (!context.subject && context.concepts.length === 0 && !context.overview) {
+    const raw = safeDesc.replace(/\s+/g, ' ').trim();
+    const stop = new Set([
+      'a','o','os','as','um','uma','uns','umas','de','do','da','dos','das','em','no','na','nos','nas','por','para','com','sem','e','ou','que','se','ao','à','às','é','ser','estar','foi','são','como','mais','menos','muito','pouco','já','não','sim','sua','seu','suas','seus'
+    ]);
+    const words = raw
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 4 && !stop.has(w));
+    const unique: string[] = [];
+    for (const w of words) {
+      if (!unique.includes(w)) unique.push(w);
+      if (unique.length >= 6) break;
+    }
+    context.subject = clampWords(raw, 6) || 'Mapa conceitual';
+    context.overview = raw.slice(0, 800);
+    context.concepts = unique.slice(0, 6);
+
+    if (process.env.DEBUG_DIAGRAM_LOGS === '1') {
+      console.log('[diagram] inferredContext', { subject: context.subject, concepts: context.concepts });
+    }
+  }
+
   const subjectLine = context.subject ? `TEMA PRINCIPAL: ${context.subject}` : 'TEMA PRINCIPAL: (nao informado)';
   const conceptsLine = context.concepts.length
     ? `CONCEITOS PRINCIPAIS (use APENAS estes):\n- ${context.concepts.join('\n- ')}`
