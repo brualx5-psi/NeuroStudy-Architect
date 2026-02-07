@@ -119,13 +119,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             <div className="grid grid-cols-1 gap-6">
               <div className="relative p-6 rounded-3xl border-2 border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 group transition-all">
                 {PROMO.enabled && PROMO.appliesTo.has('pro') && (
-                  <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                    <div className="text-emerald-900 font-black text-sm">
-                      Promo de lançamento: <span className="underline">-20%</span> no mensal
+                  <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 overflow-hidden">
+                    <div className="bg-rose-600 text-white px-4 py-2 text-xs font-black uppercase tracking-wider">
+                      Oferta lançamento ({PROMO.firstN} vagas)
                     </div>
-                    <div className="text-emerald-800 text-xs font-semibold">
-                      Válido para os <span className="font-black">{PROMO.firstN} primeiros</span>.
-                      {' '}Se o desconto não aparecer no checkout, me chama.
+                    <div className="px-4 py-3">
+                      <div className="text-rose-900 font-extrabold text-sm">
+                        -20% no mensal (Starter e Pro)
+                      </div>
+                      <div className="text-rose-800 text-xs font-semibold">
+                        Se o desconto não aparecer no checkout, me chama.
+                      </div>
                     </div>
                   </div>
                 )}
@@ -141,8 +145,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                   <div className="text-right">
                     {PROMO.enabled && getPromoPrice('pro') != null ? (
                       <>
-                        <div className="text-xs font-black text-emerald-700">-20% (mensal)</div>
-                        <div>
+                        <div className="inline-flex items-center gap-2">
+                          <span className="text-xs font-black text-white bg-rose-600 px-2 py-1 rounded-lg">
+                            Oferta lançamento ({PROMO.firstN} vagas)
+                          </span>
+                          <span className="text-xs font-black text-rose-700">-20% no mensal</span>
+                        </div>
+                        <div className="mt-1">
                           <span className="text-xs font-black text-slate-400 line-through mr-2">{PLAN_PRICES.pro}</span>
                           <span className="text-3xl font-black text-slate-900">{formatBRL(getPromoPrice('pro')!)}</span>
                           <span className="text-slate-400 font-bold text-sm">/mês</span>
@@ -193,13 +202,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
               <div className="p-6 rounded-3xl border border-slate-200 bg-white shadow-sm">
                 {PROMO.enabled && PROMO.appliesTo.has('starter') && (
-                  <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                    <div className="text-emerald-900 font-black text-sm">
-                      Promo de lançamento: <span className="underline">-20%</span> no mensal
+                  <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 overflow-hidden">
+                    <div className="bg-rose-600 text-white px-4 py-2 text-xs font-black uppercase tracking-wider">
+                      Oferta lançamento ({PROMO.firstN} vagas)
                     </div>
-                    <div className="text-emerald-800 text-xs font-semibold">
-                      Válido para os <span className="font-black">{PROMO.firstN} primeiros</span>.
-                      {' '}Se o desconto não aparecer no checkout, me chama.
+                    <div className="px-4 py-3">
+                      <div className="text-rose-900 font-extrabold text-sm">
+                        -20% no mensal (Starter e Pro)
+                      </div>
+                      <div className="text-rose-800 text-xs font-semibold">
+                        Se o desconto não aparecer no checkout, me chama.
+                      </div>
                     </div>
                   </div>
                 )}
@@ -211,8 +224,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                   <div className="text-right">
                     {PROMO.enabled && getPromoPrice('starter') != null ? (
                       <>
-                        <div className="text-xs font-black text-emerald-700">-20% (mensal)</div>
-                        <div>
+                        <div className="inline-flex items-center gap-2">
+                          <span className="text-[10px] font-black text-white bg-rose-600 px-2 py-1 rounded-lg">
+                            Oferta lançamento ({PROMO.firstN} vagas)
+                          </span>
+                          <span className="text-xs font-black text-rose-700">-20% no mensal</span>
+                        </div>
+                        <div className="mt-1">
                           <span className="text-xs font-black text-slate-400 line-through mr-2">{PLAN_PRICES.starter}</span>
                           <span className="text-2xl font-black text-slate-900">{formatBRL(getPromoPrice('starter')!)}</span>
                           <span className="text-slate-400 font-bold text-sm">/mês</span>
