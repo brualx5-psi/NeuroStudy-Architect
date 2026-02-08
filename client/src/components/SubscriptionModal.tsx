@@ -7,7 +7,7 @@ import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 const MP_SUBSCRIPTION_LINKS = {
   starter_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d5db97d0d27a4c11a006800f8ee6e552',
   starter_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=854c80057c0e420683c129a07273f7c8',
-  pro_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=87f2fd4ff4544ade8568359886acd3aa',
+  pro_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=02935c0c251e465eb1ce329ab2bc98f2',
   pro_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a7e0f68a4c4f4ddca4c2ae512a8a1db5',
 };
 
