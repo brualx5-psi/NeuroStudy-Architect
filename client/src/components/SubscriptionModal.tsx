@@ -145,11 +145,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                   <div className="text-right">
                     {PROMO.enabled && getPromoPrice('pro') != null ? (
                       <>
-                        <div className="inline-flex items-center gap-2">
-                          <span className="text-xs font-black text-white bg-rose-600 px-2 py-1 rounded-lg">
+                        <div className="flex flex-col items-end gap-1 max-w-full">
+                          <span className="text-xs font-black text-white bg-rose-600 px-2 py-1 rounded-lg text-center whitespace-normal leading-tight max-w-[210px]">
                             Oferta lançamento ({PROMO.firstN} vagas)
                           </span>
-                          <span className="text-xs font-black text-rose-700">-20% só no 1º mês</span>
+                          <span className="text-xs font-black text-rose-700 text-right">-20% só no 1º mês</span>
                         </div>
                         <div className="mt-1">
                           <span className="text-xs font-black text-slate-400 line-through mr-2">{PLAN_PRICES.pro}</span>
@@ -224,11 +224,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                   <div className="text-right">
                     {PROMO.enabled && getPromoPrice('starter') != null ? (
                       <>
-                        <div className="inline-flex items-center gap-2">
-                          <span className="text-[10px] font-black text-white bg-rose-600 px-2 py-1 rounded-lg">
+                        <div className="flex flex-col items-end gap-1 max-w-full">
+                          <span className="text-[10px] font-black text-white bg-rose-600 px-2 py-1 rounded-lg text-center whitespace-normal leading-tight max-w-[210px]">
                             Oferta lançamento ({PROMO.firstN} vagas)
                           </span>
-                          <span className="text-xs font-black text-rose-700">-20% só no 1º mês</span>
+                          <span className="text-xs font-black text-rose-700 text-right">-20% só no 1º mês</span>
                         </div>
                         <div className="mt-1">
                           <span className="text-xs font-black text-slate-400 line-through mr-2">{PLAN_PRICES.starter}</span>
