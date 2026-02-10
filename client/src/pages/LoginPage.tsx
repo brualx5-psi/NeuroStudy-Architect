@@ -3,6 +3,8 @@ import { supabase } from '../services/supabase';
 import { BrainCircuit, Mail, Chrome, ArrowRight, Loader2, CheckCircle2, Sparkles, Zap, Rocket, BookOpen, Target, Search, Layers, CalendarClock, GraduationCap, MessageCircle } from 'lucide-react';
 import { TermsPage } from './TermsPage';
 import { PrivacyPage } from './PrivacyPage';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 
 // Componente de Carrossel com Glassmorphism
 const HeroCarousel: React.FC = () => {
@@ -190,6 +192,8 @@ export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const isNative = Capacitor.isNativePlatform();
+    const nativeRedirectUrl = 'neurostudy://auth';
 
     // Show Terms or Privacy page
     if (currentView === 'terms') {
@@ -202,13 +206,16 @@ export const LoginPage: React.FC = () => {
     const handleGoogleLogin = async () => {
         try {
             setLoading(true);
-            const { error } = await supabase!.auth.signInWithOAuth({
+            const { data, error } = await supabase!.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo: window.location.origin
-                }
+                options: isNative
+                    ? { redirectTo: nativeRedirectUrl, skipBrowserRedirect: true }
+                    : { redirectTo: window.location.origin }
             });
             if (error) throw error;
+            if (isNative && data?.url) {
+                await Browser.open({ url: data.url });
+            }
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message });
             setLoading(false);
@@ -223,7 +230,7 @@ export const LoginPage: React.FC = () => {
             const { error } = await supabase!.auth.signInWithOtp({
                 email,
                 options: {
-                    emailRedirectTo: window.location.origin,
+                    emailRedirectTo: isNative ? nativeRedirectUrl : window.location.origin,
                 }
             });
             if (error) throw error;

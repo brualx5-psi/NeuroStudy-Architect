@@ -5,10 +5,38 @@ import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 
 // Links de assinatura do Mercado Pago
 const MP_SUBSCRIPTION_LINKS = {
-  starter_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=1b3bff62d1f44f70878a89508e94c346',
+  starter_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d5db97d0d27a4c11a006800f8ee6e552',
   starter_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=854c80057c0e420683c129a07273f7c8',
-  pro_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=87f2fd4ff4544ade8568359886acd3aa',
+  pro_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=02935c0c251e465eb1ce329ab2bc98f2',
   pro_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a7e0f68a4c4f4ddca4c2ae512a8a1db5',
+};
+
+// Promo visual (marketing). Importante: o desconto real depende do link/plano/cupom no Mercado Pago.
+const PROMO = {
+  enabled: true,
+  percentOff: 0.2,
+  firstN: 50,
+  appliesTo: new Set<PlanName>(['starter', 'pro'])
+};
+
+const parseBRL = (value: string) => {
+  // e.g. "R$ 59,90" -> 59.9
+  const n = Number(value.replace(/[^0-9,]/g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+};
+
+const formatBRL = (value: number) => {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+const getPromoPrice = (plan: PlanName) => {
+  if (!PROMO.enabled) return null;
+  if (!PROMO.appliesTo.has(plan)) return null;
+  const base = parseBRL(PLAN_PRICES[plan]);
+  if (base == null) return null;
+  const promo = base * (1 - PROMO.percentOff);
+  // keep 2 decimals
+  return Math.round(promo * 100) / 100;
 };
 
 interface SubscriptionModalProps {
@@ -90,6 +118,21 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           <div className="flex-1 p-6 bg-white flex flex-col justify-center">
             <div className="grid grid-cols-1 gap-6">
               <div className="relative p-6 rounded-3xl border-2 border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 group transition-all">
+                {PROMO.enabled && PROMO.appliesTo.has('pro') && (
+                  <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 overflow-hidden">
+                    <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-black uppercase tracking-wider">
+                      Oferta de lançamento ({PROMO.firstN} vagas)
+                    </div>
+                    <div className="px-4 py-3">
+                      <div className="text-emerald-900 font-extrabold text-sm">
+                        Economize 20% no 1º mês (mensal)
+                      </div>
+                      <div className="text-emerald-800 text-xs font-semibold">
+                        Anual não entra na promo. Se o desconto não aparecer no checkout, me chama.
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="absolute top-0 right-6 -translate-y-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
                   Recomendado
                 </div>
@@ -100,8 +143,26 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     <p className="text-slate-500 font-bold text-sm">Limites máximos</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-3xl font-black text-slate-900">{PLAN_PRICES.pro}</span>
-                    <span className="text-slate-400 font-bold text-sm">/mês</span>
+                    {PROMO.enabled && getPromoPrice('pro') != null ? (
+                      <>
+                        <div className="flex flex-col items-end gap-1 max-w-full">
+                          <span className="text-xs font-black text-white bg-emerald-600 px-2 py-1 rounded-lg text-center whitespace-normal leading-tight max-w-[210px]">
+                            Economize 20% (lançamento)
+                          </span>
+                          <span className="text-xs font-black text-slate-600 text-right">só no 1º mês</span>
+                        </div>
+                        <div className="mt-1">
+                          <span className="text-xs font-black text-slate-400 line-through mr-2">{PLAN_PRICES.pro}</span>
+                          <span className="text-3xl font-black text-slate-900">{formatBRL(getPromoPrice('pro')!)}</span>
+                          <span className="text-slate-400 font-bold text-sm">/mês</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-black text-slate-900">{PLAN_PRICES.pro}</span>
+                        <span className="text-slate-400 font-bold text-sm">/mês</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -121,7 +182,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                       <Zap className="w-4 h-4 fill-current" />
                       Mensal
                     </span>
-                    <span className="text-xs text-indigo-200">{PLAN_PRICES.pro}/mês</span>
+                    <span className="text-xs text-indigo-200">{PROMO.enabled && getPromoPrice('pro') != null ? `${formatBRL(getPromoPrice('pro')!)}/mês` : `${PLAN_PRICES.pro}/mês`}</span>
                     <span className="text-[9px] text-indigo-300">Cancele quando quiser</span>
                   </button>
                   <button
@@ -140,14 +201,47 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
               </div>
 
               <div className="p-6 rounded-3xl border border-slate-200 bg-white shadow-sm">
+                {PROMO.enabled && PROMO.appliesTo.has('starter') && (
+                  <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 overflow-hidden">
+                    <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-black uppercase tracking-wider">
+                      Oferta de lançamento ({PROMO.firstN} vagas)
+                    </div>
+                    <div className="px-4 py-3">
+                      <div className="text-emerald-900 font-extrabold text-sm">
+                        Economize 20% no 1º mês (mensal)
+                      </div>
+                      <div className="text-emerald-800 text-xs font-semibold">
+                        Anual não entra na promo. Se o desconto não aparecer no checkout, me chama.
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-black text-slate-900">NeuroStudy Starter</h3>
                     <p className="text-slate-500 font-bold text-sm">Equilíbrio diário</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-2xl font-black text-slate-900">{PLAN_PRICES.starter}</span>
-                    <span className="text-slate-400 font-bold text-sm">/mês</span>
+                    {PROMO.enabled && getPromoPrice('starter') != null ? (
+                      <>
+                        <div className="flex flex-col items-end gap-1 max-w-full">
+                          <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded-lg text-center whitespace-normal leading-tight max-w-[210px]">
+                            Economize 20% (lançamento)
+                          </span>
+                          <span className="text-xs font-black text-slate-600 text-right">só no 1º mês</span>
+                        </div>
+                        <div className="mt-1">
+                          <span className="text-xs font-black text-slate-400 line-through mr-2">{PLAN_PRICES.starter}</span>
+                          <span className="text-2xl font-black text-slate-900">{formatBRL(getPromoPrice('starter')!)}</span>
+                          <span className="text-slate-400 font-bold text-sm">/mês</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-black text-slate-900">{PLAN_PRICES.starter}</span>
+                        <span className="text-slate-400 font-bold text-sm">/mês</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -165,7 +259,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     className="py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all flex flex-col items-center gap-0.5"
                   >
                     <span>Mensal</span>
-                    <span className="text-xs text-slate-400">{PLAN_PRICES.starter}/mês</span>
+                    <span className="text-xs text-slate-400">{PROMO.enabled && getPromoPrice('starter') != null ? `${formatBRL(getPromoPrice('starter')!)}/mês` : `${PLAN_PRICES.starter}/mês`}</span>
                     <span className="text-[9px] text-slate-500">Cancele quando quiser</span>
                   </button>
                   <button
@@ -198,6 +292,12 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
             <p className="mt-6 text-center text-xs text-slate-400 font-medium">
               Pagamento seguro via Mercado Pago. Cancele quando quiser.
+              {PROMO.enabled && (
+                <span className="block mt-1">
+                  Promo: -20% só no 1º mês (mensal) para os {PROMO.firstN} primeiros — anual não entra.
+                  O desconto final depende do checkout do Mercado Pago.
+                </span>
+              )}
             </p>
           </div>
         </div>

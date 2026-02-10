@@ -2,13 +2,19 @@
 import { GoogleGenAI, Schema, Type } from '@google/genai';
 import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits.js';
 
-// Default models can be overridden via env vars (useful for Vercel)
+// Modelos configuráveis via ENV (útil para Vercel)
 // Examples:
 //   GEMINI_MODEL_FLASH=gemini-2.5-flash
 //   GEMINI_MODEL_PRO=gemini-2.5-pro
 //   GEMINI_MODEL_DIAGRAM=models/nano-banana-pro-preview
-const MODEL_FLASH = process.env.GEMINI_MODEL_FLASH || 'gemini-2.0-flash';
-const MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-pro-latest';
+const MODEL_MAP = {
+  flash: process.env.GEMINI_MODEL_FLASH || 'gemini-2.0-flash',
+  pro: process.env.GEMINI_MODEL_PRO || 'gemini-pro-latest',
+  diagram: process.env.GEMINI_MODEL_DIAGRAM || null, // null = usa flash
+} as const;
+
+const MODEL_FLASH = MODEL_MAP.flash;
+const MODEL_PRO = MODEL_MAP.pro;
 const MODEL_DIAGRAM = process.env.GEMINI_MODEL_DIAGRAM || MODEL_FLASH;
 
 type TaskType =
@@ -68,6 +74,11 @@ const selectModel = (
   sourceCount: number = 1,
   isBook: boolean = false
 ): string => {
+  // Modelo específico para diagramas/mapas mentais (se configurado)
+  if (taskType === 'diagram' && MODEL_MAP.diagram) {
+    return MODEL_MAP.diagram;
+  }
+
   // Use Flash model for most tasks - it's more stable and faster
   // PRO model only for heavy study guides
   // Most tasks default to Flash for stability/cost.

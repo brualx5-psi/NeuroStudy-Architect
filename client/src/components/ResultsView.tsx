@@ -39,6 +39,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const [loadingDiagramForCheckpoint, setLoadingDiagramForCheckpoint] = useState<string | null>(null);
     const [isCelebrating, setIsCelebrating] = useState(false); // Estado para animação de celebração
     const [openDiagram, setOpenDiagram] = useState<{ url: string; title?: string } | null>(null);
+    const [isHudCollapsed, setIsHudCollapsed] = useState(false);
 
     // Função "Insight Cerebral": Apenas expande a visualização. A geração agora é sob demanda (lazy).
     const handleInsightClick = (index: number) => {
@@ -181,7 +182,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const { percent, nextTitle } = getProgressStats();
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-48"> {/* pb-48 para dar espaço para a barra fixa */}
+        <div className={`max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ${isHudCollapsed ? 'pb-32' : 'pb-64'}`}> {/* Ajusta espaço para a barra fixa */}
 
             {/* Modal: Visualizar diagrama */}
             {openDiagram?.url && (
@@ -247,7 +248,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
                 <div className="flex justify-between items-start mb-6">
                     <div>
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${isBook ? 'bg-orange-100 text-orange-700' : isParetoOnly ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                        <span className={`inline - block px - 3 py - 1 rounded - full text - xs font - bold uppercase tracking - wider mb - 2 ${isBook ? 'bg-orange-100 text-orange-700' : isParetoOnly ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'} `}>
                             {isBook ? 'Resumo de Livro (NeuroStudy)' : isParetoOnly ? 'Modo Pareto 80/20' : 'Roteiro de Estudo'}
                         </span>
                         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{guide.title}</h1>
@@ -312,13 +313,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all relative group">
                                 <div className="flex justify-between items-start mb-4 pr-8">
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-xl ${isBook ? 'bg-red-100 text-red-700' : 'bg-indigo-600 text-white'} flex items-center justify-center font-bold text-lg shadow-lg shrink-0`}>
+                                        <div className={`w - 10 h - 10 rounded - xl ${isBook ? 'bg-red-100 text-red-700' : 'bg-indigo-600 text-white'} flex items - center justify - center font - bold text - lg shadow - lg shrink - 0`}>
                                             {idx + 1}
                                         </div>
                                         <h3 className="text-xl font-bold text-gray-900 leading-tight">{concept.concept}</h3>
                                     </div>
                                     <div className="absolute top-4 right-4">
-                                        <button onClick={() => handleInsightClick(idx)} disabled={insightLoading === idx} className={`p-2 rounded-full transition-all duration-300 ${expandedConcepts.has(idx) ? 'bg-purple-100 text-purple-600 rotate-180' : 'bg-gray-100 text-gray-400 hover:bg-purple-50 hover:text-purple-500 hover:scale-110'}`} title="Insight Cerebral (Expandir)">
+                                        <button onClick={() => handleInsightClick(idx)} disabled={insightLoading === idx} className={`p - 2 rounded - full transition - all duration - 300 ${expandedConcepts.has(idx) ? 'bg-purple-100 text-purple-600 rotate-180' : 'bg-gray-100 text-gray-400 hover:bg-purple-50 hover:text-purple-500 hover:scale-110'} `} title="Insight Cerebral (Expandir)">
                                             {insightLoading === idx ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Brain className="w-6 h-6" />}
                                         </button>
                                     </div>
@@ -329,13 +330,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     <div className="mt-6 pl-0 md:pl-[3.5rem] animate-in fade-in slide-in-from-top-2">
 
                                         <div className="flex gap-2 mb-4 border-b border-gray-100 pb-2 overflow-x-auto">
-                                            <button onClick={() => handleInsightTabClick(idx, 'feynman', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'feynman' ? 'bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200' : 'text-gray-400 hover:bg-gray-50'}`}>
+                                            <button onClick={() => handleInsightTabClick(idx, 'feynman', concept)} className={`shrink - 0 px - 4 py - 2 rounded - lg text - xs font - bold flex items - center gap - 2 transition - all ${activeInsightTab[idx] === 'feynman' ? 'bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200' : 'text-gray-400 hover:bg-gray-50'} `}>
                                                 <Smile className="w-4 h-4" />
                                                 Feynman
                                                 {!isPaid && <span className="text-[9px] bg-slate-100 px-1 rounded ml-1">{(usage?.feynman_used || 0)}/3</span>}
                                             </button>
-                                            <button onClick={() => handleInsightTabClick(idx, 'example', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'example' ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-gray-400 hover:bg-gray-50'}`}><Target className="w-4 h-4" /> Aplicação</button>
-                                            <button onClick={() => handleInsightTabClick(idx, 'interdisciplinary', concept)} className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeInsightTab[idx] === 'interdisciplinary' ? 'bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-200' : 'text-gray-400 hover:bg-gray-50'}`}><Layers className="w-4 h-4" /> Conexão</button>
+                                            <button onClick={() => handleInsightTabClick(idx, 'example', concept)} className={`shrink - 0 px - 4 py - 2 rounded - lg text - xs font - bold flex items - center gap - 2 transition - all ${activeInsightTab[idx] === 'example' ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-gray-400 hover:bg-gray-50'} `}><Target className="w-4 h-4" /> Aplicação</button>
+                                            <button onClick={() => handleInsightTabClick(idx, 'interdisciplinary', concept)} className={`shrink - 0 px - 4 py - 2 rounded - lg text - xs font - bold flex items - center gap - 2 transition - all ${activeInsightTab[idx] === 'interdisciplinary' ? 'bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-200' : 'text-gray-400 hover:bg-gray-50'} `}><Layers className="w-4 h-4" /> Conexão</button>
                                         </div>
 
                                         {/* Input para Conexão Interdisciplinar */}
@@ -411,20 +412,20 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
                     <div className="grid grid-cols-1 gap-6">
                         {guide.bookChapters.map((chapter: any, i: number) => (
-                            <details key={i} className={`group p-6 rounded-2xl border-l-4 shadow-sm transition-all ${chapter.completed ? 'bg-green-50 border-green-500' : 'bg-white border-orange-400 open:ring-2 open:ring-orange-100'}`}>
+                            <details key={i} className={`group p - 6 rounded - 2xl border - l - 4 shadow - sm transition - all ${chapter.completed ? 'bg-green-50 border-green-500' : 'bg-white border-orange-400 open:ring-2 open:ring-orange-100'} `}>
                                 <summary className="flex flex-col gap-4 cursor-pointer list-none outline-none">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-orange-100 text-orange-600 rounded-lg group-open:rotate-180 transition-transform">
                                                 <ChevronDown className="w-5 h-5" />
                                             </div>
-                                            <h3 className={`text-xl font-bold ${chapter.completed ? 'text-green-800' : 'text-gray-800'}`}>
+                                            <h3 className={`text - xl font - bold ${chapter.completed ? 'text-green-800' : 'text-gray-800'} `}>
                                                 {chapter.title}
                                             </h3>
                                         </div>
                                         <button
                                             onClick={(e) => { e.preventDefault(); toggleChapterRead(i); }}
-                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${chapter.completed ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200' : 'bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600'}`}
+                                            className={`flex items - center gap - 2 px - 3 py - 1.5 rounded - full text - xs font - bold transition - all border ${chapter.completed ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200' : 'bg-white text-gray-400 border-gray-200 hover:border-green-400 hover:text-green-600'} `}
                                             title="Marcar como lido"
                                         >
                                             {chapter.completed ? <CheckCircle className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
@@ -433,11 +434,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     </div>
 
                                     {/* Pareto Chunk (Always Visible) */}
-                                    <div className={`p-4 rounded-xl border ${chapter.completed ? 'bg-white/50 border-green-100' : 'bg-orange-50 border-orange-100'} group-open:bg-white group-open:border-orange-200`}>
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 block flex items-center gap-1 ${chapter.completed ? 'text-green-600' : 'text-orange-600'}`}>
+                                    <div className={`p - 4 rounded - xl border ${chapter.completed ? 'bg-white/50 border-green-100' : 'bg-orange-50 border-orange-100'} group - open: bg - white group - open: border - orange - 200`}>
+                                        <span className={`text - [10px] font - bold uppercase tracking - wider mb - 2 block flex items - center gap - 1 ${chapter.completed ? 'text-green-600' : 'text-orange-600'} `}>
                                             <Zap className="w-3 h-3" /> Essência (80/20)
                                         </span>
-                                        <p className={`text-sm leading-relaxed ${chapter.completed ? 'text-green-900' : 'text-orange-900 font-medium'}`}>
+                                        <p className={`text - sm leading - relaxed ${chapter.completed ? 'text-green-900' : 'text-orange-900 font-medium'} `}>
                                             {chapter.paretoChunk}
                                         </p>
                                     </div>
@@ -509,15 +510,15 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     <div className="p-6 space-y-6">
                         {guide.checkpoints.map((checkpoint: any) => (
                             <div key={checkpoint.id}
-                                className={`flex flex-col md:flex-row gap-6 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md ${checkpoint.completed ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-gray-100 hover:border-indigo-100'}`}
+                                className={`flex flex - col md: flex - row gap - 6 p - 6 rounded - 2xl border - 2 transition - all cursor - pointer hover: shadow - md ${checkpoint.completed ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-gray-100 hover:border-indigo-100'} `}
                             >
                                 <div className="flex-1 space-y-4" onClick={() => toggleCheckpoint(checkpoint.id)}>
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${checkpoint.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
+                                        <div className={`w - 8 h - 8 rounded - full border - 2 flex items - center justify - center shrink - 0 transition - colors ${checkpoint.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'} `}>
                                             {checkpoint.completed && <CheckCircle className="w-5 h-5 text-white" />}
                                         </div>
                                         <div>
-                                            <h4 className={`font-bold text-lg ${checkpoint.completed ? 'text-green-800 line-through' : 'text-gray-900'}`}>{checkpoint.mission}</h4>
+                                            <h4 className={`font - bold text - lg ${checkpoint.completed ? 'text-green-800 line-through' : 'text-gray-900'} `}>{checkpoint.mission}</h4>
                                             <p className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Momento sugerido: {checkpoint.timestamp}</p>
                                         </div>
                                     </div>
@@ -531,12 +532,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block flex items-center gap-1"><PenTool className="w-3 h-3" /> Escreva Exatamente Isso:</span>
                                                 <p className="text-sm text-gray-700 italic font-serif">"{checkpoint.noteExactly}"</p>
                                             </div>
-                                            <div className={`p-4 rounded-xl border-l-4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'}`}>
-                                                <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 block flex items-center gap-1 ${checkpoint.drawLabel === 'essential' ? 'text-orange-700' : 'text-blue-700'}`}>
+                                            <div className={`p - 4 rounded - xl border - l - 4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'} `}>
+                                                <span className={`text - [10px] font - bold uppercase tracking - wider mb - 2 block flex items - center gap - 1 ${checkpoint.drawLabel === 'essential' ? 'text-orange-700' : 'text-blue-700'} `}>
                                                     <Target className="w-3 h-3" />
                                                     {checkpoint.drawLabel === 'essential' ? 'DESENHO OBRIGATÓRIO:' : 'SUGESTÃO DE DESENHO:'}
                                                 </span>
-                                                <p className={`text-sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'}`}>{checkpoint.drawExactly}</p>
+                                                <p className={`text - sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'} `}>{checkpoint.drawExactly}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -607,7 +608,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             <Layers className="w-5 h-5" /> Gerar Flashcards
                         </button>
                         {onScheduleReview && (
-                            <button onClick={() => onScheduleReview(studyIdPlaceholder)} disabled={isReviewScheduled} className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto ${isReviewScheduled ? 'bg-green-100 text-green-700 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-1'}`}>
+                            <button onClick={() => onScheduleReview(studyIdPlaceholder)} disabled={isReviewScheduled} className={`px - 8 py - 3 rounded - xl font - bold transition - all shadow - lg flex items - center justify - center gap - 2 w - full sm: w - auto ${isReviewScheduled ? 'bg-green-100 text-green-700 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-1'} `}>
                                 {isReviewScheduled ? <><Calendar className="w-5 h-5" /> Revisão Agendada</> : <><Clock className="w-5 h-5" /> Agendar Revisão</>}
                             </button>
                         )}
@@ -635,7 +636,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
             {/* GAMIFIED PROGRESS HUD (Barra Fixa Inferior) */}
             {(!isParetoOnly || isBook) && (
-                <div className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 transition-all duration-500 animate-in slide-in-from-bottom-20 ${isCelebrating ? 'translate-y-[-8px] scale-[1.02] border-green-400 bg-gradient-to-r from-green-50/95 to-emerald-50/95 shadow-[0_-10px_60px_rgba(34,197,94,0.3)]' : ''}`}>
+                <div className={`fixed bottom - 0 left - 0 right - 0 bg - white / 95 backdrop - blur - md border - t border - gray - 200 shadow - [0_ - 10px_40px_rgba(0, 0, 0, 0.1)] z - 40 transition - all duration - 500 animate -in slide -in -from - bottom - 20 ${isCelebrating ? 'translate-y-[-8px] scale-[1.02] border-green-400 bg-gradient-to-r from-green-50/95 to-emerald-50/95 shadow-[0_-10px_60px_rgba(34,197,94,0.3)]' : ''} `}>
 
                     {/* Confetti Animation Overlay */}
                     {isCelebrating && (
@@ -645,9 +646,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     key={i}
                                     className="absolute w-3 h-3 animate-[confetti_1.5s_ease-out_forwards]"
                                     style={{
-                                        left: `${10 + (i * 7)}%`,
+                                        left: `${10 + (i * 7)}% `,
                                         top: '-10px',
-                                        animationDelay: `${i * 0.1}s`,
+                                        animationDelay: `${i * 0.1} s`,
                                         background: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'][i % 6],
                                         borderRadius: i % 2 === 0 ? '50%' : '2px',
                                         transform: `rotate(${i * 30}deg)`
@@ -657,23 +658,32 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </div>
                     )}
 
-                    <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 relative">
+                    <div className={`max - w - 5xl mx - auto px - 6 ${isHudCollapsed ? 'py-2' : 'py-4'} flex flex - col md: flex - row items - center justify - between gap - 4 relative`}>
+                        <button
+                            type="button"
+                            onClick={() => setIsHudCollapsed(prev => !prev)}
+                            className="absolute -top-4 right-4 bg-white border border-gray-200 rounded-full shadow-md w-9 h-9 flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
+                            aria-label={isHudCollapsed ? 'Expandir progresso da missão' : 'Recolher progresso da missão'}
+                            title={isHudCollapsed ? 'Expandir' : 'Recolher'}
+                        >
+                            <ChevronDown className={`w - 4 h - 4 transition - transform ${isHudCollapsed ? 'rotate-180' : ''} `} />
+                        </button>
 
                         {/* Seção da Barra de Progresso */}
-                        <div className="w-full md:w-1/2 space-y-2">
+                        <div className={`w - full md: w - 1 / 2 ${isHudCollapsed ? 'space-y-1' : 'space-y-2'} `}>
                             <div className="flex justify-between items-end">
-                                <span className={`text-xs font-extrabold uppercase tracking-wider flex items-center gap-1 transition-colors ${isCelebrating ? 'text-green-600' : 'text-gray-500'}`}>
-                                    <Target className={`w-3 h-3 ${isCelebrating ? 'animate-bounce' : ''}`} />
+                                <span className={`text - xs font - extrabold uppercase tracking - wider flex items - center gap - 1 transition - colors ${isCelebrating ? 'text-green-600' : 'text-gray-500'} `}>
+                                    <Target className={`w - 3 h - 3 ${isCelebrating ? 'animate-bounce' : ''} `} />
                                     {isCelebrating ? '✨ Checkpoint Concluído!' : 'Progresso da Missão'}
                                 </span>
-                                <span className={`text-sm font-black transition-all ${percent === 100 ? 'text-green-600' : isCelebrating ? 'text-green-600 scale-110' : 'text-indigo-600'}`}>
+                                <span className={`text - sm font - black transition - all ${percent === 100 ? 'text-green-600' : isCelebrating ? 'text-green-600 scale-110' : 'text-indigo-600'} `}>
                                     {percent}%
                                 </span>
                             </div>
-                            <div className={`w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner border transition-all ${isCelebrating ? 'border-green-300 shadow-green-200' : 'border-gray-200'}`}>
+                            <div className={`w - full h - 3 bg - gray - 100 rounded - full overflow - hidden shadow - inner border transition - all ${isCelebrating ? 'border-green-300 shadow-green-200' : 'border-gray-200'} `}>
                                 <div
-                                    className={`h-full rounded-full transition-all duration-1000 ease-out ${percent === 100 || isCelebrating ? 'bg-gradient-to-r from-green-400 via-emerald-500 to-green-600' : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600'} relative`}
-                                    style={{ width: `${percent}%` }}
+                                    className={`h - full rounded - full transition - all duration - 1000 ease - out ${percent === 100 || isCelebrating ? 'bg-gradient-to-r from-green-400 via-emerald-500 to-green-600' : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600'} relative`}
+                                    style={{ width: `${percent}% ` }}
                                 >
                                     {percent < 100 && !isCelebrating && <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>}
                                     {isCelebrating && <div className="absolute inset-0 bg-white/40 animate-pulse"></div>}
@@ -682,41 +692,43 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </div>
 
                         {/* Seção de Feedback Motivacional */}
-                        <div className="w-full md:w-1/2 flex items-center md:justify-end">
-                            {percent === 100 ? (
-                                <div className="flex items-center gap-3 bg-green-50 px-4 py-2 rounded-xl border border-green-200 animate-pulse">
-                                    <div className="bg-green-100 p-2 rounded-full"><Smile className="w-5 h-5 text-green-600" /></div>
-                                    <div>
-                                        <p className="text-sm font-bold text-green-800">Parabéns! Missão Cumprida! 🚀</p>
-                                        <p className="text-xs text-green-600">Você dominou este conteúdo.</p>
+                        {!isHudCollapsed && (
+                            <div className="w-full md:w-1/2 flex items-center md:justify-end">
+                                {percent === 100 ? (
+                                    <div className="flex items-center gap-3 bg-green-50 px-4 py-2 rounded-xl border border-green-200 animate-pulse">
+                                        <div className="bg-green-100 p-2 rounded-full"><Smile className="w-5 h-5 text-green-600" /></div>
+                                        <div>
+                                            <p className="text-sm font-bold text-green-800">Parabéns! Missão Cumprida! 🚀</p>
+                                            <p className="text-xs text-green-600">Você dominou este conteúdo.</p>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : isCelebrating ? (
-                                <div className="flex items-center gap-3 bg-gradient-to-r from-green-100 to-emerald-100 px-5 py-3 rounded-xl border-2 border-green-300 shadow-lg shadow-green-200/50 animate-in zoom-in-95 duration-300">
-                                    <div className="bg-green-200 p-2 rounded-full animate-bounce">
-                                        <CheckCircle className="w-6 h-6 text-green-600" />
+                                ) : isCelebrating ? (
+                                    <div className="flex items-center gap-3 bg-gradient-to-r from-green-100 to-emerald-100 px-5 py-3 rounded-xl border-2 border-green-300 shadow-lg shadow-green-200/50 animate-in zoom-in-95 duration-300">
+                                        <div className="bg-green-200 p-2 rounded-full animate-bounce">
+                                            <CheckCircle className="w-6 h-6 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-green-800 flex items-center gap-1">
+                                                Excelente! 🎉
+                                            </p>
+                                            <p className="text-xs text-green-600 font-medium">+1 checkpoint concluído!</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-green-800 flex items-center gap-1">
-                                            Excelente! 🎉
-                                        </p>
-                                        <p className="text-xs text-green-600 font-medium">+1 checkpoint concluído!</p>
+                                ) : (
+                                    <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 transition-all hover:bg-indigo-100 max-w-full md:max-w-sm" title={nextTitle || undefined}>
+                                        <div className="bg-indigo-100 p-2 rounded-full shrink-0">
+                                            <Zap className="w-5 h-5 text-indigo-600" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs text-indigo-500 font-bold uppercase mb-0.5">Próximo Passo:</p>
+                                            <p className="text-sm font-medium text-indigo-900 leading-tight line-clamp-2">
+                                                {nextTitle ? `Descubra: "${nextTitle}"` : "Continue avançando!"}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 transition-all hover:bg-indigo-100 max-w-full md:max-w-sm" title={nextTitle || undefined}>
-                                    <div className="bg-indigo-100 p-2 rounded-full shrink-0">
-                                        <Zap className="w-5 h-5 text-indigo-600" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-xs text-indigo-500 font-bold uppercase mb-0.5">Próximo Passo:</p>
-                                        <p className="text-sm font-medium text-indigo-900 leading-tight line-clamp-2">
-                                            {nextTitle ? `Descubra: "${nextTitle}"` : "Continue avançando!"}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -65,10 +65,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, onUsageLimit
     ));
   };
 
-  if (!isOpen) return (<button onClick={() => setIsOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center z-50 print:hidden animate-bounce-subtle" title="Falar com Professor Virtual"><MessageCircle className="w-8 h-8" /></button>);
+  if (!isOpen) return (<button onClick={() => setIsOpen(true)} className="fixed bottom-32 md:bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center z-50 print:hidden animate-bounce-subtle" title="Falar com Professor Virtual"><MessageCircle className="w-8 h-8" /></button>);
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[600px] max-h-[85vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden font-sans print:hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
+    <div className="fixed bottom-32 md:bottom-6 right-6 w-96 h-[600px] max-h-[50vh] md:max-h-[85vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden font-sans print:hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
       <div className="bg-indigo-600 p-4 flex justify-between items-center text-white shrink-0">
         <div className="flex items-center gap-2"><div className="bg-white/20 p-1.5 rounded-full"><Bot className="w-5 h-5" /></div><div><h3 className="font-bold text-sm">Professor Virtual</h3><p className="text-xs text-indigo-200">Socrático & Ativo</p></div></div>
         <button onClick={() => setIsOpen(false)} className="text-indigo-100 hover:text-white transition-colors hover:bg-white/10 p-1 rounded-full"><X className="w-5 h-5" /></button>

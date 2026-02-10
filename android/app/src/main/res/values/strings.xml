@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NeuroStudy</string>
+    <string name="title_activity_main">NeuroStudy</string>
+    <string name="package_name">com.neurostudy.app</string>
+    <string name="custom_url_scheme">com.neurostudy.app</string>
+</resources>
