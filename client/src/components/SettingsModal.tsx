@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LABELS } from '../services/userProfileService';
 import { PreferredSource } from '../types';
 import { SubscriptionModal } from './SubscriptionModal';
+import { cancelSubscription } from '../services/subscriptionService';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ type TabKey = 'search' | 'productivity' | 'appearance' | 'notifications' | 'acco
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, initialTab }) => {
   const { settings, updateSettings } = useSettings();
-  const { isPaid, planLabel, limits, usage } = useAuth();
+  const { isPaid, planLabel, limits, usage, profile, refreshProfile } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab || 'search');
   const [defaultSource, setDefaultSource] = useState<PreferredSource>('auto');
@@ -32,6 +33,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [permission, setPermission] = useState<NotificationPermission>(typeof Notification !== 'undefined' ? Notification.permission : 'default');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const focusRecommendations: Record<string, { focus: number; break: number; autoStartBreak: boolean; label: string }> = {
     'Concurso': { focus: 50, break: 10, autoStartBreak: false, label: 'Ciclos longos para provas extensas' },
@@ -398,6 +400,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                     {isPaid ? 'Gerenciar plano' : 'Fazer upgrade'}
                   </button>
                 </div>
+
+                {isPaid && profile?.mp_subscription_id && (
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-rose-200 bg-rose-50">
+                    <div>
+                      <p className="font-bold text-sm text-rose-800">Cancelar assinatura</p>
+                      <p className="text-xs text-rose-700">Evita renovação automática. Você pode assinar novamente depois.</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const ok = confirm('Cancelar sua assinatura agora?');
+                        if (!ok) return;
+                        try {
+                          setIsCancelling(true);
+                          await cancelSubscription();
+                          await refreshProfile();
+                          alert('Assinatura cancelada.');
+                        } catch (e: any) {
+                          alert(`Não foi possível cancelar: ${e?.message || 'erro'}`);
+                        } finally {
+                          setIsCancelling(false);
+                        }
+                      }}
+                      disabled={isCancelling}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg disabled:opacity-60"
+                    >
+                      {isCancelling ? 'Cancelando...' : 'Cancelar'}
+                    </button>
+                  </div>
+                )}
 
                 <div className="p-4 rounded-xl border border-gray-200">
                   <div className="flex items-center gap-2 mb-2">
