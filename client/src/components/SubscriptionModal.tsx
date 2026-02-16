@@ -46,6 +46,9 @@ interface SubscriptionModalProps {
 }
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onSelectPlan }) => {
+  const { isPaid, profile, refreshProfile } = useAuth();
+  const [isCancelling, setIsCancelling] = React.useState(false);
+
   if (!isOpen) return null;
 
   const proLimits = PLAN_LIMITS.pro;
@@ -116,6 +119,35 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           </div>
 
           <div className="flex-1 p-6 bg-white flex flex-col justify-center">
+            {isPaid && profile?.mp_subscription_id && (
+              <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                <div className="font-extrabold text-rose-800 text-sm">Cancelar assinatura</div>
+                <div className="text-rose-700 text-xs mt-1">Se você não quiser renovar, você pode cancelar aqui.</div>
+                <button
+                  type="button"
+                  disabled={isCancelling}
+                  onClick={async () => {
+                    const ok = confirm('Cancelar sua assinatura agora? Você perderá o acesso aos recursos pagos assim que o cancelamento for processado.');
+                    if (!ok) return;
+                    try {
+                      setIsCancelling(true);
+                      await cancelSubscription();
+                      await refreshProfile();
+                      alert('Assinatura cancelada.');
+                      onClose();
+                    } catch (e: any) {
+                      alert(`Não foi possível cancelar: ${e?.message || 'erro'}`);
+                    } finally {
+                      setIsCancelling(false);
+                    }
+                  }}
+                  className="mt-3 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold disabled:opacity-60"
+                >
+                  {isCancelling ? 'Cancelando...' : 'Cancelar assinatura'}
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-6">
               <div className="relative p-6 rounded-3xl border-2 border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 group transition-all">
                 {PROMO.enabled && PROMO.appliesTo.has('pro') && (
