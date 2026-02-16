@@ -8,7 +8,6 @@ import {
     ChevronDown, ChevronRight, PenTool, Zap, Lightbulb, Crown, FileDown, Rocket as NotionIcon,
     Eye, X, Download
 } from './Icons';
-import { MermaidEditor } from './MermaidEditor';
 import { useAuth } from '../contexts/AuthContext';
 import { LimitReason } from '../services/usageLimits';
 
@@ -219,11 +218,14 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </div>
 
                         <div className="max-h-[85vh] overflow-auto bg-gray-50">
-                            <img
-                                src={openDiagram.url}
-                                alt="Diagrama"
-                                className="w-full h-auto object-contain"
-                            />
+                            <div className="p-6 bg-[#fbfbf8]">
+                              <img
+                                  src={openDiagram.url}
+                                  alt="Diagrama"
+                                  className="w-full h-auto object-contain bg-[#fbfbf8] rounded-xl border border-gray-200 shadow-sm"
+                                  style={{ filter: 'grayscale(1) contrast(1.15)' }}
+                              />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -543,19 +545,17 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     </div>
                                 </div>
                                 <div className="w-full md:w-2/5 flex flex-col justify-center items-center border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
-                                    {checkpoint.diagramCode ? (
-                                        <MermaidEditor
-                                            initialCode={checkpoint.diagramCode}
-                                            onUpdate={(code, url) => handleUpdateDiagram(checkpoint.id, code, url)}
-                                        />
-                                    ) : checkpoint.imageUrl ? (
+                                    {checkpoint.imageUrl ? (
                                         <div className="w-full">
                                             <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
-                                                <img
-                                                    src={checkpoint.imageUrl}
-                                                    alt="Diagrama"
-                                                    className="w-full h-[140px] object-contain bg-gradient-to-br from-slate-50 to-gray-100"
-                                                />
+                                                <div className="p-3 bg-[#fbfbf8]">
+                                                  <img
+                                                      src={checkpoint.imageUrl}
+                                                      alt="Diagrama"
+                                                      className="w-full h-[140px] object-contain bg-[#fbfbf8] rounded-xl border border-gray-200"
+                                                      style={{ filter: 'grayscale(1) contrast(1.15)' }}
+                                                  />
+                                                </div>
                                                 <div className="absolute inset-x-0 bottom-0 p-2 bg-white/90 backdrop-blur flex items-center gap-2">
                                                     <button
                                                         onClick={() => setOpenDiagram({ url: checkpoint.imageUrl, title: checkpoint.mission })}
