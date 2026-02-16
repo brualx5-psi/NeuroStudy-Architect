@@ -8,6 +8,7 @@
 import { getAuthContext } from './_lib/auth.js';
 import { getSupabaseAdmin } from './_lib/supabase.js';
 import { sendJson } from './_lib/http.js';
+import { sendCancelledEmail } from './_lib/email.js';
 
 async function cancelMercadoPagoSubscription(subscriptionId: string) {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -56,7 +57,7 @@ export default async function handler(req: any, res: any) {
 
     const { data: userRow, error: userErr } = await supabase
       .from('users')
-      .select('id, email, mp_subscription_id, subscription_status')
+      .select('id, email, full_name, mp_subscription_id, subscription_status')
       .eq('id', auth.userId)
       .single();
 
@@ -72,6 +73,8 @@ export default async function handler(req: any, res: any) {
 
     await cancelMercadoPagoSubscription(subscriptionId);
 
+    const prevPlan = (userRow as any).subscription_status || 'free';
+
     // Downgrade immediately (webhook will also confirm)
     await supabase
       .from('users')
@@ -81,6 +84,15 @@ export default async function handler(req: any, res: any) {
         subscription_updated_at: new Date().toISOString()
       })
       .eq('id', auth.userId);
+
+    // Fire-and-forget email
+    if ((userRow as any).email && prevPlan !== 'free') {
+      sendCancelledEmail({
+        toEmail: (userRow as any).email,
+        name: (userRow as any).full_name,
+        previousPlanName: prevPlan
+      }).catch((e) => console.error('[subscription.cancel] email failed (ignored)', e));
+    }
 
     return sendJson(res, 200, { ok: true });
   } catch (err: any) {

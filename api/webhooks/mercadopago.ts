@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { sendJson, readJson } from '../_lib/http.js';
+import { sendWelcomeEmail, sendCancelledEmail } from '../_lib/email.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 /**
@@ -92,25 +93,27 @@ async function getSubscriptionDetails(subscriptionId: string): Promise<MPSubscri
 }
 
 // Atualizar plano do usuário no Supabase
-async function updateUserPlan(email: string, planName: string, subscriptionId: string): Promise<boolean> {
+async function updateUserPlan(email: string, planName: string, subscriptionId: string): Promise<{ ok: boolean; prevPlan?: string; fullName?: string | null; }> {
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         console.error('[MP Webhook] Supabase não disponível');
-        return false;
+        return { ok: false };
     }
 
     try {
         // Buscar usuário pelo email
         const { data: user, error: findError } = await supabase
             .from('users')
-            .select('id, email, subscription_status')
+            .select('id, email, subscription_status, full_name')
             .eq('email', email)
             .single();
 
         if (findError || !user) {
             console.error('[MP Webhook] Usuário não encontrado:', email, findError);
-            return false;
+            return { ok: false };
         }
+
+        const prevPlan = user.subscription_status;
 
         // Atualizar plano
         const { error: updateError } = await supabase
@@ -124,14 +127,14 @@ async function updateUserPlan(email: string, planName: string, subscriptionId: s
 
         if (updateError) {
             console.error('[MP Webhook] Erro ao atualizar plano:', updateError);
-            return false;
+            return { ok: false, prevPlan, fullName: user.full_name };
         }
 
         console.log(`[MP Webhook] Plano atualizado: ${email} -> ${planName}`);
-        return true;
+        return { ok: true, prevPlan, fullName: user.full_name };
     } catch (error) {
         console.error('[MP Webhook] Erro:', error);
-        return false;
+        return { ok: false };
     }
 }
 
@@ -179,14 +182,39 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             case 'authorized':
                 // Assinatura ativa - atualizar para o plano correspondente
                 if (planName) {
-                    await updateUserPlan(subscription.payer_email, planName, subscription.id);
+                    const result = await updateUserPlan(subscription.payer_email, planName, subscription.id);
+                    // Enviar boas-vindas apenas se houve mudança real de plano
+                    if (result.ok && result.prevPlan !== planName) {
+                        try {
+                            await sendWelcomeEmail({
+                                toEmail: subscription.payer_email,
+                                name: result.fullName,
+                                planName: planName as any
+                            });
+                        } catch (e) {
+                            console.error('[MP Webhook] Falha ao enviar boas-vindas (ignorado):', e);
+                        }
+                    }
                 }
                 break;
 
             case 'cancelled':
             case 'paused':
                 // Assinatura cancelada ou pausada - voltar para free
-                await updateUserPlan(subscription.payer_email, 'free', subscription.id);
+                {
+                    const result = await updateUserPlan(subscription.payer_email, 'free', subscription.id);
+                    if (result.ok && result.prevPlan && result.prevPlan !== 'free') {
+                        try {
+                            await sendCancelledEmail({
+                                toEmail: subscription.payer_email,
+                                name: result.fullName,
+                                previousPlanName: result.prevPlan as any
+                            });
+                        } catch (e) {
+                            console.error('[MP Webhook] Falha ao enviar cancelamento (ignorado):', e);
+                        }
+                    }
+                }
                 break;
 
             case 'pending':
