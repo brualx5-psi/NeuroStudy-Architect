@@ -442,7 +442,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     <div className="p-6 space-y-6">
                         {guide.checkpoints.map((checkpoint: any) => (
                             <div key={checkpoint.id}
-                                className={`flex flex - col md: flex - row gap - 6 p - 6 rounded - 2xl border - 2 transition - all cursor - pointer hover: shadow - md ${checkpoint.completed ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-gray-100 hover:border-indigo-100'} `}
+                                className={`flex flex-col gap-6 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md ${checkpoint.completed ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-gray-100 hover:border-indigo-100'}`}
+
                             >
                                 <div className="flex-1 space-y-4" onClick={() => toggleCheckpoint(checkpoint.id)}>
                                     <div className="flex items-center gap-4">
@@ -472,15 +473,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                                 <p className={`text - sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'} `}>{checkpoint.drawExactly}</p>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="w-full md:w-2/5 flex flex-col justify-center items-center border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
-                                    <div className="w-full min-h-[180px] bg-gradient-to-br from-slate-50 to-gray-100 p-6 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
-                                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3">
-                                            <PenTool className="w-6 h-6 text-orange-500" />
-                                        </div>
-                                        <p className="text-sm font-bold text-gray-700 mb-1">Sem desenho automático</p>
-                                        <p className="text-xs text-gray-500 max-w-[240px]">A ideia aqui é você desenhar à mão seguindo a instrução ao lado. (Vamos usar esse espaço depois para expandir o roteiro.)</p>
                                     </div>
                                 </div>
                             </div>
@@ -550,7 +542,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </div>
                     )}
 
-                    <div className={`max - w - 5xl mx - auto px - 6 ${isHudCollapsed ? 'py-2' : 'py-4'} flex flex - col md: flex - row items - center justify - between gap - 4 relative`}>
+                    <div className={`max - w - 5xl mx - auto px - 6 ${isHudCollapsed ? 'py-2' : 'py-4'} flex flex - col flex-col items - center justify - between gap - 4 relative`}>
                         <button
                             type="button"
                             onClick={() => setIsHudCollapsed(prev => !prev)}
