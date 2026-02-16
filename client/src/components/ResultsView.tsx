@@ -161,54 +161,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     return (
         <div className={`max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ${isHudCollapsed ? 'pb-32' : 'pb-64'}`}> {/* Ajusta espaço para a barra fixa */}
 
-            {/* Modal: Visualizar diagrama */}
-            {openDiagram?.url && (
-                <div
-                    className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-                    onClick={() => setOpenDiagram(null)}
-                >
-                    <div
-                        className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                            <div className="min-w-0">
-                                <p className="text-sm font-bold text-gray-900 truncate">{openDiagram.title || 'Diagrama'}</p>
-                                <p className="text-xs text-gray-500">Visualização</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <a
-                                    href={openDiagram.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 flex items-center gap-2"
-                                >
-                                    <Download className="w-3 h-3" /> Abrir/baixar
-                                </a>
-                                <button
-                                    onClick={() => setOpenDiagram(null)}
-                                    className="p-2 text-gray-500 hover:text-gray-800"
-                                    aria-label="Fechar"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="max-h-[85vh] overflow-auto bg-gray-50">
-                            <div className="p-6 bg-[#fbfbf8]">
-                              <img
-                                  src={openDiagram.url}
-                                  alt="Desenho"
-                                  className="w-full h-auto object-contain bg-[#fbfbf8] rounded-xl border border-gray-200 shadow-sm"
-                                  style={{ filter: 'grayscale(1) contrast(1.15)' }}
-                              />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* CSS Animations for HUD */}
             <style>{`
                 @keyframes confetti {
