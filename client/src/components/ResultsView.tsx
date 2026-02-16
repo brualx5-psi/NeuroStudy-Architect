@@ -221,7 +221,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             <div className="p-6 bg-[#fbfbf8]">
                               <img
                                   src={openDiagram.url}
-                                  alt="Diagrama"
+                                  alt="Desenho"
                                   className="w-full h-auto object-contain bg-[#fbfbf8] rounded-xl border border-gray-200 shadow-sm"
                                   style={{ filter: 'grayscale(1) contrast(1.15)' }}
                               />
@@ -548,10 +548,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     {checkpoint.imageUrl ? (
                                         <div className="w-full">
                                             <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+                                                {checkpoint.imageUrl?.includes('mermaid.ink') && (
+                                                  <div className="px-3 pt-2 text-[11px] font-bold text-amber-700">Esse é um diagrama (não desenho). Use "Regerar desenho" para gerar no estilo caderno.</div>
+                                                )}
                                                 <div className="p-3 bg-[#fbfbf8]">
                                                   <img
                                                       src={checkpoint.imageUrl}
-                                                      alt="Diagrama"
+                                                      alt="Desenho"
                                                       className="w-full h-[140px] object-contain bg-[#fbfbf8] rounded-xl border border-gray-200"
                                                       style={{ filter: 'grayscale(1) contrast(1.15)' }}
                                                   />
@@ -568,7 +571,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                                         disabled={loadingDiagramForCheckpoint === checkpoint.id}
                                                         className="flex-1 text-xs text-orange-600 font-bold flex items-center justify-center gap-2 w-full hover:underline disabled:opacity-50"
                                                     >
-                                                        {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Regerar
+                                                        {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Regerar desenho
                                                     </button>
                                                 </div>
                                             </div>
@@ -578,15 +581,15 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                             <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                                 <PenTool className="w-6 h-6 text-orange-500" />
                                             </div>
-                                            <p className="text-sm font-bold text-gray-600 mb-1">Diagrama de Referência</p>
-                                            <p className="text-xs text-gray-400 mb-4 max-w-[200px]">Não entendeu como desenhar? Gere um exemplo visual para se inspirar.</p>
+                                            <p className="text-sm font-bold text-gray-600 mb-1">Desenho de Referência</p>
+                                            <p className="text-xs text-gray-400 mb-4 max-w-[200px]">Gere um exemplo visual (estilo caderno) para copiar.</p>
                                             <button
                                                 onClick={() => handleGenerateCheckpointDiagram(checkpoint.id, checkpoint.drawExactly)}
                                                 disabled={loadingDiagramForCheckpoint === checkpoint.id}
                                                 className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                                                {loadingDiagramForCheckpoint === checkpoint.id ? 'Gerando...' : 'Gerar Diagrama'}
+                                                {loadingDiagramForCheckpoint === checkpoint.id ? 'Gerando...' : 'Gerar desenho'}
                                             </button>
                                         </div>
                                     )}
