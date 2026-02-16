@@ -1,10 +1,10 @@
-import { getAuthContext } from '../_lib/auth.js';
-import { buildLimitResponse } from '../_lib/limitResponses.js';
-import { getClientIp, readJson, sendJson } from '../_lib/http.js';
-import { rateLimit } from '../_lib/rateLimit.js';
-import { generateStudyGuide } from '../_lib/gemini.js';
-import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
-import { prepareSourcesForRoadmap, SourceErrorCode } from '../_lib/sourceResolver.js';
+import { getAuthContext } from '../../_lib/auth.js';
+import { buildLimitResponse } from '../../_lib/limitResponses.js';
+import { getClientIp, readJson, sendJson } from '../../_lib/http.js';
+import { rateLimit } from '../../_lib/rateLimit.js';
+import { generateStudyGuide } from '../../_lib/gemini.js';
+import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../../_lib/usageStore.js';
+import { prepareSourcesForRoadmap, SourceErrorCode } from '../../_lib/sourceResolver.js';
 
 // Mapeamento de erros para respostas humanizadas
 const ERROR_RESPONSES: Record<SourceErrorCode, { status: number; message: string; suggestion?: string }> = {

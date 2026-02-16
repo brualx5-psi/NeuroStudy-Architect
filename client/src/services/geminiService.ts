@@ -107,7 +107,7 @@ export const generateStudyGuide = async (
   _isBinary: boolean = false,
   isBook: boolean = false
 ): Promise<StudyGuide> => {
-  const response = await postJson<{ guide: StudyGuide }>('/api/ai/roadmap', {
+  const response = await postJson<{ guide: StudyGuide }>('/api/ai?action=roadmap', {
     sources,
     mode,
     isBook
@@ -121,7 +121,7 @@ export const generateTool = async (
   context: string,
   targetDomain?: string
 ): Promise<string> => {
-  const response = await postJson<{ content: string }>('/api/ai/tool', {
+  const response = await postJson<{ content: string }>('/api/ai?action=tool', {
     toolType,
     topic,
     context,
@@ -131,19 +131,19 @@ export const generateTool = async (
 };
 
 export const generateDiagram = async (desc: string): Promise<{ code: string; url: string }> => {
-  return await postJson<{ code: string; url: string }>('/api/ai/diagram', {
+  return await postJson<{ code: string; url: string }>('/api/ai?action=diagram', {
     description: desc
   });
 };
 
 export const generateDiagramSvg = async (desc: string): Promise<{ url: string }> => {
-  return await postJson<{ url: string }>('/api/ai/diagram-svg', {
+  return await postJson<{ url: string }>('/api/ai?action=diagram-svg', {
     description: desc
   });
 };
 
 export const generateSlides = async (guide: StudyGuide): Promise<Slide[]> => {
-  const response = await postJson<{ slides: Slide[] }>('/api/ai/slides', { guide });
+  const response = await postJson<{ slides: Slide[] }>('/api/ai?action=slides', { guide });
   return response.slides || [];
 };
 
@@ -152,7 +152,7 @@ export const generateQuiz = async (
   _mode: StudyMode,
   config?: { quantity: number; distribution?: { mc: number; open: number } }
 ): Promise<QuizQuestion[]> => {
-  const response = await postJson<{ quiz: QuizQuestion[] }>('/api/ai/quiz', {
+  const response = await postJson<{ quiz: QuizQuestion[] }>('/api/ai?action=quiz', {
     guide,
     config
   });
@@ -165,7 +165,7 @@ export const evaluateOpenAnswer = async (
   expectedAnswer: string
 ): Promise<{ status: 'correct' | 'partial' | 'wrong'; feedback: string }> => {
   const response = await postJson<{ result: { status: 'correct' | 'partial' | 'wrong'; feedback: string } }>(
-    '/api/ai/evaluate',
+    '/api/ai?action=evaluate',
     {
       question,
       userAnswer,
@@ -176,7 +176,7 @@ export const evaluateOpenAnswer = async (
 };
 
 export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]> => {
-  const response = await postJson<{ flashcards: Flashcard[] }>('/api/ai/flashcards', { guide });
+  const response = await postJson<{ flashcards: Flashcard[] }>('/api/ai?action=flashcards', { guide });
   return response.flashcards || [];
 };
 
@@ -185,7 +185,7 @@ export const sendChatMessage = async (
   msg: string,
   _studyGuide: StudyGuide | null = null
 ): Promise<string> => {
-  const response = await postJson<{ text: string }>('/api/ai/chat', {
+  const response = await postJson<{ text: string }>('/api/ai?action=chat', {
     history,
     message: msg
   });
@@ -193,7 +193,7 @@ export const sendChatMessage = async (
 };
 
 export const refineContent = async (text: string, _task: string): Promise<string> => {
-  const response = await postJson<{ text: string }>('/api/ai/chat', {
+  const response = await postJson<{ text: string }>('/api/ai?action=chat', {
     history: [],
     message: `Melhore: "${text}"`
   });

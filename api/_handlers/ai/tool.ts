@@ -1,10 +1,10 @@
-import { getAuthContext } from '../_lib/auth.js';
-import { buildLimitResponse } from '../_lib/limitResponses.js';
-import { getClientIp, readJson, sendJson } from '../_lib/http.js';
-import { rateLimit } from '../_lib/rateLimit.js';
-import { canPerformAction } from '../_lib/usageLimits.js';
-import { sendChatMessage } from '../_lib/gemini.js';
-import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../_lib/usageStore.js';
+import { getAuthContext } from '../../_lib/auth.js';
+import { buildLimitResponse } from '../../_lib/limitResponses.js';
+import { getClientIp, readJson, sendJson } from '../../_lib/http.js';
+import { rateLimit } from '../../_lib/rateLimit.js';
+import { canPerformAction } from '../../_lib/usageLimits.js';
+import { generateTool } from '../../_lib/gemini.js';
+import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../../_lib/usageStore.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -17,47 +17,48 @@ export default async function handler(req: any, res: any) {
   }
 
   const ip = getClientIp(req);
-  const rateKey = `chat:${auth.userId || ip}`;
+  const rateKey = `tool:${auth.userId || ip}`;
   const rate = rateLimit(rateKey, { windowMs: 60_000, limit: 30 });
   if (!rate.allowed) {
     return sendJson(res, 429, buildLimitResponse('rate_limited'));
   }
 
   const body = await readJson<{
-    history: Array<{ role: string; text: string }>;
-    message: string;
+    toolType: 'explainLikeIm5' | 'analogy' | 'realWorldApplication' | 'interdisciplinary';
+    topic: string;
+    context: string;
+    targetDomain?: string;
   }>(req);
 
   const { planName, isAdmin } = await getUserAccess(auth.userId);
   const month = getCurrentMonth();
   const usageRow = await ensureUsageRow(auth.userId, month, planName);
   const usageSnapshot = toUsageSnapshot(usageRow);
+  const textInput = `${body.topic || ''}\n${body.context || ''}\n${body.targetDomain || ''}`;
 
-  const check = canPerformAction(planName, usageSnapshot, [], 'chat', {
-    textInput: body.message,
-    chatHistory: body.history || [],
-    isAdmin
-  });
+  const check = canPerformAction(planName, usageSnapshot, [], 'chat', { textInput, isAdmin });
   if (!check.allowed) {
     return sendJson(res, 402, buildLimitResponse(check.reason || 'monthly_tokens_exhausted', check.actionSuggestion));
   }
 
   try {
-    const { text, usageTokens } = await sendChatMessage(planName, body.history || [], body.message || '');
-    const estimatedTokens = check.estimatedTokens || 0;
+    const { content, usageTokens } = await generateTool(
+      planName,
+      body.toolType,
+      body.topic,
+      body.context,
+      body.targetDomain
+    );
 
     await incrementUsage(auth.userId, month, planName, {
-      chat_messages: 1,
-      tokens_estimated: estimatedTokens,
-      tokens_used: usageTokens || 0,
-      chat_tokens_estimated: estimatedTokens,
-      chat_tokens_used: usageTokens || 0
+      tokens_estimated: check.estimatedTokens || 0,
+      tokens_used: usageTokens || 0
     });
 
     return sendJson(res, 200, {
-      text,
+      content,
       usage: {
-        estimatedTokens,
+        estimatedTokens: check.estimatedTokens || 0,
         actualTokens: usageTokens || null
       }
     });

@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Schema, Type } from '@google/genai';
 import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits.js';
+import { getSupabaseAdmin } from './supabase.js';
 
 // Modelos configuráveis via ENV (útil para Vercel)
 // Examples:
