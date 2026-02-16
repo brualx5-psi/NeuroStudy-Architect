@@ -2,6 +2,8 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown } from '../components/Icons';
 import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
+import { useAuth } from '../contexts/AuthContext';
+import { cancelSubscription } from '../services/subscriptionService';
 
 // Links de assinatura do Mercado Pago
 const MP_SUBSCRIPTION_LINKS = {
