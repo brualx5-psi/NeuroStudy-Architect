@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { StudyGuide, CoreConcept } from '../types';
-import { generateTool, generateDiagram, generateDiagramSvg, isUsageLimitError } from '../services/geminiService';
+import { generateTool, generateDiagram, isUsageLimitError } from '../services/geminiService';
 import {
     CheckCircle, BookOpen, Brain, Target,
     Smile, RefreshCw, Layers, Calendar, Clock,
@@ -34,10 +34,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const [expandedConcepts, setExpandedConcepts] = useState<Set<number>>(new Set());
     const [activeInsightTab, setActiveInsightTab] = useState<Record<number, 'feynman' | 'example' | 'interdisciplinary'>>({});
     const [interdisciplinaryInput, setInterdisciplinaryInput] = useState<Record<number, string>>({}); // Armazena o tema digitado por card
-
-    const [loadingDiagramForCheckpoint, setLoadingDiagramForCheckpoint] = useState<string | null>(null);
     const [isCelebrating, setIsCelebrating] = useState(false); // Estado para animação de celebração
-    const [openDiagram, setOpenDiagram] = useState<{ url: string; title?: string } | null>(null);
     const [isHudCollapsed, setIsHudCollapsed] = useState(false);
 
     // Função "Insight Cerebral": Apenas expande a visualização. A geração agora é sob demanda (lazy).
@@ -107,26 +104,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             setInsightLoading(null);
         }
     };
-
-    const handleGenerateCheckpointDiagram = async (checkpointId: string, description: string) => {
-        setLoadingDiagramForCheckpoint(checkpointId);
-        try {
-            // For checkpoints, prefer simple SVG "copyable" illustrations.
-            const { url } = await generateDiagramSvg(description);
-            const newCheckpoints = guide.checkpoints?.map(c =>
-                c.id === checkpointId ? { ...c, imageUrl: url, diagramCode: '' } : c
-            );
-            onUpdateGuide({ ...guide, checkpoints: newCheckpoints });
-        } catch (error) {
-            if (isUsageLimitError(error)) {
-                onUsageLimit?.(error.reason as LimitReason);
-            } else {
-                alert(`Erro ao gerar desenho: ${error?.message || error}`);
-            }
-        } finally {
-            setLoadingDiagramForCheckpoint(null);
-        }
-    };
+    // (removed) desenho de referência automático: mantemos apenas a instrução do terapeuta
 
     const handleUpdateDiagram = (checkpointId: string, newCode: string, newUrl: string) => {
         const newCheckpoints = guide.checkpoints?.map(c =>
@@ -545,54 +523,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     </div>
                                 </div>
                                 <div className="w-full md:w-2/5 flex flex-col justify-center items-center border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
-                                    {checkpoint.imageUrl ? (
-                                        <div className="w-full">
-                                            <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
-                                                {checkpoint.imageUrl?.includes('mermaid.ink') && (
-                                                  <div className="px-3 pt-2 text-[11px] font-bold text-amber-700">Esse é um diagrama (não desenho). Use "Regerar desenho" para gerar no estilo caderno.</div>
-                                                )}
-                                                <div className="p-3 bg-[#fbfbf8]">
-                                                  <img
-                                                      src={checkpoint.imageUrl}
-                                                      alt="Desenho"
-                                                      className="w-full h-[140px] object-contain bg-[#fbfbf8] rounded-xl border border-gray-200"
-                                                      style={{ filter: 'grayscale(1) contrast(1.15)' }}
-                                                  />
-                                                </div>
-                                                <div className="absolute inset-x-0 bottom-0 p-2 bg-white/90 backdrop-blur flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => setOpenDiagram({ url: checkpoint.imageUrl, title: checkpoint.mission })}
-                                                        className="flex-1 text-xs text-indigo-700 font-bold flex items-center justify-center gap-2 w-full hover:underline"
-                                                    >
-                                                        <Eye className="w-3 h-3" /> Visualizar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleGenerateCheckpointDiagram(checkpoint.id, checkpoint.drawExactly)}
-                                                        disabled={loadingDiagramForCheckpoint === checkpoint.id}
-                                                        className="flex-1 text-xs text-orange-600 font-bold flex items-center justify-center gap-2 w-full hover:underline disabled:opacity-50"
-                                                    >
-                                                        {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Regerar desenho
-                                                    </button>
-                                                </div>
-                                            </div>
+                                    <div className="w-full min-h-[180px] bg-gradient-to-br from-slate-50 to-gray-100 p-6 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
+                                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3">
+                                            <PenTool className="w-6 h-6 text-orange-500" />
                                         </div>
-                                    ) : (
-                                        <div className="w-full min-h-[180px] bg-gradient-to-br from-slate-50 to-gray-100 p-6 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:from-orange-50/30 hover:to-amber-50/30 transition-all group">
-                                            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                <PenTool className="w-6 h-6 text-orange-500" />
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-600 mb-1">Desenho de Referência</p>
-                                            <p className="text-xs text-gray-400 mb-4 max-w-[200px]">Gere um exemplo visual (estilo caderno) para copiar.</p>
-                                            <button
-                                                onClick={() => handleGenerateCheckpointDiagram(checkpoint.id, checkpoint.drawExactly)}
-                                                disabled={loadingDiagramForCheckpoint === checkpoint.id}
-                                                className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                            >
-                                                {loadingDiagramForCheckpoint === checkpoint.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                                                {loadingDiagramForCheckpoint === checkpoint.id ? 'Gerando...' : 'Gerar desenho'}
-                                            </button>
-                                        </div>
-                                    )}
+                                        <p className="text-sm font-bold text-gray-700 mb-1">Sem desenho automático</p>
+                                        <p className="text-xs text-gray-500 max-w-[240px]">A ideia aqui é você desenhar à mão seguindo a instrução ao lado. (Vamos usar esse espaço depois para expandir o roteiro.)</p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
