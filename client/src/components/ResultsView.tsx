@@ -121,7 +121,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             if (isUsageLimitError(error)) {
                 onUsageLimit?.(error.reason as LimitReason);
             } else {
-                alert("Erro ao gerar diagrama.");
+                alert(`Erro ao gerar desenho: ${error?.message || error}`);
             }
         } finally {
             setLoadingDiagramForCheckpoint(null);
