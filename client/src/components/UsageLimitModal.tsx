@@ -30,8 +30,8 @@ const getContentForReason = (reason: LimitReason | null) => {
       };
     case 'monthly_tokens_exhausted':
       return {
-        title: 'Limite de tokens atingido',
-        message: 'Você atingiu o limite mensal de tokens do seu plano.',
+        title: 'Limite de créditos atingido',
+        message: 'Você atingiu o limite mensal de créditos do seu plano.',
         actions: ['plans', 'close'],
         closeLabel: 'Ok'
       };

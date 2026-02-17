@@ -79,7 +79,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                 Tudo liberado<br />com mais capacidade
               </h2>
               <p className="text-indigo-100 text-sm mb-6 leading-relaxed font-medium">
-                O plano Pro libera o máximo de tokens e os maiores limites mensais.
+                O plano Pro libera o máximo de créditos e os maiores limites mensais.
               </p>
 
               <ul className="space-y-3">
@@ -113,7 +113,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                 <li className="flex items-start gap-3">
                   <div className="bg-white/20 p-1.5 rounded-full mt-0.5 shrink-0"><Check className="w-4 h-4" /></div>
                   <div>
-                    <span className="font-bold">Chat com tokens estendidos</span>
+                    <span className="font-bold">Chat com créditos estendidos</span>
                   </div>
                 </li>
               </ul>
@@ -203,7 +203,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                 <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 mb-4">
                   <p className="text-emerald-700 text-sm font-bold flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
-                    Tokens e limites premium para produção intensiva
+                    Créditos e limites premium para produção intensiva
                   </p>
                 </div>
 
