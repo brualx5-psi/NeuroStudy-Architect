@@ -19,9 +19,14 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 // Mapeamento de plan_id do MP para nomes de plano
 const PLAN_ID_MAP: Record<string, string> = {
-    '1b3bff62d1f44f70878a89508e94c346': 'starter',  // Starter Mensal
+    // Starter
+    '1b3bff62d1f44f70878a89508e94c346': 'starter',  // Starter Mensal (antigo)
+    'd5db97d0d27a4c11a006800f8ee6e552': 'starter',  // Starter Mensal (atual - link do site)
     '854c80057c0e420683c129a07273f7c8': 'starter',  // Starter Anual
-    '87f2fd4ff4544ade8568359886acd3aa': 'pro',      // Pro Mensal
+
+    // Pro
+    '87f2fd4ff4544ade8568359886acd3aa': 'pro',      // Pro Mensal (antigo)
+    '02935c0c251e465eb1ce329ab2bc98f2': 'pro',      // Pro Mensal (promo/atual - link do site)
     'a7e0f68a4c4f4ddca4c2ae512a8a1db5': 'pro',      // Pro Anual
 };
 
