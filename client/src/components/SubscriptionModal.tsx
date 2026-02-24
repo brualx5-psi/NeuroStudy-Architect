@@ -223,13 +223,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_anual, '_blank')}
                     className="py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1 relative"
                   >
-                    <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-black px-2 py-0.5 rounded-full">3 DIAS GRÁTIS</span>
+                    <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md">ECONOMIZE 2 MESES</span>
                     <span className="flex items-center gap-1">
                       <Crown className="w-4 h-4" />
                       Anual
                     </span>
-                    <span className="text-xs text-amber-100">R$ 599/ano</span>
-                    <span className="text-[9px] text-amber-200">2 meses grátis</span>
+                    <span className="text-xs text-amber-100">R$ 599/ano <span className="text-amber-200/80">(≈ R$ 49,92/mês)</span></span>
+                    <span className="text-[9px] text-amber-200">Pague 10 meses, use 12 • Teste 3 dias grátis</span>
                   </button>
                 </div>
               </div>
@@ -300,9 +300,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_anual, '_blank')}
                     className="py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all flex flex-col items-center gap-0.5 relative"
                   >
-                    <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-[8px] font-black text-amber-900 px-1.5 py-0.5 rounded-full">3 DIAS GRÁTIS</span>
+                    <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-[8px] font-black text-amber-900 px-1.5 py-0.5 rounded-full shadow-md">ECONOMIZE 2 MESES</span>
                     <span>Anual</span>
-                    <span className="text-xs text-emerald-100">R$ 299/ano</span>
+                    <span className="text-xs text-emerald-100">R$ 299/ano <span className="text-emerald-200/80">(≈ R$ 24,92/mês)</span></span>
+                    <span className="text-[9px] text-emerald-200">Pague 10 meses, use 12 • Teste 3 dias grátis</span>
                   </button>
                 </div>
               </div>
