@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown } from '../components/Icons';
 import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 import { useAuth } from '../contexts/AuthContext';
-import { cancelSubscription } from '../services/subscriptionService';
+import { cancelSubscription, getCheckoutUrl } from '../services/subscriptionService';
 
-// Links de assinatura do Mercado Pago
-const MP_SUBSCRIPTION_LINKS = {
+// Links estáticos de fallback (caso o endpoint /api/checkout falhe)
+const MP_FALLBACK_LINKS: Record<string, string> = {
   starter_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d5db97d0d27a4c11a006800f8ee6e552',
   starter_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=854c80057c0e420683c129a07273f7c8',
   pro_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=02935c0c251e465eb1ce329ab2bc98f2',
@@ -50,6 +50,21 @@ interface SubscriptionModalProps {
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onSelectPlan }) => {
   const { isPaid, profile, refreshProfile } = useAuth();
   const [isCancelling, setIsCancelling] = React.useState(false);
+  const [checkoutLoading, setCheckoutLoading] = React.useState<string | null>(null);
+
+  const handleCheckout = async (planKey: string) => {
+    setCheckoutLoading(planKey);
+    try {
+      const url = await getCheckoutUrl(planKey);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.warn('[Checkout] Falha no link dinâmico, usando fallback:', err);
+      const fallback = MP_FALLBACK_LINKS[planKey];
+      if (fallback) window.open(fallback, '_blank');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -209,24 +224,26 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_mensal, '_blank')}
-                    className="py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1"
+                    onClick={() => handleCheckout('pro_mensal')}
+                    disabled={checkoutLoading === 'pro_mensal'}
+                    className="py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1 disabled:opacity-60"
                   >
                     <span className="flex items-center gap-1">
                       <Zap className="w-4 h-4 fill-current" />
-                      Mensal
+                      {checkoutLoading === 'pro_mensal' ? 'Abrindo...' : 'Mensal'}
                     </span>
                     <span className="text-xs text-indigo-200">{PROMO.enabled && getPromoPrice('pro') != null ? `${formatBRL(getPromoPrice('pro')!)}/mês` : `${PLAN_PRICES.pro}/mês`}</span>
                     <span className="text-[9px] text-indigo-300">Cancele quando quiser</span>
                   </button>
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_anual, '_blank')}
-                    className="py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1 relative"
+                    onClick={() => handleCheckout('pro_anual')}
+                    disabled={checkoutLoading === 'pro_anual'}
+                    className="py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1 relative disabled:opacity-60"
                   >
                     <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md">ECONOMIZE 2 MESES</span>
                     <span className="flex items-center gap-1">
                       <Crown className="w-4 h-4" />
-                      Anual
+                      {checkoutLoading === 'pro_anual' ? 'Abrindo...' : 'Anual'}
                     </span>
                     <span className="text-xs text-amber-100">R$ 599/ano <span className="text-amber-200/80">(≈ R$ 49,92/mês)</span></span>
                     <span className="text-[9px] text-amber-200">Pague 10 meses, use 12 • Teste 3 dias grátis</span>
@@ -289,19 +306,21 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_mensal, '_blank')}
-                    className="py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all flex flex-col items-center gap-0.5"
+                    onClick={() => handleCheckout('starter_mensal')}
+                    disabled={checkoutLoading === 'starter_mensal'}
+                    className="py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all flex flex-col items-center gap-0.5 disabled:opacity-60"
                   >
-                    <span>Mensal</span>
+                    <span>{checkoutLoading === 'starter_mensal' ? 'Abrindo...' : 'Mensal'}</span>
                     <span className="text-xs text-slate-400">{PROMO.enabled && getPromoPrice('starter') != null ? `${formatBRL(getPromoPrice('starter')!)}/mês` : `${PLAN_PRICES.starter}/mês`}</span>
                     <span className="text-[9px] text-slate-500">Cancele quando quiser</span>
                   </button>
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_anual, '_blank')}
-                    className="py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all flex flex-col items-center gap-0.5 relative"
+                    onClick={() => handleCheckout('starter_anual')}
+                    disabled={checkoutLoading === 'starter_anual'}
+                    className="py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all flex flex-col items-center gap-0.5 relative disabled:opacity-60"
                   >
                     <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-[8px] font-black text-amber-900 px-1.5 py-0.5 rounded-full shadow-md">ECONOMIZE 2 MESES</span>
-                    <span>Anual</span>
+                    <span>{checkoutLoading === 'starter_anual' ? 'Abrindo...' : 'Anual'}</span>
                     <span className="text-xs text-emerald-100">R$ 299/ano <span className="text-emerald-200/80">(≈ R$ 24,92/mês)</span></span>
                     <span className="text-[9px] text-emerald-200">Pague 10 meses, use 12 • Teste 3 dias grátis</span>
                   </button>
