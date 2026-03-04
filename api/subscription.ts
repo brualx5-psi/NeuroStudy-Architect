@@ -122,22 +122,37 @@ export default async function handler(req: any, res: any) {
       'a7e0f68a4c4f4ddca4c2ae512a8a1db5': 'pro',
     };
 
-    const url = `https://api.mercadopago.com/preapproval/search?payer_email=${encodeURIComponent(email)}&status=authorized&sort=date_created&order=desc&limit=1`;
-    const mpResp = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    const search = async (status: string) => {
+      const url = `https://api.mercadopago.com/preapproval/search?payer_email=${encodeURIComponent(email)}&status=${encodeURIComponent(status)}&sort=date_created&order=desc&limit=1`;
+      const mpResp = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    const mpPayload = await mpResp.json().catch(() => ({} as any));
-    if (!mpResp.ok) {
-      console.error('[subscription.sync] Mercado Pago error', mpResp.status, mpPayload);
-      return sendJson(res, 502, { error: 'mercadopago_search_failed' });
+      const mpPayload = await mpResp.json().catch(() => ({} as any));
+      if (!mpResp.ok) {
+        console.error('[subscription.sync] Mercado Pago error', mpResp.status, mpPayload);
+        return { ok: false as const, error: 'mercadopago_search_failed' as const };
+      }
+
+      const result = (mpPayload as any)?.results?.[0];
+      return { ok: true as const, result };
+    };
+
+    const authorized = await search('authorized');
+    if (!authorized.ok) {
+      return sendJson(res, 502, { error: authorized.error });
     }
 
-    const result = (mpPayload as any)?.results?.[0];
+    const result = (authorized as any).result;
     if (!result?.id) {
+      // If there's a pending subscription, inform UI.
+      const pending = await search('pending');
+      if (pending.ok && (pending as any).result?.id) {
+        return sendJson(res, 200, { ok: false, status: 'pending' });
+      }
       return sendJson(res, 200, { ok: false, status: 'not_found' });
     }
 

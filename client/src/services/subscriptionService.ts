@@ -23,6 +23,7 @@ export async function cancelSubscription(): Promise<{ ok: boolean }>{
 }
 
 export async function syncSubscription(): Promise<{ ok: boolean; planName?: string; status?: string }>{
+
   if (!supabase) throw new Error('supabase_not_configured');
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;

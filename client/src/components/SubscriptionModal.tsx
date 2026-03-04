@@ -164,11 +164,20 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     setIsRefreshing(true);
                     const result = await syncSubscription();
                     await refreshProfile();
+
                     if (result.ok) {
                       alert(`Plano atualizado: ${result.planName || 'ok'}.`);
-                    } else {
-                      alert('Ainda não localizei uma assinatura autorizada para esta conta. Se você acabou de pagar, aguarde 1–2 minutos e tente novamente.');
+                      return;
                     }
+
+                    if (result.status === 'pending') {
+                      alert('Encontrei uma assinatura PENDENTE no Mercado Pago (ainda não autorizada). Assim que ela ficar autorizada, o plano atualiza.');
+                      return;
+                    }
+
+                    alert('Ainda não localizei uma assinatura autorizada para esta conta. Se você acabou de pagar, aguarde 1–2 minutos e tente novamente.');
+                  } catch (e: any) {
+                    alert(`Falha ao sincronizar: ${e?.message || 'erro'}`);
                   } finally {
                     setIsRefreshing(false);
                   }
