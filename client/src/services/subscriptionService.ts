@@ -21,3 +21,26 @@ export async function cancelSubscription(): Promise<{ ok: boolean }>{
   }
   return payload as { ok: boolean };
 }
+
+export async function syncSubscription(): Promise<{ ok: boolean; planName?: string; status?: string }>{
+  if (!supabase) throw new Error('supabase_not_configured');
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('not_authenticated');
+
+  const resp = await fetch('/api/subscription?action=sync', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const payload = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const msg = payload?.error || 'sync_failed';
+    throw new Error(msg);
+  }
+  return payload as { ok: boolean; planName?: string; status?: string };
+}
+

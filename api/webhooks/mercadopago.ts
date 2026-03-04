@@ -113,7 +113,7 @@ async function updateUserPlan(email: string, planName: string, subscriptionId: s
         const byEmail = await supabase
             .from('users')
             .select('id, email, subscription_status, full_name')
-            .eq('email', email)
+            .ilike('email', String(email || '').trim())
             .single();
 
         user = byEmail.data;

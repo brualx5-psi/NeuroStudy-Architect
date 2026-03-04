@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown } from '../components/Icons';
 import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 import { useAuth } from '../contexts/AuthContext';
-import { cancelSubscription } from '../services/subscriptionService';
+import { cancelSubscription, syncSubscription } from '../services/subscriptionService';
 
 // Links de assinatura do Mercado Pago
 const MP_SUBSCRIPTION_LINKS = {
@@ -162,8 +162,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                 onClick={async () => {
                   try {
                     setIsRefreshing(true);
+                    const result = await syncSubscription();
                     await refreshProfile();
-                    alert('Status atualizado. Se ainda aparecer Free, aguarde 1–2 minutos e tente novamente.');
+                    if (result.ok) {
+                      alert(`Plano atualizado: ${result.planName || 'ok'}.`);
+                    } else {
+                      alert('Ainda não localizei uma assinatura autorizada para esta conta. Se você acabou de pagar, aguarde 1–2 minutos e tente novamente.');
+                    }
                   } finally {
                     setIsRefreshing(false);
                   }
