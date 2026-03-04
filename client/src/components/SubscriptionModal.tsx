@@ -50,6 +50,7 @@ interface SubscriptionModalProps {
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onSelectPlan }) => {
   const { isPaid, profile, refreshProfile } = useAuth();
   const [isCancelling, setIsCancelling] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   if (!isOpen) return null;
 
@@ -149,6 +150,29 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                 </button>
               </div>
             )}
+
+            <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="font-extrabold text-slate-800 text-sm">Já assinou e voltou para o app?</div>
+              <div className="text-slate-600 text-xs mt-1">
+                Após concluir o checkout do Mercado Pago, o plano pode levar alguns segundos para atualizar. Clique aqui para sincronizar.
+              </div>
+              <button
+                type="button"
+                disabled={isRefreshing}
+                onClick={async () => {
+                  try {
+                    setIsRefreshing(true);
+                    await refreshProfile();
+                    alert('Status atualizado. Se ainda aparecer Free, aguarde 1–2 minutos e tente novamente.');
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+                className="mt-3 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold disabled:opacity-60"
+              >
+                {isRefreshing ? 'Atualizando...' : 'Atualizar status do plano'}
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 gap-6">
               <div className="relative p-6 rounded-3xl border-2 border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 group transition-all">

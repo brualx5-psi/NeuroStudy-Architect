@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { PLAN_LABELS, PLAN_LIMITS, PlanLimits, PlanName } from '../config/planLimits';
@@ -120,6 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [usage, setUsage] = useState<UserUsage | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const lastProfileRefreshAt = useRef<number>(0);
 
     const resolvePlanName = (status?: SubscriptionStatus | null): PlanName => {
         if (status === 'starter' || status === 'pro' || status === 'free') return status;
@@ -466,6 +468,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refreshProfile = async () => {
         if (user) await fetchProfile(user.id);
     };
+
+    const refreshProfileThrottled = async () => {
+        if (!user) return;
+        const now = Date.now();
+        if (now - lastProfileRefreshAt.current < 15000) return; // 15s
+        lastProfileRefreshAt.current = now;
+        await fetchProfile(user.id);
+    };
+
+    // Auto-refresh do perfil ao voltar para o app/aba (ajuda a capturar upgrades via webhook)
+    useEffect(() => {
+        const onFocus = () => refreshProfileThrottled();
+        const onVis = () => {
+            if (document.visibilityState === 'visible') refreshProfileThrottled();
+        };
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVis);
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVis);
+        };
+    }, [user?.id]);
 
     const canCreateStudy = () => {
         // Admin sempre pode criar
