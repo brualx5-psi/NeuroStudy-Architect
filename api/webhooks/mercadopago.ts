@@ -98,7 +98,7 @@ async function getSubscriptionDetails(subscriptionId: string): Promise<MPSubscri
 }
 
 // Atualizar plano do usuário no Supabase
-async function updateUserPlan(email: string, planName: string, subscriptionId: string): Promise<{ ok: boolean; prevPlan?: string; fullName?: string | null; }> {
+async function updateUserPlan(email: string, planName: string, subscriptionId: string, externalReference?: string | null): Promise<{ ok: boolean; prevPlan?: string; fullName?: string | null; }> {
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         console.error('[MP Webhook] Supabase não disponível');
@@ -106,15 +106,38 @@ async function updateUserPlan(email: string, planName: string, subscriptionId: s
     }
 
     try {
-        // Buscar usuário pelo email
-        const { data: user, error: findError } = await supabase
+        // Buscar usuário pelo email (caminho padrão)
+        let user: any = null;
+        let findError: any = null;
+
+        const byEmail = await supabase
             .from('users')
             .select('id, email, subscription_status, full_name')
             .eq('email', email)
             .single();
 
+        user = byEmail.data;
+        findError = byEmail.error;
+
+        // Fallback: se não encontrar por email, tentar external_reference como ID do usuário
+        if ((!user || findError) && externalReference) {
+            const maybeId = String(externalReference).trim();
+            if (maybeId.length >= 10) {
+                const byId = await supabase
+                    .from('users')
+                    .select('id, email, subscription_status, full_name')
+                    .eq('id', maybeId)
+                    .single();
+                if (byId.data) {
+                    user = byId.data;
+                    findError = null;
+                    console.log('[MP Webhook] Usuário encontrado via external_reference:', maybeId);
+                }
+            }
+        }
+
         if (findError || !user) {
-            console.error('[MP Webhook] Usuário não encontrado:', email, findError);
+            console.error('[MP Webhook] Usuário não encontrado (email/external_reference):', { email, externalReference, findError });
             return { ok: false };
         }
 
@@ -155,7 +178,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         console.log('[MP Webhook] Recebido:', JSON.stringify(payload, null, 2));
 
         // Verificar se é um evento de assinatura
-        if (payload.type !== 'subscription_preapproval') {
+        // Mercado Pago pode enviar como "subscription_preapproval" (docs) ou "preapproval" (variações).
+        if (!['subscription_preapproval', 'preapproval'].includes(payload.type)) {
             console.log('[MP Webhook] Evento ignorado:', payload.type);
             return sendJson(res, 200, { message: 'Evento ignorado' });
         }
@@ -187,7 +211,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             case 'authorized':
                 // Assinatura ativa - atualizar para o plano correspondente
                 if (planName) {
-                    const result = await updateUserPlan(subscription.payer_email, planName, subscription.id);
+                    const result = await updateUserPlan(subscription.payer_email, planName, subscription.id, subscription.external_reference);
                     // Enviar boas-vindas apenas se houve mudança real de plano
                     if (result.ok && result.prevPlan !== planName) {
                         try {
@@ -207,7 +231,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             case 'paused':
                 // Assinatura cancelada ou pausada - voltar para free
                 {
-                    const result = await updateUserPlan(subscription.payer_email, 'free', subscription.id);
+                    const result = await updateUserPlan(subscription.payer_email, 'free', subscription.id, subscription.external_reference);
                     if (result.ok && result.prevPlan && result.prevPlan !== 'free') {
                         try {
                             await sendCancelledEmail({
