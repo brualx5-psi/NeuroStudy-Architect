@@ -60,11 +60,33 @@ export default async function handler(req: any, res: any) {
 
     // Shared user row
 
-    const { data: userRow, error: userErr } = await supabase
+    let { data: userRow, error: userErr } = await supabase
       .from('users')
       .select('id, email, full_name, mp_subscription_id, subscription_status')
       .eq('id', auth.userId)
       .single();
+
+    // If the auth user exists but there is no profile row yet, create it.
+    if ((userErr as any)?.code === 'PGRST116' || (!userRow && userErr)) {
+      try {
+        await supabase.from('users').insert({
+          id: auth.userId,
+          email: auth.email || null,
+          subscription_status: 'free'
+        });
+
+        const retry = await supabase
+          .from('users')
+          .select('id, email, full_name, mp_subscription_id, subscription_status')
+          .eq('id', auth.userId)
+          .single();
+
+        userRow = retry.data as any;
+        userErr = retry.error as any;
+      } catch (e) {
+        console.error('[subscription] failed to auto-create user row', e);
+      }
+    }
 
     if (userErr || !userRow) {
       console.error('[subscription] user not found', userErr);
