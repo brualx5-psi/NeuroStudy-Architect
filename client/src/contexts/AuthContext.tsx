@@ -19,6 +19,7 @@ type UserProfile = {
     study_purpose: string | null;
     subscription_status: SubscriptionStatus;
     mp_subscription_id?: string | null;
+    asaas_subscription_id?: string | null;
     is_admin?: boolean;
     created_at: string;
 };

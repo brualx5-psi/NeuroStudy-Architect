@@ -1,10 +1,35 @@
 import { supabase } from './supabase';
 
-export async function cancelSubscription(): Promise<{ ok: boolean }>{
+async function getAuthToken() {
   if (!supabase) throw new Error('supabase_not_configured');
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error('not_authenticated');
+  return token;
+}
+
+export async function createAsaasCheckout(sku: 'starter_mensal' | 'starter_anual' | 'pro_mensal' | 'pro_anual'): Promise<{ ok: boolean; invoiceUrl?: string | null; subscriptionId?: string; }> {
+  const token = await getAuthToken();
+
+  const resp = await fetch('/api/asaas/checkout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ sku })
+  });
+
+  const payload = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const msg = payload?.error || 'asaas_checkout_failed';
+    throw new Error(msg);
+  }
+  return payload as any;
+}
+
+export async function cancelSubscription(): Promise<{ ok: boolean }>{
+  const token = await getAuthToken();
 
   const resp = await fetch('/api/subscription?action=cancel', {
     method: 'POST',
@@ -23,11 +48,7 @@ export async function cancelSubscription(): Promise<{ ok: boolean }>{
 }
 
 export async function syncSubscription(): Promise<{ ok: boolean; planName?: string; status?: string }>{
-
-  if (!supabase) throw new Error('supabase_not_configured');
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error('not_authenticated');
+  const token = await getAuthToken();
 
   const resp = await fetch('/api/subscription?action=sync', {
     method: 'POST',

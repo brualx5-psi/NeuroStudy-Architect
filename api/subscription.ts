@@ -12,6 +12,7 @@ import { getAuthContext } from './_lib/auth.js';
 import { getSupabaseAdmin } from './_lib/supabase.js';
 import { sendJson } from './_lib/http.js';
 import { sendCancelledEmail } from './_lib/email.js';
+import { asaasFetch } from './_lib/asaas.js';
 
 async function cancelMercadoPagoSubscription(subscriptionId: string) {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -33,6 +34,19 @@ async function cancelMercadoPagoSubscription(subscriptionId: string) {
   }
 
   return resp.json().catch(() => ({}));
+}
+
+async function cancelAsaasSubscription(subscriptionId: string) {
+  const resp = await asaasFetch(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    method: 'DELETE',
+  });
+
+  if (!resp.resp.ok) {
+    console.error('[subscription.cancel] Asaas error', resp.resp.status, resp.payload || resp.text);
+    throw new Error('asaas_cancel_failed');
+  }
+
+  return resp.payload;
 }
 
 export default async function handler(req: any, res: any) {
@@ -62,7 +76,7 @@ export default async function handler(req: any, res: any) {
 
     let { data: userRow, error: userErr } = await supabase
       .from('users')
-      .select('id, email, full_name, mp_subscription_id, subscription_status')
+      .select('id, email, full_name, mp_subscription_id, asaas_subscription_id, subscription_status')
       .eq('id', auth.userId)
       .single();
 
@@ -77,7 +91,7 @@ export default async function handler(req: any, res: any) {
 
         const retry = await supabase
           .from('users')
-          .select('id, email, full_name, mp_subscription_id, subscription_status')
+          .select('id, email, full_name, mp_subscription_id, asaas_subscription_id, subscription_status')
           .eq('id', auth.userId)
           .single();
 
@@ -94,12 +108,19 @@ export default async function handler(req: any, res: any) {
     }
 
     if (action === 'cancel') {
-      const subscriptionId = (userRow as any).mp_subscription_id as string | null;
-      if (!subscriptionId) {
+      const asaasId = (userRow as any).asaas_subscription_id as string | null;
+      const mpId = (userRow as any).mp_subscription_id as string | null;
+
+      if (!asaasId && !mpId) {
         return sendJson(res, 400, { error: 'no_active_subscription' });
       }
 
-      await cancelMercadoPagoSubscription(subscriptionId);
+      // Prefer Asaas when present
+      if (asaasId) {
+        await cancelAsaasSubscription(asaasId);
+      } else if (mpId) {
+        await cancelMercadoPagoSubscription(mpId);
+      }
 
       const prevPlan = (userRow as any).subscription_status || 'free';
 
@@ -109,6 +130,7 @@ export default async function handler(req: any, res: any) {
         .update({
           subscription_status: 'free',
           mp_subscription_id: null,
+          asaas_subscription_id: null,
           subscription_updated_at: new Date().toISOString()
         })
         .eq('id', auth.userId);
@@ -126,6 +148,44 @@ export default async function handler(req: any, res: any) {
     }
 
     // action === 'sync'
+
+    // If user is on Asaas, try to sync from Asaas payments
+    const asaasId = (userRow as any).asaas_subscription_id as string | null;
+    if (asaasId) {
+      const list = await asaasFetch(`/subscriptions/${encodeURIComponent(asaasId)}/payments?limit=20&offset=0`, { method: 'GET' });
+      if (!list.resp.ok) {
+        console.error('[subscription.sync] Asaas list payments failed', list.resp.status, list.payload || list.text);
+        return sendJson(res, 502, { error: 'asaas_list_payments_failed' });
+      }
+
+      const payments = (list.payload as any)?.data;
+      const paid = Array.isArray(payments) ? payments.find((p: any) => ['RECEIVED', 'CONFIRMED'].includes(String(p?.status || '').toUpperCase())) : null;
+
+      if (!paid) {
+        // maybe created but not paid yet
+        return sendJson(res, 200, { ok: false, status: 'pending' });
+      }
+
+      const ext = String(paid?.externalReference || '').trim();
+      // ext format: userId:plan:cycle
+      const parts = ext.split(':');
+      const plan = (parts[1] || '').toLowerCase();
+      if (!['starter', 'pro'].includes(plan)) {
+        return sendJson(res, 200, { ok: false, status: 'plan_not_mapped', externalReference: ext });
+      }
+
+      await supabase
+        .from('users')
+        .update({
+          subscription_status: plan,
+          subscription_updated_at: new Date().toISOString(),
+        })
+        .eq('id', auth.userId);
+
+      return sendJson(res, 200, { ok: true, planName: plan });
+    }
+
+    // Fallback: legacy Mercado Pago sync
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) return sendJson(res, 500, { error: 'MERCADOPAGO_ACCESS_TOKEN_not_configured' });
 

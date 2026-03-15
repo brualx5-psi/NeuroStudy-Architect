@@ -3,14 +3,15 @@ import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown } from '../components/Icons';
 import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 import { useAuth } from '../contexts/AuthContext';
-import { cancelSubscription, syncSubscription } from '../services/subscriptionService';
+import { cancelSubscription, syncSubscription, createAsaasCheckout } from '../services/subscriptionService';
 
-// Links de assinatura do Mercado Pago
-const MP_SUBSCRIPTION_LINKS = {
-  starter_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=d5db97d0d27a4c11a006800f8ee6e552',
-  starter_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=854c80057c0e420683c129a07273f7c8',
-  pro_mensal: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=02935c0c251e465eb1ce329ab2bc98f2',
-  pro_anual: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a7e0f68a4c4f4ddca4c2ae512a8a1db5',
+const openAsaasCheckout = async (sku: 'starter_mensal' | 'starter_anual' | 'pro_mensal' | 'pro_anual') => {
+  const result = await createAsaasCheckout(sku);
+  if (!result?.invoiceUrl) {
+    alert('Checkout criado, mas não consegui pegar a URL da fatura. Me chama que eu olho os logs.');
+    return;
+  }
+  window.open(result.invoiceUrl, '_blank');
 };
 
 // Promo visual (marketing). Importante: o desconto real depende do link/plano/cupom no Mercado Pago.
@@ -122,7 +123,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           </div>
 
           <div className="flex-1 p-6 bg-white flex flex-col justify-center">
-            {isPaid && profile?.mp_subscription_id && (
+            {isPaid && (profile as any)?.asaas_subscription_id && (
               <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
                 <div className="font-extrabold text-rose-800 text-sm">Cancelar assinatura</div>
                 <div className="text-rose-700 text-xs mt-1">Se você não quiser renovar, você pode cancelar aqui.</div>
@@ -154,7 +155,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="font-extrabold text-slate-800 text-sm">Já assinou e voltou para o app?</div>
               <div className="text-slate-600 text-xs mt-1">
-                Após concluir o checkout do Mercado Pago, o plano pode levar alguns segundos para atualizar. Clique aqui para sincronizar.
+                Após concluir o checkout, o plano pode levar alguns segundos para atualizar. Clique aqui para sincronizar.
               </div>
               <button
                 type="button"
@@ -171,11 +172,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     }
 
                     if (result.status === 'pending') {
-                      alert('Encontrei uma assinatura PENDENTE no Mercado Pago (ainda não autorizada). Assim que ela ficar autorizada, o plano atualiza.');
+                      alert('Encontrei uma assinatura PENDENTE (ainda não confirmada). Assim que o pagamento confirmar, o plano atualiza.');
                       return;
                     }
 
-                    alert('Ainda não localizei uma assinatura autorizada para esta conta. Se você acabou de pagar, aguarde 1–2 minutos e tente novamente.');
+                    alert('Ainda não localizei um pagamento confirmado para esta conta. Se você acabou de pagar, aguarde 1–2 minutos e tente novamente.');
                   } catch (e: any) {
                     alert(`Falha ao sincronizar: ${e?.message || 'erro'}`);
                   } finally {
@@ -247,7 +248,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_mensal, '_blank')}
+                    onClick={() => { openAsaasCheckout('pro_mensal').catch((e) => alert(`Não foi possível abrir o checkout: ${e?.message || 'erro'}`)); }}
                     className="py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1"
                   >
                     <span className="flex items-center gap-1">
@@ -258,7 +259,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     <span className="text-[9px] text-indigo-300">Cancele quando quiser</span>
                   </button>
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.pro_anual, '_blank')}
+                    onClick={() => { openAsaasCheckout('pro_anual').catch((e) => alert(`Não foi possível abrir o checkout: ${e?.message || 'erro'}`)); }}
                     className="py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-[0.98] flex flex-col items-center justify-center gap-1 relative"
                   >
                     <span className="absolute -top-2 -right-2 bg-green-500 text-[10px] font-black px-2 py-0.5 rounded-full">3 DIAS GRÁTIS</span>
@@ -327,7 +328,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_mensal, '_blank')}
+                    onClick={() => { openAsaasCheckout('starter_mensal').catch((e) => alert(`Não foi possível abrir o checkout: ${e?.message || 'erro'}`)); }}
                     className="py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all flex flex-col items-center gap-0.5"
                   >
                     <span>Mensal</span>
@@ -335,7 +336,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     <span className="text-[9px] text-slate-500">Cancele quando quiser</span>
                   </button>
                   <button
-                    onClick={() => window.open(MP_SUBSCRIPTION_LINKS.starter_anual, '_blank')}
+                    onClick={() => { openAsaasCheckout('starter_anual').catch((e) => alert(`Não foi possível abrir o checkout: ${e?.message || 'erro'}`)); }}
                     className="py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all flex flex-col items-center gap-0.5 relative"
                   >
                     <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-[8px] font-black text-amber-900 px-1.5 py-0.5 rounded-full">3 DIAS GRÁTIS</span>
@@ -363,7 +364,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             </div>
 
             <p className="mt-6 text-center text-xs text-slate-400 font-medium">
-              Pagamento seguro via Mercado Pago. Cancele quando quiser.
+              Pagamento seguro via Asaas. Cancele quando quiser.
               {PROMO.enabled && (
                 <span className="block mt-1">
                   Promo: -20% só no 1º mês (mensal) para os {PROMO.firstN} primeiros — anual não entra.

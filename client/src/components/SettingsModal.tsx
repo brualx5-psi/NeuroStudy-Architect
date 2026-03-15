@@ -401,7 +401,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                   </button>
                 </div>
 
-                {isPaid && profile?.mp_subscription_id && (
+                {isPaid && (profile as any)?.asaas_subscription_id && (
                   <div className="flex items-center justify-between p-4 rounded-xl border border-rose-200 bg-rose-50">
                     <div>
                       <p className="font-bold text-sm text-rose-800">Cancelar assinatura</p>
