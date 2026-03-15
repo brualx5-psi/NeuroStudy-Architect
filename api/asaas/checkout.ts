@@ -35,7 +35,22 @@ async function findOrCreateCustomer({ name, email, cpfCnpj }: { name: string; em
 
   const data = (search.payload as any)?.data;
   const found = Array.isArray(data) ? data[0] : null;
-  if (found?.id) return found;
+  if (found?.id) {
+    // Ensure cpfCnpj exists (some accounts require it to create subscription/payments)
+    const hasCpf = String((found as any)?.cpfCnpj || (found as any)?.cpf_cnpj || '').replace(/\D+/g, '');
+    if (!hasCpf && cpfCnpj) {
+      const upd = await asaasFetch(`/customers/${encodeURIComponent(String(found.id))}`, {
+        method: 'POST',
+        body: JSON.stringify({ cpfCnpj }),
+      });
+      if (!upd.resp.ok) {
+        console.error('[asaas.checkout] customer update cpfCnpj failed', upd.resp.status, upd.payload || upd.text);
+      } else {
+        return upd.payload as any;
+      }
+    }
+    return found;
+  }
 
   const create = await asaasFetch('/customers', {
     method: 'POST',
