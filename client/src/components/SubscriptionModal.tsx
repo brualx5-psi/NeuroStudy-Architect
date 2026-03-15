@@ -3,15 +3,49 @@ import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown } from '../components/Icons';
 import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 import { useAuth } from '../contexts/AuthContext';
-import { cancelSubscription, syncSubscription, createAsaasCheckout } from '../services/subscriptionService';
+import { cancelSubscription, syncSubscription, createAsaasCheckout, saveBillingCpfCnpj } from '../services/subscriptionService';
+
+const askCpfCnpj = async () => {
+  const raw = prompt('Para emitir a cobrança, preciso do seu CPF ou CNPJ (apenas números).');
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/\D+/g, '');
+  if (!(cleaned.length === 11 || cleaned.length === 14)) {
+    alert('CPF/CNPJ inválido. Tente novamente.');
+    return null;
+  }
+  try {
+    await saveBillingCpfCnpj(cleaned);
+    return cleaned;
+  } catch (e: any) {
+    alert(`Não consegui salvar CPF/CNPJ: ${e?.message || 'erro'}`);
+    return null;
+  }
+};
 
 const openAsaasCheckout = async (sku: 'starter_mensal' | 'starter_anual' | 'pro_mensal' | 'pro_anual') => {
-  const result = await createAsaasCheckout(sku);
-  if (!result?.invoiceUrl) {
-    alert('Checkout criado, mas não consegui pegar a URL da fatura. Me chama que eu olho os logs.');
-    return;
+  try {
+    const result = await createAsaasCheckout(sku);
+    if (!result?.invoiceUrl) {
+      alert('Checkout criado, mas não consegui pegar a URL da fatura. Me chama que eu olho os logs.');
+      return;
+    }
+    window.open(result.invoiceUrl, '_blank');
+  } catch (e: any) {
+    const code = e?.code || e?.message;
+    if (code === 'cpf_required') {
+      const ok = await askCpfCnpj();
+      if (!ok) return;
+      // retry once
+      const result2 = await createAsaasCheckout(sku);
+      if (!result2?.invoiceUrl) {
+        alert('Checkout criado, mas não consegui pegar a URL da fatura.');
+        return;
+      }
+      window.open(result2.invoiceUrl, '_blank');
+      return;
+    }
+    throw e;
   }
-  window.open(result.invoiceUrl, '_blank');
 };
 
 // Promo visual (marketing). Importante: o desconto real depende do link/plano/cupom no Mercado Pago.

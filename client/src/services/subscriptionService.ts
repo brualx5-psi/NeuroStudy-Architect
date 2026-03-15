@@ -8,7 +8,7 @@ async function getAuthToken() {
   return token;
 }
 
-export async function createAsaasCheckout(sku: 'starter_mensal' | 'starter_anual' | 'pro_mensal' | 'pro_anual'): Promise<{ ok: boolean; invoiceUrl?: string | null; subscriptionId?: string; }> {
+export async function createAsaasCheckout(sku: 'starter_mensal' | 'starter_anual' | 'pro_mensal' | 'pro_anual'): Promise<{ ok: boolean; invoiceUrl?: string | null; subscriptionId?: string; error?: string; }> {
   const token = await getAuthToken();
 
   const resp = await fetch('/api/asaas/checkout', {
@@ -22,10 +22,33 @@ export async function createAsaasCheckout(sku: 'starter_mensal' | 'starter_anual
 
   const payload = await resp.json().catch(() => ({}));
   if (!resp.ok) {
+    // surface known errors
     const msg = payload?.error || 'asaas_checkout_failed';
-    throw new Error(msg);
+    const e: any = new Error(msg);
+    (e as any).code = msg;
+    throw e;
   }
   return payload as any;
+}
+
+export async function saveBillingCpfCnpj(cpfCnpj: string): Promise<{ ok: boolean }>{
+  const token = await getAuthToken();
+
+  const resp = await fetch('/api/billing/profile', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ cpfCnpj })
+  });
+
+  const payload = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const msg = payload?.error || 'billing_profile_save_failed';
+    throw new Error(msg);
+  }
+  return payload as { ok: boolean };
 }
 
 export async function cancelSubscription(): Promise<{ ok: boolean }>{

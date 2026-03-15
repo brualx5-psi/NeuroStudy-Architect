@@ -24,7 +24,7 @@ function addDaysISO(days: number) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-async function findOrCreateCustomer({ name, email }: { name: string; email: string; }) {
+async function findOrCreateCustomer({ name, email, cpfCnpj }: { name: string; email: string; cpfCnpj: string; }) {
   // Search customer by email
   const q = `/customers?email=${encodeURIComponent(email)}&limit=1`;
   const search = await asaasFetch(q, { method: 'GET' });
@@ -39,7 +39,7 @@ async function findOrCreateCustomer({ name, email }: { name: string; email: stri
 
   const create = await asaasFetch('/customers', {
     method: 'POST',
-    body: JSON.stringify({ name: name || email, email }),
+    body: JSON.stringify({ name: name || email, email, cpfCnpj }),
   });
 
   if (!create.resp.ok) {
@@ -143,7 +143,20 @@ export default async function handler(req: any, res: any) {
 
     const name = String((userRow as any)?.full_name || '').trim() || email;
 
-    const customer = await findOrCreateCustomer({ name, email });
+    const { data: billingRow, error: billingErr } = await supabase
+      .from('user_billing')
+      .select('cpf_cnpj')
+      .eq('user_id', auth.userId)
+      .single();
+
+    if (billingErr || !billingRow?.cpf_cnpj) {
+      return sendJson(res, 400, { error: 'cpf_required' });
+    }
+
+    const cpfCnpj = String((billingRow as any).cpf_cnpj || '').trim();
+    if (!cpfCnpj) return sendJson(res, 400, { error: 'cpf_required' });
+
+    const customer = await findOrCreateCustomer({ name, email, cpfCnpj });
 
     const externalReference = `${auth.userId}:${planDef.plan}:${planDef.cycle}`;
 
