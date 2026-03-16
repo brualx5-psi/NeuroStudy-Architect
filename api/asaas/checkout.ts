@@ -9,9 +9,10 @@ type PlanName = 'starter' | 'pro';
 type Cycle = 'MONTHLY' | 'YEARLY';
 
 const PLANS: Record<string, { plan: PlanName; cycle: Cycle; value: number; description: string; }> = {
-  starter_mensal: { plan: 'starter', cycle: 'MONTHLY', value: 59.9, description: 'NeuroStudy Starter (Mensal)' },
+  // Valores devem bater com o que o usuário vê no modal.
+  starter_mensal: { plan: 'starter', cycle: 'MONTHLY', value: 29.9, description: 'NeuroStudy Starter (Mensal)' },
   starter_anual: { plan: 'starter', cycle: 'YEARLY', value: 299, description: 'NeuroStudy Starter (Anual)' },
-  pro_mensal: { plan: 'pro', cycle: 'MONTHLY', value: 99.9, description: 'NeuroStudy Pro (Mensal)' },
+  pro_mensal: { plan: 'pro', cycle: 'MONTHLY', value: 59.9, description: 'NeuroStudy Pro (Mensal)' },
   pro_anual: { plan: 'pro', cycle: 'YEARLY', value: 599, description: 'NeuroStudy Pro (Anual)' },
 };
 

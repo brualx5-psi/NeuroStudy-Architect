@@ -50,7 +50,7 @@ const openAsaasCheckout = async (sku: 'starter_mensal' | 'starter_anual' | 'pro_
 
 // Promo visual (marketing). Importante: o desconto real depende do link/plano/cupom no Mercado Pago.
 const PROMO = {
-  enabled: true,
+  enabled: false,
   percentOff: 0.2,
   firstN: 50,
   appliesTo: new Set<PlanName>(['starter', 'pro'])
