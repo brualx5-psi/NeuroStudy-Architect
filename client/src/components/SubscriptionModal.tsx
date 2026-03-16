@@ -267,7 +267,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                       Anual
                     </span>
                     <span className="text-xs text-amber-100">R$ 599/ano</span>
-                    <span className="text-[9px] text-amber-200">2 meses grátis</span>
+                    <span className="text-[9px] text-amber-200">Cancele em até 3 dias e não paga</span>
                   </button>
                 </div>
               </div>
@@ -341,6 +341,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                     <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-[8px] font-black text-amber-900 px-1.5 py-0.5 rounded-full">3 DIAS GRÁTIS</span>
                     <span>Anual</span>
                     <span className="text-xs text-emerald-100">R$ 299/ano</span>
+                    <span className="text-[9px] text-emerald-200">Cancele em até 3 dias e não paga</span>
                   </button>
                 </div>
               </div>
