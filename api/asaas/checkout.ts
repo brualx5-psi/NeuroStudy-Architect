@@ -74,8 +74,9 @@ async function createSubscription({ customerId, externalReference, description, 
   cycle: Cycle;
 }) {
   // nextDueDate controls first charge date.
-  // For MVP, charge ASAP (today + 0/1). Using +0 can fail depending on time; +1 is safer.
-  const nextDueDate = addDaysISO(0);
+  // We offer 3 days free on YEARLY plans (trial). Monthly charges immediately.
+  const trialDays = cycle === 'YEARLY' ? 3 : 0;
+  const nextDueDate = addDaysISO(trialDays);
 
   // billingType:
   // - CREDIT_CARD / BOLETO / PIX
