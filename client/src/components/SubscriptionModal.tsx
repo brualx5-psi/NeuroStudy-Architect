@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Check, Zap, Sparkles, Crown } from '../components/Icons';
 import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 import { useAuth } from '../contexts/AuthContext';
-import { cancelSubscription, syncSubscription, createAsaasCheckout, saveBillingCpfCnpj } from '../services/subscriptionService';
+import { cancelSubscription, createAsaasCheckout, saveBillingCpfCnpj } from '../services/subscriptionService';
 
 const askCpfCnpj = async () => {
   const raw = prompt('Para emitir a cobrança, preciso do seu CPF ou CNPJ (apenas números).');
@@ -85,7 +85,7 @@ interface SubscriptionModalProps {
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose, onSelectPlan }) => {
   const { isPaid, profile, refreshProfile } = useAuth();
   const [isCancelling, setIsCancelling] = React.useState(false);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  // Refresh button removed (webhook updates automatically).
 
   if (!isOpen) return null;
 
@@ -186,42 +186,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
               </div>
             )}
 
-            <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="font-extrabold text-slate-800 text-sm">Já assinou e voltou para o app?</div>
-              <div className="text-slate-600 text-xs mt-1">
-                Após concluir o checkout, o plano pode levar alguns segundos para atualizar. Clique aqui para sincronizar.
-              </div>
-              <button
-                type="button"
-                disabled={isRefreshing}
-                onClick={async () => {
-                  try {
-                    setIsRefreshing(true);
-                    const result = await syncSubscription();
-                    await refreshProfile();
-
-                    if (result.ok) {
-                      alert(`Plano atualizado: ${result.planName || 'ok'}.`);
-                      return;
-                    }
-
-                    if (result.status === 'pending') {
-                      alert('Encontrei uma assinatura PENDENTE (ainda não confirmada). Assim que o pagamento confirmar, o plano atualiza.');
-                      return;
-                    }
-
-                    alert('Ainda não localizei um pagamento confirmado para esta conta. Se você acabou de pagar, aguarde 1–2 minutos e tente novamente.');
-                  } catch (e: any) {
-                    alert(`Falha ao sincronizar: ${e?.message || 'erro'}`);
-                  } finally {
-                    setIsRefreshing(false);
-                  }
-                }}
-                className="mt-3 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold disabled:opacity-60"
-              >
-                {isRefreshing ? 'Atualizando...' : 'Atualizar status do plano'}
-              </button>
-            </div>
+            {/* Status do plano atualiza automaticamente via webhook (sem botão manual). */}
 
             <div className="grid grid-cols-1 gap-6">
               <div className="relative p-6 rounded-3xl border-2 border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 group transition-all">
