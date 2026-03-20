@@ -32,13 +32,51 @@ function parseExternalReference(externalReference: string | null | undefined): {
   return { userId, plan: planName, cycle };
 }
 
-async function updateUserPlanById(userId: string, planName: PlanName, asaasSubscriptionId?: string | null): Promise<{ ok: boolean; prevPlan?: string; email?: string | null; fullName?: string | null; }> {
+async function logWebhookEvent(params: {
+  eventId: string;
+  event: string;
+  paymentId?: string | null;
+  subscriptionId?: string | null;
+  status?: string | null;
+  externalReference?: string | null;
+  userId?: string | null;
+  action?: string;
+  reason?: string;
+  payload: any;
+}) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  try {
+    // Table should be created in Supabase (see docs/SQL in repo): asaas_webhook_events
+    await supabase.from('asaas_webhook_events').insert([{
+      id: params.eventId,
+      event: params.event,
+      payment_id: params.paymentId || null,
+      subscription_id: params.subscriptionId || null,
+      payment_status: params.status || null,
+      external_reference: params.externalReference || null,
+      user_id: params.userId || null,
+      action: params.action || null,
+      reason: params.reason || null,
+      payload: params.payload,
+      created_at: new Date().toISOString(),
+    }]).throwOnError();
+  } catch (e: any) {
+    // Ignore duplicates / missing table errors in prod to avoid breaking payments.
+    const msg = String(e?.message || e);
+    if (!msg.toLowerCase().includes('duplicate') && !msg.toLowerCase().includes('already exists')) {
+      console.warn('[Asaas Webhook] log ignored', msg);
+    }
+  }
+}
+
+async function updateUserPlanById(userId: string, planName: PlanName, asaasSubscriptionId?: string | null): Promise<{ ok: boolean; prevPlan?: string; email?: string | null; fullName?: string | null; currentSubId?: string | null; }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false };
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, email, full_name, subscription_status')
+    .select('id, email, full_name, subscription_status, asaas_subscription_id')
     .eq('id', userId)
     .single();
 
@@ -48,6 +86,7 @@ async function updateUserPlanById(userId: string, planName: PlanName, asaasSubsc
   }
 
   const prevPlan = (user as any).subscription_status;
+  const currentSubId = (user as any).asaas_subscription_id as string | null;
 
   const { error: updErr } = await supabase
     .from('users')
@@ -60,10 +99,10 @@ async function updateUserPlanById(userId: string, planName: PlanName, asaasSubsc
 
   if (updErr) {
     console.error('[Asaas Webhook] update failed', updErr);
-    return { ok: false, prevPlan, email: (user as any).email, fullName: (user as any).full_name };
+    return { ok: false, prevPlan, currentSubId, email: (user as any).email, fullName: (user as any).full_name };
   }
 
-  return { ok: true, prevPlan, email: (user as any).email, fullName: (user as any).full_name };
+  return { ok: true, prevPlan, currentSubId, email: (user as any).email, fullName: (user as any).full_name };
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
@@ -81,9 +120,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const subscriptionId = payment.subscription ? String(payment.subscription) : null;
     const { userId, plan } = parseExternalReference(payment.externalReference);
 
+    const webhookId = payload?.id ? String(payload.id) : null;
+    const eventId = webhookId || `${event}:${payment?.id || 'no-payment'}`;
+
     console.log('[Asaas Webhook] received', {
       event,
-      webhookId: payload?.id,
+      webhookId: webhookId || undefined,
+      eventId,
       paymentId: payment?.id,
       subscriptionId,
       status: payment?.status,
@@ -111,16 +154,55 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     if (!userId) {
       // We can’t match user without externalReference in MVP.
       console.warn('[Asaas Webhook] missing userId in externalReference', { externalReference: payment.externalReference });
+      await logWebhookEvent({
+        eventId,
+        event,
+        paymentId: payment?.id || null,
+        subscriptionId,
+        status: payment?.status || null,
+        externalReference: payment?.externalReference || null,
+        userId: null,
+        action: 'ignored',
+        reason: 'missing_external_reference',
+        payload,
+      });
       return sendJson(res, 200, { ok: true, ignored: true, reason: 'missing_external_reference' });
     }
 
     if (paidEvents.has(event)) {
       if (!plan || plan === 'free') {
         console.warn('[Asaas Webhook] paid event but plan missing', { externalReference: payment.externalReference });
+        await logWebhookEvent({
+          eventId,
+          event,
+          paymentId: payment?.id || null,
+          subscriptionId,
+          status: payment?.status || null,
+          externalReference: payment?.externalReference || null,
+          userId,
+          action: 'ignored',
+          reason: 'plan_missing',
+          payload,
+        });
         return sendJson(res, 200, { ok: true, ignored: true, reason: 'plan_missing' });
       }
 
+      // For paid events, we accept switching to a new subscriptionId (user re-subscribed),
+      // but we still record the new subscriptionId as the official one.
       const result = await updateUserPlanById(userId, plan, subscriptionId);
+
+      await logWebhookEvent({
+        eventId,
+        event,
+        paymentId: payment?.id || null,
+        subscriptionId,
+        status: payment?.status || null,
+        externalReference: payment?.externalReference || null,
+        userId,
+        action: 'update_plan',
+        reason: 'paid_event',
+        payload,
+      });
 
       if (result.ok && result.prevPlan !== plan && result.email) {
         sendWelcomeEmail({
@@ -134,7 +216,54 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     if (cancelEvents.has(event)) {
+      // IMPORTANT: never downgrade to free if the cancel event refers to a different subscription.
+      // This prevents old/duplicate subscriptions from overriding the current active one.
+      const supabase = getSupabaseAdmin();
+      const { data: userRow } = supabase ? await supabase
+        .from('users')
+        .select('asaas_subscription_id')
+        .eq('id', userId)
+        .single() : { data: null } as any;
+
+      const currentSubId = (userRow as any)?.asaas_subscription_id as string | null;
+      const subMatches = !currentSubId || (subscriptionId && currentSubId === subscriptionId);
+
+      if (!subMatches) {
+        console.warn('[Asaas Webhook] cancel event ignored (subscription mismatch)', {
+          userId,
+          currentSubId,
+          subscriptionId,
+          event,
+        });
+        await logWebhookEvent({
+          eventId,
+          event,
+          paymentId: payment?.id || null,
+          subscriptionId,
+          status: payment?.status || null,
+          externalReference: payment?.externalReference || null,
+          userId,
+          action: 'ignored',
+          reason: 'subscription_mismatch',
+          payload,
+        });
+        return sendJson(res, 200, { ok: true, ignored: true, reason: 'subscription_mismatch' });
+      }
+
       const result = await updateUserPlanById(userId, 'free', subscriptionId);
+
+      await logWebhookEvent({
+        eventId,
+        event,
+        paymentId: payment?.id || null,
+        subscriptionId,
+        status: payment?.status || null,
+        externalReference: payment?.externalReference || null,
+        userId,
+        action: 'update_plan',
+        reason: 'cancel_event',
+        payload,
+      });
 
       if (result.ok && result.prevPlan && result.prevPlan !== 'free' && result.email) {
         sendCancelledEmail({
@@ -148,6 +277,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     // Other events are informational
+    await logWebhookEvent({
+      eventId,
+      event,
+      paymentId: payment?.id || null,
+      subscriptionId,
+      status: payment?.status || null,
+      externalReference: payment?.externalReference || null,
+      userId,
+      action: 'ignored',
+      reason: 'unhandled_event',
+      payload,
+    });
     return sendJson(res, 200, { ok: true, ignored: true, event });
   } catch (err: any) {
     const status = err?.statusCode || 500;

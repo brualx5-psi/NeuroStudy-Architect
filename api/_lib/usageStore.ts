@@ -85,15 +85,31 @@ const createEmptyUsage = (userId: string, month: string, plan: PlanName): UsageR
   updated_at: new Date().toISOString()
 });
 
+const parseIsoTime = (iso?: string | null): number | null => {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? t : null;
+};
+
+const getEffectivePlan = (row: any): PlanName => {
+  const override = mapPlanName(row?.manual_plan_override);
+  const exp = parseIsoTime(row?.manual_override_expires_at);
+  const now = Date.now();
+  if (row?.manual_plan_override && override && exp && exp > now) {
+    return override;
+  }
+  return mapPlanName(row?.subscription_status);
+};
+
 export const getUserPlan = async (userId: string): Promise<PlanName> => {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 'free';
   const { data } = await supabase
     .from('users')
-    .select('subscription_status')
+    .select('subscription_status, manual_plan_override, manual_override_expires_at')
     .eq('id', userId)
     .single();
-  return mapPlanName(data?.subscription_status);
+  return getEffectivePlan(data);
 };
 
 export const getUserAccess = async (userId: string): Promise<UserAccess> => {
@@ -101,11 +117,11 @@ export const getUserAccess = async (userId: string): Promise<UserAccess> => {
   if (!supabase) return { planName: 'free', isAdmin: false };
   const { data } = await supabase
     .from('users')
-    .select('subscription_status, is_admin')
+    .select('subscription_status, is_admin, manual_plan_override, manual_override_expires_at')
     .eq('id', userId)
     .single();
   return {
-    planName: mapPlanName(data?.subscription_status),
+    planName: getEffectivePlan(data),
     isAdmin: Boolean(data?.is_admin)
   };
 };
