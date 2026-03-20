@@ -205,11 +205,40 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       });
 
       if (result.ok && result.prevPlan !== plan && result.email) {
-        sendWelcomeEmail({
-          toEmail: result.email,
-          name: result.fullName,
-          planName: plan as any,
-        }).catch((e) => console.error('[Asaas Webhook] welcome email failed (ignored)', e));
+        try {
+          await sendWelcomeEmail({
+            toEmail: result.email,
+            name: result.fullName,
+            planName: plan as any,
+          });
+          await logWebhookEvent({
+            eventId: `${eventId}:welcome`,
+            event,
+            paymentId: payment?.id || null,
+            subscriptionId,
+            status: payment?.status || null,
+            externalReference: payment?.externalReference || null,
+            userId,
+            action: 'welcome_email_sent',
+            reason: null,
+            payload: { toEmail: result.email, plan },
+          });
+        } catch (e: any) {
+          const msg = String(e?.message || e);
+          console.error('[Asaas Webhook] welcome email failed (ignored)', msg);
+          await logWebhookEvent({
+            eventId: `${eventId}:welcome_failed`,
+            event,
+            paymentId: payment?.id || null,
+            subscriptionId,
+            status: payment?.status || null,
+            externalReference: payment?.externalReference || null,
+            userId,
+            action: 'welcome_email_failed',
+            reason: msg,
+            payload: { toEmail: result.email, plan },
+          });
+        }
       }
 
       return sendJson(res, 200, { ok: true });
