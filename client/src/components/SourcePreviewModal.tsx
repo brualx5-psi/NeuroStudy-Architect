@@ -1,7 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StudySource, InputType } from '../types';
 import { X, FileText, Globe, Video, Image as ImageIcon } from './Icons';
 import { fetchLinkPreview, LinkPreview } from '../services/previewService';
+
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  // Remove data-uri prefix se vier junto
+  const raw = base64.startsWith('data:') ? base64.split(',')[1] : base64;
+  const byteCharacters = atob(raw);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
 
 interface SourcePreviewModalProps {
   source: StudySource;
@@ -12,6 +24,26 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
   const [preview, setPreview] = useState<LinkPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+
+  // Evita usar data:URI gigante no iframe (muitos browsers falham/ficam em branco em PDFs grandes).
+  // Blob URL é mais estável e funciona ao reabrir o modal.
+  const pdfObjectUrl = useMemo(() => {
+    if (source.type !== InputType.PDF) return null;
+    try {
+      const mime = source.mimeType || 'application/pdf';
+      const blob = base64ToBlob(source.content, mime);
+      return URL.createObjectURL(blob);
+    } catch {
+      return null;
+    }
+    // Recria quando a fonte mudar
+  }, [source.type, source.content, source.mimeType]);
+
+  useEffect(() => {
+    return () => {
+      if (pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
+    };
+  }, [pdfObjectUrl]);
 
   useEffect(() => {
     const isLink = source.type === InputType.URL || source.type === InputType.DOI;
@@ -46,18 +78,21 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
 
   const renderContent = () => {
     switch (source.type) {
-      case InputType.PDF:
-        // Verifica se o conteúdo já tem o prefixo data URI, senão adiciona
-        const pdfSrc = source.content.startsWith('data:')
+      case InputType.PDF: {
+        const fallbackDataUri = source.content.startsWith('data:')
           ? source.content
           : `data:application/pdf;base64,${source.content}`;
+
+        const src = pdfObjectUrl || fallbackDataUri;
+
         return (
           <iframe
-            src={pdfSrc}
+            src={src}
             className="w-full h-full rounded-lg border border-gray-200"
             title="PDF Preview"
           />
         );
+      }
 
       case InputType.IMAGE:
         const imgSrc = source.content.startsWith('data:')
