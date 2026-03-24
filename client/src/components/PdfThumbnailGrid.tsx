@@ -2,8 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Loader2 } from 'lucide-react';
 
-// Configurar worker do PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configurar worker do PDF.js.
+// IMPORTANTE: usar worker local/bundlado (evita falha de preview por CSP/CORS em extensão e em alguns deploys).
+// Vite suporta `?url` para trazer o asset e expor a URL final.
+// Se isso quebrar em algum ambiente, o sintoma típico é: "Não foi possível carregar o preview do PDF".
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 interface PdfThumbnailGridProps {
     pdfFile: File;

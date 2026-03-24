@@ -23,7 +23,18 @@ export interface PageSelection {
  */
 export const parsePageRanges = (input: string, maxPage?: number): number[] => {
     const pages: Set<number> = new Set();
-    const parts = input.split(',').map(p => p.trim()).filter(p => p);
+
+    // Normaliza entradas comuns em PT-BR:
+    // - "30 ate 55" / "30 até 55" / "30 a 55" -> "30-55"
+    // - diferentes tipos de hífen (– —) -> "-"
+    const normalized = (input || '')
+        .toLowerCase()
+        .replace(/[–—]/g, '-')
+        .replace(/\s*(até|ate|a|to)\s*/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const parts = normalized.split(',').map(p => p.trim()).filter(p => p);
 
     for (const part of parts) {
         if (part.includes('-')) {
