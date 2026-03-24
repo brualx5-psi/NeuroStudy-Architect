@@ -527,7 +527,7 @@ export function AppContent() {
 
         // Se for PDF com seleção de páginas específicas, extrai antes
         let processedFile = content;
-        if (content instanceof File && type === InputType.PDF && pageSelection?.mode === 'range' && pageSelection.parsedPages && pageSelection.parsedPages.length > 0) {
+        if (content instanceof File && type === InputType.PDF && (pageSelection?.mode === 'range' || pageSelection?.mode === 'visual') && pageSelection.parsedPages && pageSelection.parsedPages.length > 0) {
             try {
                 console.log(`📄 Extraindo ${pageSelection.parsedPages.length} páginas: ${pageSelection.pageRanges}`);
                 processedFile = await extractPdfPages(content, pageSelection.parsedPages);
@@ -624,7 +624,7 @@ export function AppContent() {
         let fileToProcess = pendingSourceFile.file;
 
         // Se selecionou páginas específicas, extrai antes
-        if (selection.mode === 'range' && selection.parsedPages && selection.parsedPages.length > 0) {
+        if ((selection.mode === 'range' || selection.mode === 'visual') && selection.parsedPages && selection.parsedPages.length > 0) {
             try {
                 console.log(`📄 Extraindo ${selection.parsedPages.length} páginas: ${selection.pageRanges}`);
                 fileToProcess = await extractPdfPages(pendingSourceFile.file, selection.parsedPages);
