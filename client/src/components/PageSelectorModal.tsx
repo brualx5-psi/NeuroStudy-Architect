@@ -95,6 +95,7 @@ export const PageSelectorModal: React.FC<PageSelectorModalProps> = ({
     const [mode, setMode] = useState<'all' | 'range' | 'visual'>('all');
     const [pageRanges, setPageRanges] = useState('');
     const [visualSelectedPages, setVisualSelectedPages] = useState<number[]>([]);
+    const [visualRangeInput, setVisualRangeInput] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [totalPages, setTotalPages] = useState<number | undefined>(initialTotalPages);
 
@@ -115,6 +116,7 @@ export const PageSelectorModal: React.FC<PageSelectorModalProps> = ({
             setMode('all');
             setPageRanges('');
             setVisualSelectedPages([]);
+            setVisualRangeInput('');
             setError(null);
         }
     }, [isOpen]);
@@ -160,6 +162,22 @@ export const PageSelectorModal: React.FC<PageSelectorModalProps> = ({
 
     const handleClearAll = () => {
         setVisualSelectedPages([]);
+    };
+
+    const applyVisualRange = (mode: 'replace' | 'add') => {
+        const pages = parsePageRanges(visualRangeInput, totalPages);
+        if (pages.length === 0) {
+            setError('Selecione pelo menos uma página');
+            return;
+        }
+
+        setVisualSelectedPages(prev => {
+            if (mode === 'replace') return pages;
+            // add
+            return Array.from(new Set([...prev, ...pages])).sort((a, b) => a - b);
+        });
+
+        setError(null);
     };
 
     const formatParsedPages = () => {
@@ -277,7 +295,40 @@ export const PageSelectorModal: React.FC<PageSelectorModalProps> = ({
 
                     {/* Seleção visual (modo visual) */}
                     {mode === 'visual' && pdfFile && (
-                        <div className="animate-in slide-in-from-top-2 duration-200">
+                        <div className="animate-in slide-in-from-top-2 duration-200 space-y-3">
+                            {/* Range rápido dentro do Visual */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">
+                                    Selecionar por intervalo (e ainda visualizar):
+                                </label>
+                                <div className="flex gap-2 flex-wrap">
+                                    <input
+                                        type="text"
+                                        value={visualRangeInput}
+                                        onChange={(e) => { setVisualRangeInput(e.target.value); setError(null); }}
+                                        placeholder="Ex: 30-55, 60, 72-80"
+                                        className="flex-1 min-w-[220px] px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-sm"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => applyVisualRange('add')}
+                                        className="px-4 py-3 rounded-xl bg-indigo-100 text-indigo-700 font-bold hover:bg-indigo-200 transition-colors text-sm"
+                                    >
+                                        Adicionar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => applyVisualRange('replace')}
+                                        className="px-4 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors text-sm"
+                                    >
+                                        Substituir
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    Dica: aceita também “30 até 55”.
+                                </p>
+                            </div>
+
                             <PdfThumbnailGrid
                                 pdfFile={pdfFile}
                                 selectedPages={visualSelectedPages}
