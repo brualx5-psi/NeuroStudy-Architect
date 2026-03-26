@@ -20,12 +20,20 @@ interface ResultsViewProps {
     isParetoOnly?: boolean;
     onScheduleReview?: (studyId: string) => void;
     isReviewScheduled?: boolean;
+
+    // Billing / gating
     onOpenSubscription: () => void;
+
+    // Paid actions
+    onExportPdf?: () => void;
+    onExportNotion?: () => void;
+
     onUsageLimit?: (reason: LimitReason) => void;
 }
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
-    guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled, onOpenSubscription, onUsageLimit
+    guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled,
+    onOpenSubscription, onExportPdf, onExportNotion, onUsageLimit
 }) => {
     const { isPaid, canUseFeynman, incrementUsage, usage } = useAuth();
 
@@ -498,7 +506,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         )}
                         <div className="flex gap-2 w-full sm:w-auto">
                             <button
-                                onClick={onOpenSubscription}
+                                onClick={() => {
+                                    if (!isPaid) return onOpenSubscription();
+                                    if (onExportPdf) return onExportPdf();
+                                    alert('Exportar PDF ainda não está disponível.');
+                                }}
                                 className="flex-1 sm:flex-none border-2 border-slate-200 bg-white text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                             >
                                 <FileDown className="w-4 h-4" />
@@ -506,7 +518,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                 {!isPaid && <Crown className="w-3 h-3 text-indigo-600" />}
                             </button>
                             <button
-                                onClick={onOpenSubscription}
+                                onClick={() => {
+                                    if (!isPaid) return onOpenSubscription();
+                                    if (onExportNotion) return onExportNotion();
+                                    alert('Exportar para Notion ainda não está disponível.');
+                                }}
                                 className="flex-1 sm:flex-none border-2 border-slate-200 bg-white text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                             >
                                 <NotionIcon className="w-4 h-4" />

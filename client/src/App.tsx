@@ -33,6 +33,7 @@ import { looksLikeVideoUrl, isSupportedVideoUrl } from './utils/videoUrlUtils';
 import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
 import { PageSelectorModal, PageSelection } from './components/PageSelectorModal';
 import { extractPdfPages } from './services/pdfPageExtractor';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
@@ -664,6 +665,113 @@ export function AppContent() {
 
     const fileToBase64 = (file: File): Promise<string> => { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => { const result = reader.result as string; const base64 = result.split(',')[1]; resolve(base64); }; reader.onerror = (error) => reject(error); }); };
 
+    const wrapText = (text: string, maxChars: number) => {
+        const words = (text || '').split(/\s+/).filter(Boolean);
+        const lines: string[] = [];
+        let current = '';
+        for (const w of words) {
+            const next = current ? `${current} ${w}` : w;
+            if (next.length > maxChars) {
+                if (current) lines.push(current);
+                current = w;
+            } else {
+                current = next;
+            }
+        }
+        if (current) lines.push(current);
+        return lines;
+    };
+
+    const handleExportGuidePdf = async () => {
+        if (!activeStudy?.guide) return;
+        try {
+            const guide = activeStudy.guide;
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            const addPageWithHeader = (title: string) => {
+                const page = pdfDoc.addPage([595, 842]); // A4 portrait
+                const { width, height } = page.getSize();
+                page.drawText('NeuroStudy', { x: 50, y: height - 40, size: 10, font, color: rgb(0.45, 0.45, 0.45) });
+                page.drawText(title, { x: 50, y: height - 70, size: 18, font: bold, color: rgb(0.15, 0.15, 0.25) });
+                return { page, width, height, cursorY: height - 100 };
+            };
+
+            let { page, cursorY } = addPageWithHeader(guide.title || 'Roteiro');
+
+            const writeBlock = (heading: string, body: string) => {
+                const marginX = 50;
+                const lineHeight = 14;
+                const maxChars = 95;
+                const minY = 60;
+
+                const ensureSpace = (needed: number) => {
+                    if (cursorY - needed < minY) {
+                        ({ page, cursorY } = addPageWithHeader(guide.title || 'Roteiro'));
+                    }
+                };
+
+                if (heading) {
+                    ensureSpace(26);
+                    page.drawText(heading, { x: marginX, y: cursorY, size: 12, font: bold, color: rgb(0.2, 0.2, 0.35) });
+                    cursorY -= 18;
+                }
+
+                const lines = wrapText(body || '', maxChars);
+                for (const line of lines) {
+                    ensureSpace(18);
+                    page.drawText(line, { x: marginX, y: cursorY, size: 10, font, color: rgb(0.15, 0.15, 0.15) });
+                    cursorY -= lineHeight;
+                }
+
+                cursorY -= 10;
+            };
+
+            writeBlock('Título', guide.title || '');
+            writeBlock('Assunto', guide.subject || '');
+
+            if (guide.summary) writeBlock('Resumo', guide.summary);
+
+            if (guide.coreConcepts?.length) {
+                writeBlock('Conceitos-chave', '');
+                guide.coreConcepts.forEach((c, idx) => {
+                    const line = `${idx + 1}. ${c.concept}: ${c.definition}`;
+                    writeBlock('', line);
+                });
+            }
+
+            if (guide.checkpoints?.length) {
+                writeBlock('Checkpoints', '');
+                guide.checkpoints.forEach((cp: any, idx: number) => {
+                    const line = `${idx + 1}. ${cp.mission} — ${cp.lookFor}`;
+                    writeBlock('', line);
+                });
+            }
+
+            const pdfBytes = await pdfDoc.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeTitle = (guide.title || 'neurostudy').replace(/[^a-z0-9-_]+/gi, '_');
+            a.href = url;
+            a.download = `${safeTitle}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch (e) {
+            console.error(e);
+            alert('Falha ao exportar PDF.');
+        }
+    };
+
+    const handleExportNotion = async () => {
+        // Placeholder: ainda não temos integração real com Notion aqui.
+        // Importante: não upsellar usuário Pro por um recurso que não está plugado.
+        alert('Integração com Notion: em desenvolvimento. Se você quiser, eu implemento o fluxo de OAuth + export.');
+    };
+
     const handleGenerateGuideForStudy = async (studyId: string, sources: StudySource[], mode: StudyMode, isBook: boolean) => {
         // ADMIN BYPASS
         const roadmapCheck = canPerformAction(planName, usage, sources, 'roadmap', { isAdmin });
@@ -1259,6 +1367,8 @@ export function AppContent() {
                                                 onScheduleReview={() => handleInitialSchedule(activeStudy.id)}
                                                 isReviewScheduled={!!activeStudy.nextReviewDate}
                                                 onOpenSubscription={() => setShowSubscriptionModal(true)}
+                                                onExportPdf={handleExportGuidePdf}
+                                                onExportNotion={handleExportNotion}
                                                 onUsageLimit={openUsageLimitModal}
                                             />
                                         )}
