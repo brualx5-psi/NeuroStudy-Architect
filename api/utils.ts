@@ -299,9 +299,9 @@ async function handlePreview(req: any, res: any) {
 }
 
 // ================= TRANSCRIBE LOGIC =================
-const getApiKey = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY missing');
+const getApiKey=*** => {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) throw new Error('GEMINI_API_KEY/GOOGLE_API_KEY missing');
     return apiKey;
 };
 
