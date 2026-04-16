@@ -471,7 +471,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="bg-gray-50 p-4 rounded-xl border-l-4 border-gray-400">
                                                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block flex items-center gap-1"><PenTool className="w-3 h-3" /> Escreva Exatamente Isso:</span>
-                                                <p className="text-sm text-gray-700 italic font-serif">"{checkpoint.noteExactly}"</p>
+                                                <div className="prose prose-sm max-w-none text-gray-700 prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0 prose-strong:text-gray-900 prose-em:text-gray-700">
+                                                    <ReactMarkdown>{checkpoint.noteExactly}</ReactMarkdown>
+                                                </div>
                                             </div>
                                             <div className={`p - 4 rounded - xl border - l - 4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'} `}>
                                                 <span className={`text - [10px] font - bold uppercase tracking - wider mb - 2 block flex items - center gap - 1 ${checkpoint.drawLabel === 'essential' ? 'text-orange-700' : 'text-blue-700'} `}>
