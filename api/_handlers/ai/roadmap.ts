@@ -5,6 +5,7 @@ import { rateLimit } from '../../_lib/rateLimit.js';
 import { generateStudyGuide } from '../../_lib/gemini.js';
 import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../../_lib/usageStore.js';
 import { prepareSourcesForRoadmap, SourceErrorCode } from '../../_lib/sourceResolver.js';
+import { buildProviderLimitPayload } from '../../_lib/providerLimits.js';
 
 // Mapeamento de erros para respostas humanizadas
 const ERROR_RESPONSES: Record<SourceErrorCode, { status: number; message: string; suggestion?: string }> = {
@@ -134,6 +135,10 @@ export default async function handler(req: any, res: any) {
       }
     });
   } catch (error: any) {
+    const providerLimit = buildProviderLimitPayload(error);
+    if (providerLimit) {
+      return sendJson(res, providerLimit.status, providerLimit.body);
+    }
     console.error('[roadmap] Gemini error:', error?.message);
     return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Erro ao gerar roteiro' });
   }

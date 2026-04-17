@@ -5,6 +5,7 @@ import { rateLimit } from '../../_lib/rateLimit.js';
 import { canPerformAction } from '../../_lib/usageLimits.js';
 import { generateFlashcards } from '../../_lib/gemini.js';
 import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../../_lib/usageStore.js';
+import { buildProviderLimitPayload } from '../../_lib/providerLimits.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -51,6 +52,8 @@ export default async function handler(req: any, res: any) {
       }
     });
   } catch (error: any) {
+    const providerLimit = buildProviderLimitPayload(error);
+    if (providerLimit) return sendJson(res, providerLimit.status, providerLimit.body);
     return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Gemini error' });
   }
 }

@@ -9,27 +9,32 @@ import { canPerformAction, LimitReason } from '../services/usageLimits';
 import { supabase } from '../services/supabase';
 import { UsageLimitError, isUsageLimitError } from '../services/geminiService';
 
-// Simple markdown parser for Deep Research output
-const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
-    const lines = text.split('\n');
-    return lines.map((line, idx) => {
-        // Parse bold **text**
-        let parsed = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        // Parse italic *text* (but not bullets)
-        parsed = parsed.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+// Safe markdown parser – returns React elements instead of raw HTML
+const inlineMarkdown = (text: string): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    // Split on **bold** and *italic* tokens, keeping delimiters
+    const tokens = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    tokens.forEach((tok, i) => {
+        if (tok.startsWith('**') && tok.endsWith('**')) {
+            parts.push(<strong key={i}>{tok.slice(2, -2)}</strong>);
+        } else if (tok.startsWith('*') && tok.endsWith('*')) {
+            parts.push(<em key={i}>{tok.slice(1, -1)}</em>);
+        } else if (tok) {
+            parts.push(tok);
+        }
+    });
+    return parts;
+};
 
-        // Check if line is a bullet point
+const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
+    return text.split('\n').map((line, idx) => {
         const isBullet = line.trim().startsWith('* ') || line.trim().startsWith('- ');
-        const cleanLine = isBullet ? parsed.replace(/^[\s]*[\*\-]\s/, '') : parsed;
+        const cleanLine = isBullet ? line.replace(/^[\s]*[*\-]\s/, '') : line;
 
         if (isBullet) {
-            return (
-                <li key={idx} className="ml-4 mb-1" dangerouslySetInnerHTML={{ __html: cleanLine }} />
-            );
+            return <li key={idx} className="ml-4 mb-1">{inlineMarkdown(cleanLine)}</li>;
         }
-        return (
-            <p key={idx} className="mb-2" dangerouslySetInnerHTML={{ __html: parsed }} />
-        );
+        return <p key={idx} className="mb-2">{inlineMarkdown(cleanLine)}</p>;
     });
 };
 

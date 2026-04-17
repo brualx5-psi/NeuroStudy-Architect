@@ -6,7 +6,8 @@ export enum InputType {
   IMAGE = 'IMAGE',
   DOI = 'DOI',
   EPUB = 'EPUB',
-  MOBI = 'MOBI'
+  MOBI = 'MOBI',
+  PPTX = 'PPTX'
 }
 
 export enum StudyMode {

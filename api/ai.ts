@@ -16,6 +16,7 @@
  */
 
 import { sendJson } from './_lib/http.js';
+import { setCorsHeaders } from './_lib/cors.js';
 
 import roadmapHandler from './_handlers/ai/roadmap.js';
 import toolHandler from './_handlers/ai/tool.js';
@@ -42,10 +43,7 @@ const ROUTES: Record<string, (req: any, res: any) => any> = {
 };
 
 export default async function handler(req: any, res: any) {
-  // CORS (safe default)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCorsHeaders(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 

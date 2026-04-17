@@ -5,6 +5,7 @@ import { rateLimit } from '../../_lib/rateLimit.js';
 import { canPerformAction } from '../../_lib/usageLimits.js';
 import { generateQuiz } from '../../_lib/gemini.js';
 import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../../_lib/usageStore.js';
+import { buildProviderLimitPayload } from '../../_lib/providerLimits.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -54,9 +55,11 @@ export default async function handler(req: any, res: any) {
       }
     });
   } catch (error: any) {
+    const providerLimit = buildProviderLimitPayload(error);
+    if (providerLimit) return sendJson(res, providerLimit.status, providerLimit.body);
     if (error?.message === 'INVALID_JSON_FROM_MODEL') {
       return sendJson(res, 502, {
-        error: 'gemini_parse_error',
+        error: 'invalid_json_from_model',
         message: 'Falha ao interpretar a resposta da IA. Tente novamente.'
       });
     }

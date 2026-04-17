@@ -3,8 +3,9 @@ import { buildLimitResponse } from '../../_lib/limitResponses.js';
 import { getClientIp, readJson, sendJson } from '../../_lib/http.js';
 import { rateLimit } from '../../_lib/rateLimit.js';
 import { canPerformAction } from '../../_lib/usageLimits.js';
-import { callGemini } from '../../_lib/gemini.js';
+import { searchWeb } from '../../_lib/gemini.js';
 import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from '../../_lib/usageStore.js';
+import { buildProviderLimitPayload } from '../../_lib/providerLimits.js';
 
 type WebResearchMode = 'grounding' | 'deep_research' | 'quality';
 
@@ -212,6 +213,8 @@ RESUMO: [1 frase sobre a qualidade da diretriz]`;
 
     return sendJson(res, 400, { error: 'invalid_mode' });
   } catch (error: any) {
+    const providerLimit = buildProviderLimitPayload(error);
+    if (providerLimit) return sendJson(res, providerLimit.status, providerLimit.body);
     return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Gemini error' });
   }
 }

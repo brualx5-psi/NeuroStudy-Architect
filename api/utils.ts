@@ -13,6 +13,8 @@ import { buildLimitResponse } from './_lib/limitResponses.js';
 import { canPerformAction } from './_lib/usageLimits.js';
 import { transcribeMedia } from './_lib/gemini.js';
 import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from './_lib/usageStore.js';
+import { setCorsHeaders } from './_lib/cors.js';
+import { buildProviderLimitPayload } from './_lib/providerLimits.js';
 
 // ================= PREVIEW TYPES & CONSTANTS =================
 type PreviewRequest = {
@@ -48,10 +50,7 @@ type TranscribeRequest = {
 
 // ================= HANDLER =================
 export default async function handler(req: any, res: any) {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    setCorsHeaders(req, res, 'GET, POST, OPTIONS');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -402,6 +401,10 @@ async function handleTranscribe(req: any, res: any) {
 
         return sendJson(res, 400, { error: 'invalid_action' });
     } catch (error: any) {
+        const providerLimit = buildProviderLimitPayload(error);
+        if (providerLimit) {
+            return sendJson(res, providerLimit.status, providerLimit.body);
+        }
         return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Gemini error' });
     }
 }

@@ -28,20 +28,16 @@ import { useSettings, SettingsProvider } from './contexts/SettingsContext';
 import { LoginPage } from './pages/LoginPage';
 import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles, Loader2 } from './components/Icons';
 import { canPerformAction, LimitReason } from './services/usageLimits';
-import { extractTextFromPdfBase64 } from './services/textExtraction';
+import { extractTextFromPdfBase64, extractTextFromPptxFile } from './services/textExtraction';
 import { looksLikeVideoUrl, isSupportedVideoUrl } from './utils/videoUrlUtils';
 import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
 import { PageSelectorModal, PageSelection } from './components/PageSelectorModal';
 import { extractPdfPages } from './services/pdfPageExtractor';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-// IDs de admin que podem usar qualquer link sem restrição
-const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
-
 export function AppContent() {
-    const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage, isAdmin: isAdminFromProfile } = useAuth();
+    const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage, isAdmin } = useAuth();
     const { settings } = useSettings();
-    const isAdmin = Boolean(isAdminFromProfile || (user?.id && ADMIN_USER_IDS.includes(user.id)));
     // Estado da view - começa como 'app' se usuário logado
     const [view, setView] = useState<'landing' | 'app'>('landing');
 
@@ -453,16 +449,32 @@ export function AppContent() {
                     return;
                 }
             } else {
-                const base64Content = await fileToBase64(selectedFile);
-                content = base64Content; mimeType = selectedFile.type; name = selectedFile.name;
-                if (inputType === InputType.PDF) {
-                    if (name.toLowerCase().endsWith('.epub')) finalType = InputType.EPUB;
-                    else if (name.toLowerCase().endsWith('.mobi')) finalType = InputType.MOBI;
-                    if (finalType === InputType.PDF) {
-                        const extracted = extractTextFromPdfBase64(base64Content);
-                        if (extracted) {
-                            // Limite de páginas removido - permite PDF de qualquer tamanho
-                            textContent = extracted;
+                const lowerName = selectedFile.name.toLowerCase();
+                name = selectedFile.name;
+                mimeType = selectedFile.type;
+
+                if (inputType === InputType.PDF && lowerName.endsWith('.pptx')) {
+                    finalType = InputType.PPTX;
+                    mimeType = selectedFile.type || 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+                    const extracted = await extractTextFromPptxFile(selectedFile);
+                    if (!extracted.trim()) {
+                        alert('Não foi possível extrair texto deste arquivo PPTX.');
+                        return;
+                    }
+                    content = extracted;
+                    textContent = extracted;
+                } else {
+                    const base64Content = await fileToBase64(selectedFile);
+                    content = base64Content;
+                    if (inputType === InputType.PDF) {
+                        if (lowerName.endsWith('.epub')) finalType = InputType.EPUB;
+                        else if (lowerName.endsWith('.mobi')) finalType = InputType.MOBI;
+                        if (finalType === InputType.PDF) {
+                            const extracted = extractTextFromPdfBase64(base64Content);
+                            if (extracted) {
+                                // Limite de páginas removido - permite PDF de qualquer tamanho
+                                textContent = extracted;
+                            }
                         }
                     }
                 }
@@ -546,19 +558,34 @@ export function AppContent() {
         const newStudy = createStudy(effectiveFolderId, title, mode, isBook);
         if (!newStudy) return; // Limite atingido, modal já exibido
 
+        let sourceType = type;
         let sourceContent = ''; let mimeType = 'text/plain'; let name = ''; let textContent: string | undefined;
         if (processedFile instanceof File) {
-            sourceContent = await fileToBase64(processedFile); mimeType = processedFile.type; name = processedFile.name;
-            if (type === InputType.PDF) {
-                const extracted = extractTextFromPdfBase64(sourceContent);
-                if (extracted) textContent = extracted;
+            const lowerName = processedFile.name.toLowerCase();
+            name = processedFile.name;
+            if (type === InputType.PPTX || (type === InputType.PDF && lowerName.endsWith('.pptx'))) {
+                sourceType = InputType.PPTX;
+                mimeType = processedFile.type || 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+                const extracted = await extractTextFromPptxFile(processedFile);
+                if (!extracted.trim()) {
+                    alert('Não foi possível extrair texto deste arquivo PPTX.');
+                    return;
+                }
+                sourceContent = extracted;
+                textContent = extracted;
+            } else {
+                sourceContent = await fileToBase64(processedFile); mimeType = processedFile.type; 
+                if (type === InputType.PDF) {
+                    const extracted = extractTextFromPdfBase64(sourceContent);
+                    if (extracted) textContent = extracted;
+                }
             }
         } else {
             sourceContent = processedFile; textContent = processedFile;
             if (type === InputType.DOI) name = 'DOI Link'; else if (type === InputType.URL) name = 'Website Link'; else name = 'Texto Colado';
         }
 
-        const newSource: StudySource = { id: Date.now().toString(), type, name, content: sourceContent, textContent, mimeType, dateAdded: Date.now(), isPrimary: true };
+        const newSource: StudySource = { id: Date.now().toString(), type: sourceType, name, content: sourceContent, textContent, mimeType, dateAdded: Date.now(), isPrimary: true };
         setStudies(prev => prev.map(s => { if (s.id === newStudy.id) return { ...s, sources: [newSource] }; return s; }));
 
         setQuickInputMode('none'); setInputText(''); setView('app');
@@ -568,10 +595,12 @@ export function AppContent() {
     const handleParetoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            const lowerName = file.name.toLowerCase();
             let type = InputType.TEXT;
             if (file.type.includes('pdf')) type = InputType.PDF;
-            else if (file.name.endsWith('.epub')) type = InputType.EPUB;
-            else if (file.name.endsWith('.mobi')) type = InputType.MOBI;
+            else if (lowerName.endsWith('.epub')) type = InputType.EPUB;
+            else if (lowerName.endsWith('.mobi')) type = InputType.MOBI;
+            else if (lowerName.endsWith('.pptx')) type = InputType.PPTX;
             else if (file.type.includes('video') || file.type.includes('audio')) type = InputType.VIDEO;
             else if (file.type.includes('image')) type = InputType.IMAGE;
 
@@ -590,9 +619,11 @@ export function AppContent() {
     const handleBookUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            const lowerName = file.name.toLowerCase();
             let type = InputType.PDF;
-            if (file.name.endsWith('.epub')) type = InputType.EPUB;
-            if (file.name.endsWith('.mobi')) type = InputType.MOBI;
+            if (lowerName.endsWith('.epub')) type = InputType.EPUB;
+            if (lowerName.endsWith('.mobi')) type = InputType.MOBI;
+            if (lowerName.endsWith('.pptx')) type = InputType.PPTX;
 
             // Se for PDF, mostra modal de seleção de páginas
             if (type === InputType.PDF) {
@@ -602,7 +633,6 @@ export function AppContent() {
                 handleQuickStart(file, type, StudyMode.NORMAL, false, true);
             }
         }
-        // Limpa o input para permitir reupload do mesmo arquivo
         e.target.value = '';
     };
 
@@ -1022,7 +1052,7 @@ export function AppContent() {
                             </button>
 
                             <div className="relative group w-full md:w-80">
-                                <input type="file" ref={bookInputRef} className="hidden" onChange={handleBookUpload} accept=".pdf,.epub,.mobi" />
+                                <input type="file" ref={bookInputRef} className="hidden" onChange={handleBookUpload} accept=".pdf,.epub,.mobi,.pptx" />
                                 <button
                                     onClick={() => isPaid ? bookInputRef.current?.click() : setShowSubscriptionModal(true)}
                                     className={`relative flex flex-col items-start p-6 bg-white border-2 rounded-2xl transition-all w-full shadow-sm overflow-hidden ${isPaid ? 'hover:bg-orange-50 border-orange-100 hover:border-orange-200 hover:shadow-xl hover:-translate-y-1' : 'border-gray-200 opacity-80'}`}
@@ -1047,7 +1077,7 @@ export function AppContent() {
                             </div>
 
                             <div className="relative group w-full md:w-80">
-                                <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*, .epub, .mobi" />
+                                <input type="file" ref={paretoInputRef} className="hidden" onChange={handleParetoUpload} accept=".pdf, video/*, audio/*, image/*, .epub, .mobi, .pptx" />
                                 <button
                                     onClick={() => isPaid ? paretoInputRef.current?.click() : setShowSubscriptionModal(true)}
                                     className={`relative flex flex-col items-start p-6 bg-white border-2 rounded-2xl transition-all w-full shadow-sm overflow-hidden ${isPaid ? 'hover:bg-red-50 border-red-100 hover:border-red-200 hover:shadow-xl hover:-translate-y-1' : 'border-gray-200 opacity-80'}`}
@@ -1252,7 +1282,7 @@ export function AppContent() {
                                                         <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-indigo-500" /> Adicionar Conteúdo</h2>
                                                         <div className="flex flex-wrap gap-2 mb-4 bg-gray-50 p-1.5 rounded-xl w-full">
                                                             <button onClick={() => setInputType(InputType.TEXT)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.TEXT ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Texto</button>
-                                                            <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF / E-book</button>
+                                                            <button onClick={() => setInputType(InputType.PDF)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.PDF ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>PDF / E-book / PPTX</button>
                                                             <button onClick={() => setInputType(InputType.VIDEO)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.VIDEO ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Vídeo</button>
                                                             <button onClick={() => setInputType(InputType.IMAGE)} className={`flex-1 min-w-[100px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.IMAGE ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Img/Caderno</button>
                                                             <button onClick={() => setInputType(InputType.URL)} className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold transition-all ${inputType === InputType.URL ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
@@ -1270,9 +1300,9 @@ export function AppContent() {
                                                                 <textarea value={inputText} onChange={(e) => setInputText(e.target.value)} className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-sans text-sm" placeholder={inputType === InputType.URL ? "Cole o link aqui..." : inputType === InputType.DOI ? "Ex: 10.1038/s41586-020-2649-2" : "Cole suas anotações ou texto aqui..."} />
                                                             ) : (
                                                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                                                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} accept={inputType === InputType.PDF ? ".pdf,.epub,.mobi" : inputType === InputType.VIDEO ? "video/*,audio/*" : "image/*"} />
+                                                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} accept={inputType === InputType.PDF ? ".pdf,.epub,.mobi,.pptx" : inputType === InputType.VIDEO ? "video/*,audio/*" : "image/*"} />
                                                                     <div className="flex flex-col items-center gap-2 text-gray-500">
-                                                                        {selectedFile ? (<><FileText className="w-8 h-8 text-indigo-500" /><span className="font-medium text-gray-900">{selectedFile.name}</span><span className="text-xs">Clique para trocar</span></>) : (<><UploadCloud className="w-8 h-8" /><span className="font-medium">Clique ou arraste o arquivo aqui</span><span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDF, EPUB, MOBI' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens (Cadernos/Lousas)'}</span></>)}
+                                                                        {selectedFile ? (<><FileText className="w-8 h-8 text-indigo-500" /><span className="font-medium text-gray-900">{selectedFile.name}</span><span className="text-xs">Clique para trocar</span></>) : (<><UploadCloud className="w-8 h-8" /><span className="font-medium">Clique ou arraste o arquivo aqui</span><span className="text-xs">Suporta {inputType === InputType.PDF ? 'PDF, EPUB, MOBI, PPTX' : inputType === InputType.VIDEO ? 'Vídeo/Áudio' : 'Imagens (Cadernos/Lousas)'}</span></>)}
                                                                     </div>
                                                                 </div>
                                                             )}

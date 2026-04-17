@@ -35,6 +35,13 @@ const getContentForReason = (reason: LimitReason | null) => {
         actions: ['plans', 'close'],
         closeLabel: 'Ok'
       };
+    case 'provider_quota_exhausted':
+      return {
+        title: 'Créditos do servidor esgotados',
+        message: 'O processamento de IA ficou indisponível no momento por falta de créditos/cota do servidor. Seu arquivo pode estar ok — tente novamente em alguns minutos.',
+        actions: ['close'],
+        closeLabel: 'Entendi'
+      };
     case 'youtube_too_long':
       return {
         title: 'Vídeo muito longo',

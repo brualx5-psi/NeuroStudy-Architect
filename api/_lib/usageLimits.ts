@@ -4,6 +4,7 @@ import { estimateTextFromBinary, extractTextFromPdfBase64 } from './textExtracti
 export type LimitReason =
   | 'monthly_limit'
   | 'monthly_tokens_exhausted'
+  | 'provider_quota_exhausted'
   | 'roadmap_too_large'
   | 'youtube_too_long'
   | 'too_many_sources'

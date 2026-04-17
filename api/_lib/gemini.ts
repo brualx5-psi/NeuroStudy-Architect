@@ -114,6 +114,23 @@ const fetchWithRetry = async <T>(operation: () => Promise<T>, retries = 3, delay
   }
 };
 
+const isQuotaLikeError = (error: any) => {
+  const text = [error?.message, error?.statusText, error?.error?.message]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    error?.status === 429 ||
+    error?.status === 503 ||
+    text.includes('resource_exhausted') ||
+    text.includes('quota') ||
+    text.includes('credits') ||
+    text.includes('credit') ||
+    text.includes('429')
+  );
+};
+
 const selectModel = (
   taskType: TaskType,
   contentLength: number = 0,
@@ -226,9 +243,27 @@ export const callGemini = async (options: CallGeminiOptions) => {
   };
 
   const timeoutMs = options.timeoutMs ?? 60_000;
-  const response = await fetchWithRetry(() =>
-    withTimeout(ai.models.generateContent(request), timeoutMs)
-  );
+  let response: any;
+
+  try {
+    response = await fetchWithRetry(() =>
+      withTimeout(ai.models.generateContent(request), timeoutMs)
+    );
+  } catch (error: any) {
+    if (model === MODEL_PRO && MODEL_FLASH !== MODEL_PRO && isQuotaLikeError(error)) {
+      const fallbackRequest = {
+        ...request,
+        model: MODEL_FLASH,
+      };
+
+      response = await fetchWithRetry(() =>
+        withTimeout(ai.models.generateContent(fallbackRequest), timeoutMs)
+      );
+    } else {
+      throw error;
+    }
+  }
+
   const text = getTextFromResponse(response);
   return { text, response, usageTokens: getUsageTokens(response) };
 };

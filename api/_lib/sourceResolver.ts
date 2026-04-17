@@ -11,17 +11,12 @@
 import { PLAN_LIMITS, PlanName } from './planLimits.js';
 import { estimateTextFromBinary, extractTextFromPdfBase64 } from './textExtraction.js';
 
-// IDs de admin que podem usar qualquer link sem restrição de tipo
-// ATENÇÃO: Apenas para ambiente de desenvolvimento ou usuários específicos
-const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
-
 /**
- * Verifica se o usuário é admin (pode usar qualquer link)
+ * Verifica se o usuário é admin (pode usar qualquer link).
+ * Decisão vem exclusivamente do campo is_admin no banco de dados.
  */
-export const isAdminUser = (userId?: string, isAdmin?: boolean): boolean => {
-    if (isAdmin) return true;
-    if (!userId) return false;
-    return ADMIN_USER_IDS.includes(userId);
+export const isAdminUser = (_userId?: string, isAdmin?: boolean): boolean => {
+    return Boolean(isAdmin);
 };
 
 // Tipos de fonte suportados
