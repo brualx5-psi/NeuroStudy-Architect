@@ -6,6 +6,7 @@ import { LABELS } from '../services/userProfileService';
 import { PreferredSource } from '../types';
 import { SubscriptionModal } from './SubscriptionModal';
 import { cancelSubscription } from '../services/subscriptionService';
+import { AdminEmailPanel } from './AdminEmailPanel';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -13,11 +14,11 @@ interface SettingsModalProps {
   initialTab?: TabKey;
 }
 
-type TabKey = 'search' | 'productivity' | 'appearance' | 'notifications' | 'account';
+type TabKey = 'search' | 'productivity' | 'appearance' | 'notifications' | 'account' | 'admin';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, initialTab }) => {
   const { settings, updateSettings } = useSettings();
-  const { isPaid, planLabel, limits, usage, profile, refreshProfile } = useAuth();
+  const { isPaid, planLabel, limits, usage, profile, refreshProfile, isAdmin } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab || 'search');
   const [defaultSource, setDefaultSource] = useState<PreferredSource>('auto');
@@ -112,13 +113,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
             </button>
           </div>
 
-          <div className="flex border-b border-gray-100 dark:border-slate-700 px-4">
+          <div className="flex border-b border-gray-100 dark:border-slate-700 px-4 overflow-x-auto">
             {[
               { key: 'search', label: 'Pesquisa' },
               { key: 'productivity', label: 'Produtividade' },
               { key: 'appearance', label: 'Aparência' },
               { key: 'notifications', label: 'Notificações' },
-              { key: 'account', label: 'Conta/Plano' }
+              { key: 'account', label: 'Conta/Plano' },
+              ...(isAdmin ? [{ key: 'admin', label: '⚙ Admin' }] : []),
             ].map(tab => (
               <button
                 key={tab.key}
@@ -456,15 +458,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
                 </div>
               </div>
             )}
+
+            {activeTab === 'admin' && isAdmin && (
+              <AdminEmailPanel />
+            )}
           </div>
 
           <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
             <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 font-bold hover:bg-gray-50 dark:hover:bg-slate-700">
               Cancelar
             </button>
-            <button onClick={handleSave} className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow">
-              Salvar
-            </button>
+            {activeTab !== 'admin' && (
+              <button onClick={handleSave} className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow">
+                Salvar
+              </button>
+            )}
           </div>
         </div>
       </div>

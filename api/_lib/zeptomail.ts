@@ -48,8 +48,9 @@ export async function sendZeptoMail(params: SendEmailParams) {
 
   const text = await resp.text().catch(() => '');
   if (!resp.ok) {
-    console.error('[zeptomail] send failed', resp.status, text.slice(0, 500));
-    throw new Error('zeptomail_send_failed');
+    const detail = text.slice(0, 400);
+    console.error('[zeptomail] send failed', resp.status, detail);
+    throw new Error(`zeptomail_send_failed: HTTP ${resp.status} — ${detail}`);
   }
 
   try {
