@@ -10,7 +10,7 @@
 import { getAuthContext } from '../_lib/auth.js';
 import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { sendJson, readJson } from '../_lib/http.js';
-import { sendPlanUpgradeEmail, sendSignupWelcomeEmail } from '../_lib/email.js';
+import { sendPlanUpgradeEmail, sendSignupWelcomeEmail, sendCancelledEmail } from '../_lib/email.js';
 
 type Body = {
   toEmail?: string;
@@ -64,7 +64,9 @@ export default async function handler(req: any, res: any) {
   try {
     const result = type === 'signup'
       ? await sendSignupWelcomeEmail({ toEmail, name: body.name || null })
-      : await sendPlanUpgradeEmail({ toEmail, name: body.name || null, planName: plan });
+      : type === 'cancelled'
+        ? await sendCancelledEmail({ toEmail, name: body.name || null, previousPlanName: plan })
+        : await sendPlanUpgradeEmail({ toEmail, name: body.name || null, planName: plan });
     return sendJson(res, 200, { ok: true, diagnostics, result });
   } catch (e: any) {
     const msg = String(e?.message || e);
