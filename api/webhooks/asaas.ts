@@ -200,7 +200,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         externalReference: payment?.externalReference || null,
         userId,
         action: 'update_plan',
-        reason: 'paid_event',
+        reason: `paid_event prevPlan=${result.prevPlan ?? 'unknown'} newPlan=${plan}`,
         payload,
       });
 

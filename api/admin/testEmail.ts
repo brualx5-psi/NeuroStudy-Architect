@@ -53,15 +53,21 @@ export default async function handler(req: any, res: any) {
 
   const plan = (body.plan || 'starter') as any;
 
+  const diagnostics = {
+    ZEPTOMAIL_TOKEN: process.env.ZEPTOMAIL_TOKEN ? 'set' : 'MISSING',
+    ZEPTOMAIL_FROM_EMAIL: process.env.ZEPTOMAIL_FROM_EMAIL || 'MISSING',
+    ZEPTOMAIL_FROM_NAME: process.env.ZEPTOMAIL_FROM_NAME || '(default: NeuroStudy)',
+  };
+
   try {
     const result = await sendWelcomeEmail({
       toEmail,
       name: body.name || null,
       planName: plan,
     });
-    return sendJson(res, 200, { ok: true, result });
+    return sendJson(res, 200, { ok: true, diagnostics, result });
   } catch (e: any) {
     const msg = String(e?.message || e);
-    return sendJson(res, 500, { ok: false, error: msg });
+    return sendJson(res, 500, { ok: false, diagnostics, error: msg });
   }
 }
