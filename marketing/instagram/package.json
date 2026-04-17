@@ -1,0 +1,13 @@
+{
+  "name": "neurostudy-instagram-carousel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gera o carrossel 1080x1920 do Instagram a partir de slides.html",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "puppeteer": "^23.11.1"
+  }
+}
