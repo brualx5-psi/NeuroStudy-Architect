@@ -1,14 +1,28 @@
 import { sendZeptoMail } from './zeptomail.js';
-import { buildWelcomeEmail, buildCancelledEmail } from './emailTemplates.js';
+import { buildSignupWelcomeEmail, buildPlanUpgradeEmail, buildCancelledEmail } from './emailTemplates.js';
 import type { PlanName } from './planLimits.js';
 
-export async function sendWelcomeEmail(params: { toEmail: string; name?: string | null; planName: PlanName }) {
-  const { subject, htmlBody, textBody } = buildWelcomeEmail({
+const MANAGE_URL = 'https://www.neurostudy.com.br';
+
+export async function sendSignupWelcomeEmail(params: { toEmail: string; name?: string | null }) {
+  const { subject, htmlBody, textBody } = buildSignupWelcomeEmail({
+    name: params.name,
+    manageUrl: MANAGE_URL,
+  });
+  return sendZeptoMail({
+    to: { address: params.toEmail, name: params.name || undefined },
+    subject,
+    htmlBody,
+    textBody,
+  });
+}
+
+export async function sendPlanUpgradeEmail(params: { toEmail: string; name?: string | null; planName: PlanName }) {
+  const { subject, htmlBody, textBody } = buildPlanUpgradeEmail({
     name: params.name,
     planName: params.planName,
-    manageUrl: 'https://www.neurostudy.com.br'
+    manageUrl: MANAGE_URL,
   });
-
   return sendZeptoMail({
     to: { address: params.toEmail, name: params.name || undefined },
     subject,
@@ -21,9 +35,8 @@ export async function sendCancelledEmail(params: { toEmail: string; name?: strin
   const { subject, htmlBody, textBody } = buildCancelledEmail({
     name: params.name,
     planName: params.previousPlanName,
-    manageUrl: 'https://www.neurostudy.com.br'
+    manageUrl: MANAGE_URL,
   });
-
   return sendZeptoMail({
     to: { address: params.toEmail, name: params.name || undefined },
     subject,

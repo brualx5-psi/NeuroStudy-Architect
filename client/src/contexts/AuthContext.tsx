@@ -282,6 +282,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     avatar_url: googleAvatar,
                     subscription_status: 'free'
                 });
+                // Send signup welcome email via API (fire-and-forget)
+                client.auth.getSession().then(({ data }) => {
+                    const token = data.session?.access_token;
+                    if (token) {
+                        fetch('/api/onboarding', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        }).catch(() => {});
+                    }
+                });
                 return;
             }
 

@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { sendJson, readJson } from '../_lib/http.js';
-import { sendWelcomeEmail, sendCancelledEmail } from '../_lib/email.js';
+import { sendPlanUpgradeEmail, sendCancelledEmail } from '../_lib/email.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 /**
@@ -215,7 +215,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
                     // Enviar boas-vindas apenas se houve mudança real de plano
                     if (result.ok && result.prevPlan !== planName) {
                         try {
-                            await sendWelcomeEmail({
+                            await sendPlanUpgradeEmail({
                                 toEmail: subscription.payer_email,
                                 name: result.fullName,
                                 planName: planName as any

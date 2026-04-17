@@ -10,7 +10,7 @@
 import { getAuthContext } from '../_lib/auth.js';
 import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { sendJson, readJson } from '../_lib/http.js';
-import { sendWelcomeEmail } from '../_lib/email.js';
+import { sendPlanUpgradeEmail, sendSignupWelcomeEmail } from '../_lib/email.js';
 
 type Body = {
   toEmail?: string;
@@ -59,12 +59,12 @@ export default async function handler(req: any, res: any) {
     ZEPTOMAIL_FROM_NAME: process.env.ZEPTOMAIL_FROM_NAME || '(default: NeuroStudy)',
   };
 
+  const type = String((body as any).type || 'upgrade');
+
   try {
-    const result = await sendWelcomeEmail({
-      toEmail,
-      name: body.name || null,
-      planName: plan,
-    });
+    const result = type === 'signup'
+      ? await sendSignupWelcomeEmail({ toEmail, name: body.name || null })
+      : await sendPlanUpgradeEmail({ toEmail, name: body.name || null, planName: plan });
     return sendJson(res, 200, { ok: true, diagnostics, result });
   } catch (e: any) {
     const msg = String(e?.message || e);

@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { sendJson, readJson } from '../_lib/http.js';
 import { requireAsaasWebhookToken } from '../_lib/asaas.js';
-import { sendWelcomeEmail, sendCancelledEmail } from '../_lib/email.js';
+import { sendPlanUpgradeEmail, sendCancelledEmail } from '../_lib/email.js';
 
 type PlanName = 'free' | 'starter' | 'pro';
 
@@ -206,7 +206,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
       if (result.ok && result.prevPlan !== plan && result.email) {
         try {
-          await sendWelcomeEmail({
+          await sendPlanUpgradeEmail({
             toEmail: result.email,
             name: result.fullName,
             planName: plan as any,
