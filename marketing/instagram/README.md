@@ -1,23 +1,43 @@
 # Carrossel Instagram — NeuroStudy (1080×1920)
 
-Post de 7 slides apresentando o NeuroStudy, pronto para postar no Instagram (Feed/Stories em 9:16).
+Coleção de carrosséis 9:16 (Feed/Stories) prontos para postar no Instagram.
 
-## Arquivos
+## Estrutura
 
-- `slides.html` — os 7 slides (edite o copy aqui).
-- `styles.css` — identidade visual (paleta indigo/ciano/violeta + glassmorphism).
-- `generate.mjs` — script Puppeteer que renderiza cada slide em PNG.
-- `output/slide-1.png` … `output/slide-7.png` — imagens finais prontas para upload.
+```
+marketing/instagram/
+├── generate.mjs           # renderiza todos os posts
+├── package.json
+└── posts/
+    ├── 01-apresentacao/       # tema escuro — apresentação do produto
+    │   ├── slides.html
+    │   ├── styles.css
+    │   └── output/slide-1..7.png
+    └── 02-repeticao-espacada/ # tema claro — curva do esquecimento
+        ├── slides.html
+        ├── styles.css
+        └── output/slide-1..7.png
+```
 
 ## Como gerar os PNGs
 
 ```bash
 cd marketing/instagram
-npm install     # instala Puppeteer localmente (isolado do app)
-npm run generate
+npm install                # instala Puppeteer (só na primeira vez)
+npm run generate           # renderiza todos os posts
+npm run generate -- 02     # só os posts que começam com "02"
 ```
 
-As imagens caem em `output/`. Transfira para o celular e poste como carrossel.
+Cada post gera PNGs em `posts/<slug>/output/`. Transfira para o celular e poste como carrossel.
+
+## Convenção para novos posts
+
+1. Crie `posts/NN-slug/` com `slides.html` + `styles.css`.
+2. `slides.html` deve ter 7 `<section class="slide" id="slide-N">`.
+3. Logo via `../../../../client/public/logo.png` (relativo ao `slides.html`).
+4. Rode `node generate.mjs NN` para testar só esse post.
+
+Alterne tema **escuro** (ex.: 01) e **claro** (ex.: 02) para variar o feed.
 
 ## Estrutura dos 7 slides
 

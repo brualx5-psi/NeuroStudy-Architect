@@ -1,0 +1,383 @@
+/* NeuroStudy — Post 02: Repetição Espaçada (tema claro) */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Merriweather:wght@700;900&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #0f172a;
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.slide {
+  position: relative;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background:
+    radial-gradient(100% 70% at 10% 0%, rgba(99, 102, 241, 0.10) 0%, transparent 55%),
+    radial-gradient(100% 70% at 100% 100%, rgba(56, 189, 248, 0.10) 0%, transparent 60%),
+    linear-gradient(180deg, #fdfdff 0%, #f5f6ff 60%, #fafbff 100%);
+  padding: 110px 90px;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 80%);
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.blob.a { top: -200px; right: -160px; width: 620px; height: 620px;
+  background: radial-gradient(circle, #c7d2fe 0%, transparent 70%); }
+.blob.b { bottom: -220px; left: -180px; width: 640px; height: 640px;
+  background: radial-gradient(circle, #a5f3fc 0%, transparent 70%); }
+.blob.c { top: 55%; left: 50%; transform: translate(-50%, -50%); width: 480px; height: 480px;
+  background: radial-gradient(circle, #ddd6fe 0%, transparent 70%); opacity: 0.35; }
+
+/* Header */
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 3;
+}
+.header img {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff, #e0e7ff);
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.18);
+}
+.header .brand {
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  color: #1e293b;
+}
+.header .brand span { color: #6366f1; }
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  background: linear-gradient(135deg, #eef2ff, #ede9fe);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 999px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4f46e5;
+  width: fit-content;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+}
+.badge .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #6366f1;
+  box-shadow: 0 0 12px 2px rgba(99, 102, 241, 0.5);
+}
+
+.eyebrow {
+  font-size: 26px;
+  font-weight: 700;
+  color: #6366f1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+  z-index: 3;
+  position: relative;
+}
+
+h1.display {
+  font-family: 'Merriweather', serif;
+  font-weight: 900;
+  font-size: 124px;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  z-index: 3;
+  position: relative;
+}
+h1.display .accent {
+  background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+h2.title {
+  font-size: 88px;
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+  z-index: 3;
+  position: relative;
+}
+h2.title .accent {
+  background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lede {
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #334155;
+  z-index: 3;
+  position: relative;
+}
+
+.kicker {
+  font-size: 26px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.4;
+  z-index: 3;
+  position: relative;
+}
+
+/* Card */
+.card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 28px;
+  padding: 36px;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(99, 102, 241, 0.06);
+  z-index: 3;
+}
+.card .icon {
+  width: 66px; height: 66px;
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; color: white;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+}
+.card h3 {
+  font-size: 30px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 10px; color: #0f172a;
+}
+.card p {
+  font-size: 22px; font-weight: 500; line-height: 1.4; color: #475569;
+}
+
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; z-index: 3; position: relative; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; z-index: 3; position: relative; }
+
+/* Curve chart (slide 2) — inline SVG uses these */
+.chart-wrap {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 32px;
+  padding: 34px;
+  box-shadow: 0 14px 44px rgba(15, 23, 42, 0.06);
+  z-index: 3;
+}
+
+/* Timeline (slide 5) */
+.timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  z-index: 3;
+}
+.ti-step {
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 22px;
+  padding: 22px 14px;
+  text-align: center;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+}
+.ti-step .day {
+  font-size: 32px; font-weight: 900; color: #4f46e5; letter-spacing: -0.02em;
+}
+.ti-step .lbl {
+  font-size: 18px; font-weight: 600; color: #64748b; margin-top: 4px;
+}
+.ti-step.now {
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  border-color: transparent;
+}
+.ti-step.now .day, .ti-step.now .lbl { color: white; }
+
+/* Reason list (slide 6) */
+.reason {
+  display: flex;
+  gap: 24px;
+  padding: 28px 30px;
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 24px;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.05);
+}
+.reason .num {
+  flex-shrink: 0;
+  width: 70px; height: 70px;
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Merriweather', serif;
+  font-size: 38px; font-weight: 900;
+  background: linear-gradient(135deg, #eef2ff, #ede9fe);
+  color: #4f46e5;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+.reason .body h4 {
+  font-size: 30px; font-weight: 800; color: #0f172a; margin-bottom: 6px;
+}
+.reason .body p {
+  font-size: 23px; font-weight: 500; line-height: 1.4; color: #475569;
+}
+
+/* Gradient icon helpers */
+.i-indigo  { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.i-cyan    { background: linear-gradient(135deg, #22d3ee, #0ea5e9); }
+.i-violet  { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+.i-emerald { background: linear-gradient(135deg, #10b981, #059669); }
+.i-amber   { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.i-pink    { background: linear-gradient(135deg, #ec4899, #db2777); }
+
+/* Pull quote / big stat */
+.pull-stat {
+  position: relative;
+  padding: 40px 46px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, #eef2ff, #ede9fe);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  z-index: 3;
+}
+.pull-stat .num {
+  font-family: 'Merriweather', serif;
+  font-size: 110px; font-weight: 900; line-height: 0.95;
+  background: linear-gradient(120deg, #4f46e5, #0ea5e9);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  letter-spacing: -0.03em;
+}
+.pull-stat .lbl {
+  font-size: 26px; font-weight: 600; color: #334155; margin-top: 10px; max-width: 680px; line-height: 1.3;
+}
+
+/* Highlight mark */
+.mark {
+  background: linear-gradient(120deg, rgba(253, 224, 71, 0.35) 0%, rgba(253, 224, 71, 0.55) 100%);
+  padding: 0 8px;
+  border-radius: 6px;
+}
+
+/* CTA slide */
+.cta-card {
+  text-align: center;
+  padding: 80px 60px;
+  border-radius: 44px;
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 55%, #0ea5e9 100%);
+  color: white;
+  box-shadow: 0 30px 90px rgba(99, 102, 241, 0.35);
+  z-index: 3; position: relative;
+}
+.cta-card img {
+  width: 160px; height: 160px; border-radius: 40px; margin-bottom: 32px;
+  background: linear-gradient(135deg, #ffffff, #e0e7ff);
+  padding: 14px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+.cta-card .cta-title {
+  font-family: 'Merriweather', serif;
+  font-weight: 900;
+  font-size: 88px;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  margin-bottom: 22px;
+}
+.cta-card .cta-sub {
+  font-size: 32px; font-weight: 500; color: rgba(255,255,255,0.92); line-height: 1.4;
+  margin-bottom: 44px;
+  max-width: 760px;
+  margin-left: auto; margin-right: auto;
+}
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 26px 54px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4f46e5;
+  font-size: 30px;
+  font-weight: 800;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.25);
+}
+.cta-handles {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  font-size: 26px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+}
+
+/* Footer */
+.footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: auto; padding-top: 40px;
+  z-index: 3; position: relative;
+  color: #64748b;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.footer .brand-mini { display: flex; align-items: center; gap: 14px; }
+.footer .brand-mini img {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff, #e0e7ff);
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+.footer .page-dots { display: flex; gap: 10px; align-items: center; }
+.footer .page-dots .d { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+.footer .page-dots .d.on { background: #4f46e5; width: 28px; border-radius: 5px; }
+.footer .swipe { display: flex; align-items: center; gap: 10px; font-size: 22px; color: #4f46e5; }
+
+.push-bottom { margin-top: auto; }
+.stack-gap-28 > * + * { margin-top: 28px; }
+.stack-gap-22 > * + * { margin-top: 22px; }
+.stack-gap-18 > * + * { margin-top: 18px; }
+
+.slide-1 .cover-wrap {
+  display: flex; flex-direction: column; justify-content: center;
+  flex-grow: 1; gap: 40px; z-index: 3; position: relative;
+}
+.slide-7 .cta-wrap {
+  display: flex; flex-direction: column; justify-content: center;
+  flex-grow: 1; z-index: 3; position: relative;
+}
