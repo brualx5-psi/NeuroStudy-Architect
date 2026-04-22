@@ -42,12 +42,6 @@ type CallGeminiOptions = {
   timeoutMs?: number;
 };
 
-const getApiKey=*** => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY/GOOGLE_API_KEY missing');
-  return apiKey;
-};
-
 const isVertexMode = () => {
   const raw = (process.env.GOOGLE_GENAI_USE_VERTEXAI || '').toLowerCase().trim();
   return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
@@ -76,23 +70,23 @@ const parseGoogleAuthOptionsFromEnv = () => {
 };
 
 const getClient = () => {
-  if (isVertexMode()) {
-    const project = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
-    const location = process.env.GOOGLE_CLOUD_LOCATION || process.env.VERTEX_LOCATION || 'us-central1';
-    if (!project) throw new Error('GOOGLE_CLOUD_PROJECT missing for Vertex mode');
-
-    const googleAuthOptions = parseGoogleAuthOptionsFromEnv();
-
-    return new GoogleGenAI({
-      vertexai: true,
-      project,
-      location,
-      apiVersion: process.env.GOOGLE_GENAI_API_VERSION || 'v1',
-      ...(googleAuthOptions ? { googleAuthOptions } : {})
-    });
+  if (!isVertexMode()) {
+    throw new Error('Vertex mode obrigatório: defina GOOGLE_GENAI_USE_VERTEXAI=true');
   }
 
-  return new GoogleGenAI({ apiKey: getApiKey() });
+  const project = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || process.env.VERTEX_LOCATION || 'us-central1';
+  if (!project) throw new Error('GOOGLE_CLOUD_PROJECT missing for Vertex mode');
+
+  const googleAuthOptions = parseGoogleAuthOptionsFromEnv();
+
+  return new GoogleGenAI({
+    vertexai: true,
+    project,
+    location,
+    apiVersion: process.env.GOOGLE_GENAI_API_VERSION || 'v1',
+    ...(googleAuthOptions ? { googleAuthOptions } : {})
+  });
 };
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
