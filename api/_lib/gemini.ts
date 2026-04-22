@@ -42,13 +42,52 @@ type CallGeminiOptions = {
   timeoutMs?: number;
 };
 
-const getApiKey = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY missing');
-  return apiKey;
+const isVertexMode = () => {
+  const raw = (process.env.GOOGLE_GENAI_USE_VERTEXAI || '').toLowerCase().trim();
+  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
 };
 
-const getClient = () => new GoogleGenAI({ apiKey: getApiKey() });
+const parseGoogleAuthOptionsFromEnv = () => {
+  const rawJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || process.env.GCP_SERVICE_ACCOUNT_JSON;
+  const rawBase64 = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 || process.env.GCP_SERVICE_ACCOUNT_JSON_BASE64;
+
+  let parsed: any = null;
+
+  if (rawJson) {
+    parsed = JSON.parse(rawJson);
+  } else if (rawBase64) {
+    const decoded = Buffer.from(rawBase64, 'base64').toString('utf8');
+    parsed = JSON.parse(decoded);
+  }
+
+  if (!parsed) return undefined;
+
+  if (typeof parsed.private_key === 'string') {
+    parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+  }
+
+  return { credentials: parsed };
+};
+
+const getClient = () => {
+  if (!isVertexMode()) {
+    throw new Error('Vertex mode obrigatório: defina GOOGLE_GENAI_USE_VERTEXAI=true');
+  }
+
+  const project = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || process.env.VERTEX_LOCATION || 'us-central1';
+  if (!project) throw new Error('GOOGLE_CLOUD_PROJECT missing for Vertex mode');
+
+  const googleAuthOptions = parseGoogleAuthOptionsFromEnv();
+
+  return new GoogleGenAI({
+    vertexai: true,
+    project,
+    location,
+    apiVersion: process.env.GOOGLE_GENAI_API_VERSION || 'v1',
+    ...(googleAuthOptions ? { googleAuthOptions } : {})
+  });
+};
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
   return await Promise.race([
@@ -67,6 +106,23 @@ const fetchWithRetry = async <T>(operation: () => Promise<T>, retries = 3, delay
     }
     throw error;
   }
+};
+
+const isQuotaLikeError = (error: any) => {
+  const text = [error?.message, error?.statusText, error?.error?.message]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    error?.status === 429 ||
+    error?.status === 503 ||
+    text.includes('resource_exhausted') ||
+    text.includes('quota') ||
+    text.includes('credits') ||
+    text.includes('credit') ||
+    text.includes('429')
+  );
 };
 
 const selectModel = (
@@ -181,9 +237,27 @@ export const callGemini = async (options: CallGeminiOptions) => {
   };
 
   const timeoutMs = options.timeoutMs ?? 60_000;
-  const response = await fetchWithRetry(() =>
-    withTimeout(ai.models.generateContent(request), timeoutMs)
-  );
+  let response: any;
+
+  try {
+    response = await fetchWithRetry(() =>
+      withTimeout(ai.models.generateContent(request), timeoutMs)
+    );
+  } catch (error: any) {
+    if (model === MODEL_PRO && MODEL_FLASH !== MODEL_PRO && isQuotaLikeError(error)) {
+      const fallbackRequest = {
+        ...request,
+        model: MODEL_FLASH,
+      };
+
+      response = await fetchWithRetry(() =>
+        withTimeout(ai.models.generateContent(fallbackRequest), timeoutMs)
+      );
+    } else {
+      throw error;
+    }
+  }
+
   const text = getTextFromResponse(response);
   return { text, response, usageTokens: getUsageTokens(response) };
 };

@@ -59,7 +59,12 @@ export async function uploadFileForTranscription(
   mimeType: string,
   durationMinutes?: number
 ): Promise<{ fileUri: string; fileName: string }> {
-  const start = await postJson<{ uploadUrl: string }>('/api/utils?action=transcribe', {
+  const start = await postJson<{
+    uploadUrl: string;
+    provider?: 'vertex' | 'gemini';
+    fileUri?: string;
+    fileName?: string;
+  }>('/api/utils?action=transcribe', {
     action: 'start',
     mimeType,
     fileSize: file.size,
@@ -67,19 +72,37 @@ export async function uploadFileForTranscription(
     durationMinutes
   });
 
+  const isVertexUpload = Boolean(start.fileUri && start.fileName);
+
   const uploadResponse = await fetch(start.uploadUrl, {
-    method: 'POST',
+    method: isVertexUpload ? 'PUT' : 'POST',
     headers: {
-      'X-Goog-Upload-Protocol': 'resumable',
-      'X-Goog-Upload-Command': 'upload, finalize',
-      'X-Goog-Upload-Offset': '0',
-      'Content-Length': file.size.toString()
+      ...(isVertexUpload
+        ? {
+            'Content-Type': mimeType || 'application/octet-stream',
+            'Content-Length': file.size.toString()
+          }
+        : {
+            'X-Goog-Upload-Protocol': 'resumable',
+            'X-Goog-Upload-Command': 'upload, finalize',
+            'X-Goog-Upload-Offset': '0',
+            'Content-Length': file.size.toString()
+          })
     },
     body: file
   });
-  const uploadResult = await uploadResponse.json();
-  if (!uploadResult?.file?.uri || !uploadResult?.file?.name) {
+
+  if (!uploadResponse.ok) {
     throw new Error('Falha ao enviar arquivo para transcricao.');
+  }
+
+  if (isVertexUpload) {
+    return { fileUri: start.fileUri!, fileName: start.fileName! };
+  }
+
+  const uploadResult = await uploadResponse.json().catch(() => null);
+  if (!uploadResult?.file?.uri || !uploadResult?.file?.name) {
+    throw new Error('Falha ao finalizar upload para transcricao.');
   }
 
   return { fileUri: uploadResult.file.uri, fileName: uploadResult.file.name };

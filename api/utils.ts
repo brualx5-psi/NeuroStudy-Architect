@@ -5,6 +5,7 @@
  * POST /api/utils { action: 'preview' | 'transcribe' }
  */
 
+import { createSign } from 'node:crypto';
 import { getAuthContext } from './_lib/auth.js';
 import { getSupabaseAdmin } from './_lib/supabase.js';
 import { sendJson, readJson, getClientIp } from './_lib/http.js';
@@ -13,6 +14,8 @@ import { buildLimitResponse } from './_lib/limitResponses.js';
 import { canPerformAction } from './_lib/usageLimits.js';
 import { transcribeMedia } from './_lib/gemini.js';
 import { ensureUsageRow, getCurrentMonth, getUserAccess, incrementUsage, toUsageSnapshot } from './_lib/usageStore.js';
+import { setCorsHeaders } from './_lib/cors.js';
+import { buildProviderLimitPayload } from './_lib/providerLimits.js';
 
 // ================= PREVIEW TYPES & CONSTANTS =================
 type PreviewRequest = {
@@ -48,10 +51,7 @@ type TranscribeRequest = {
 
 // ================= HANDLER =================
 export default async function handler(req: any, res: any) {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    setCorsHeaders(req, res, 'GET, POST, OPTIONS');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -299,24 +299,172 @@ async function handlePreview(req: any, res: any) {
 }
 
 // ================= TRANSCRIBE LOGIC =================
-const getApiKey = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY missing');
-    return apiKey;
+const isVertexMode = () => {
+    const raw = (process.env.GOOGLE_GENAI_USE_VERTEXAI || '').toLowerCase().trim();
+    return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
 };
 
-const waitForFileActive = async (fileName: string, apiKey: string) => {
-    let state = 'PROCESSING';
-    let attempts = 0;
-    while (state === 'PROCESSING' && attempts < 20) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const checkResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`);
-        const checkResult = await checkResponse.json();
-        state = checkResult.state;
-        attempts += 1;
-        if (state === 'FAILED') throw new Error('File processing failed');
+type ServiceAccountCredentials = {
+    client_email: string;
+    private_key: string;
+    token_uri?: string;
+};
+
+const getServiceAccountCredentials = (): ServiceAccountCredentials => {
+    const rawJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || process.env.GCP_SERVICE_ACCOUNT_JSON;
+    const rawBase64 = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 || process.env.GCP_SERVICE_ACCOUNT_JSON_BASE64;
+
+    let parsed: any = null;
+
+    if (rawJson) {
+        parsed = JSON.parse(rawJson);
+    } else if (rawBase64) {
+        const decoded = Buffer.from(rawBase64, 'base64').toString('utf8');
+        parsed = JSON.parse(decoded);
     }
-    return state;
+
+    if (!parsed) {
+        throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON/GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 missing for Vertex upload');
+    }
+
+    if (!parsed.client_email || !parsed.private_key) {
+        throw new Error('Service account inválida (client_email/private_key ausentes)');
+    }
+
+    parsed.private_key = String(parsed.private_key).replace(/\\n/g, '\n');
+
+    return {
+        client_email: parsed.client_email,
+        private_key: parsed.private_key,
+        token_uri: parsed.token_uri || 'https://oauth2.googleapis.com/token'
+    };
+};
+
+const toBase64Url = (value: string | Buffer) =>
+    Buffer.from(value)
+        .toString('base64')
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+
+let cachedStorageToken: { value: string; expiresAtMs: number } | null = null;
+
+const getStorageAccessToken = async () => {
+    const now = Date.now();
+    if (cachedStorageToken && cachedStorageToken.expiresAtMs - 60_000 > now) {
+        return cachedStorageToken.value;
+    }
+
+    const creds = getServiceAccountCredentials();
+    const iat = Math.floor(now / 1000);
+    const exp = iat + 3600;
+
+    const header = toBase64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+    const claimSet = toBase64Url(
+        JSON.stringify({
+            iss: creds.client_email,
+            scope: 'https://www.googleapis.com/auth/devstorage.read_write',
+            aud: creds.token_uri,
+            iat,
+            exp,
+        })
+    );
+
+    const signer = createSign('RSA-SHA256');
+    signer.update(`${header}.${claimSet}`);
+    signer.end();
+    const signature = toBase64Url(signer.sign(creds.private_key));
+    const assertion = `${header}.${claimSet}.${signature}`;
+
+    const tokenResponse = await fetch(creds.token_uri!, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            assertion
+        })
+    });
+
+    if (!tokenResponse.ok) {
+        const text = await tokenResponse.text().catch(() => '');
+        throw new Error(`Falha ao obter token GCS (${tokenResponse.status}): ${text.slice(0, 300)}`);
+    }
+
+    const tokenJson = await tokenResponse.json() as { access_token: string; expires_in?: number };
+    const accessToken = tokenJson.access_token;
+    if (!accessToken) throw new Error('Resposta OAuth sem access_token');
+
+    cachedStorageToken = {
+        value: accessToken,
+        expiresAtMs: now + ((tokenJson.expires_in || 3600) * 1000)
+    };
+
+    return accessToken;
+};
+
+const sanitizeFileName = (name: string) =>
+    (name || 'upload.bin')
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 120) || 'upload.bin';
+
+const createVertexResumableUpload = async ({
+    userId,
+    displayName,
+    mimeType,
+}: {
+    userId: string;
+    displayName: string;
+    mimeType: string;
+}) => {
+    const bucket =
+        process.env.GOOGLE_CLOUD_STORAGE_BUCKET ||
+        process.env.GCS_BUCKET ||
+        process.env.GOOGLE_CLOUD_BUCKET;
+
+    if (!bucket) {
+        throw new Error('GOOGLE_CLOUD_STORAGE_BUCKET missing for Vertex transcription upload');
+    }
+
+    const safeName = sanitizeFileName(displayName || 'upload.bin');
+    const objectPath = `transcriptions/${userId}/${Date.now()}-${safeName}`;
+    const fileUri = `gs://${bucket}/${objectPath}`;
+    const accessToken = await getStorageAccessToken();
+
+    const sessionResponse = await fetch(
+        `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=resumable&name=${encodeURIComponent(objectPath)}`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json; charset=UTF-8',
+                'X-Upload-Content-Type': mimeType || 'application/octet-stream'
+            },
+            body: JSON.stringify({
+                name: objectPath,
+                contentType: mimeType || 'application/octet-stream'
+            })
+        }
+    );
+
+    if (!sessionResponse.ok) {
+        const text = await sessionResponse.text().catch(() => '');
+        throw new Error(`Falha ao criar upload resumable no GCS (${sessionResponse.status}): ${text.slice(0, 300)}`);
+    }
+
+    const uploadUrl = sessionResponse.headers.get('location');
+    if (!uploadUrl) throw new Error('GCS não retornou URL de upload resumable');
+
+    return {
+        uploadUrl,
+        fileUri,
+        fileName: objectPath,
+        provider: 'vertex' as const,
+    };
 };
 
 async function handleTranscribe(req: any, res: any) {
@@ -353,35 +501,38 @@ async function handleTranscribe(req: any, res: any) {
 
     try {
         if (body.action === 'start') {
-            const apiKey = getApiKey();
-            const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
-            const initialResponse = await fetch(uploadUrl, {
-                method: 'POST',
-                headers: {
-                    'X-Goog-Upload-Protocol': 'resumable',
-                    'X-Goog-Upload-Command': 'start',
-                    'X-Goog-Upload-Header-Content-Length': String(body.fileSize || 0),
-                    'X-Goog-Upload-Header-Content-Type': body.mimeType || 'application/octet-stream',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ file: { display_name: body.displayName || 'User Upload' } })
-            });
-
-            const uploadHeader = initialResponse.headers.get('x-goog-upload-url');
-            if (!uploadHeader) {
-                return sendJson(res, 500, { error: 'upload_start_failed' });
+            if (!body.mimeType) {
+                return sendJson(res, 400, { error: 'missing_mime_type' });
             }
 
-            return sendJson(res, 200, { uploadUrl: uploadHeader });
+            if (!isVertexMode()) {
+                return sendJson(res, 400, {
+                    error: 'vertex_mode_required',
+                    message: 'Defina GOOGLE_GENAI_USE_VERTEXAI=true para usar transcrição.'
+                });
+            }
+
+            const upload = await createVertexResumableUpload({
+                userId: auth.userId || 'anonymous',
+                displayName: body.displayName || 'User Upload',
+                mimeType: body.mimeType || 'application/octet-stream'
+            });
+
+            return sendJson(res, 200, upload);
         }
 
         if (body.action === 'transcribe') {
-            const apiKey = getApiKey();
-            if (!body.fileUri || !body.fileName || !body.mimeType) {
+            if (!body.fileUri || !body.mimeType) {
                 return sendJson(res, 400, { error: 'missing_file_data' });
             }
 
-            await waitForFileActive(body.fileName, apiKey);
+            if (!isVertexMode()) {
+                return sendJson(res, 400, {
+                    error: 'vertex_mode_required',
+                    message: 'Defina GOOGLE_GENAI_USE_VERTEXAI=true para usar transcrição.'
+                });
+            }
+
             const { transcript, usageTokens } = await transcribeMedia(planName, body.fileUri, body.mimeType);
             const estimatedTokens = transcript ? Math.ceil(transcript.length / 4) : 0;
 
@@ -402,6 +553,10 @@ async function handleTranscribe(req: any, res: any) {
 
         return sendJson(res, 400, { error: 'invalid_action' });
     } catch (error: any) {
+        const providerLimit = buildProviderLimitPayload(error);
+        if (providerLimit) {
+            return sendJson(res, providerLimit.status, providerLimit.body);
+        }
         return sendJson(res, 500, { error: 'gemini_error', message: error?.message || 'Gemini error' });
     }
 }
