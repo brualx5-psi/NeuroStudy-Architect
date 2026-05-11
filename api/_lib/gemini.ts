@@ -223,7 +223,7 @@ export const callGemini = async (options: CallGeminiOptions) => {
 
   const contents = options.parts?.length
     ? { role: 'user', parts: options.parts }
-    : { parts: [{ text: options.prompt }] };
+    : { role: 'user', parts: [{ text: options.prompt }] };
 
   let model = options.model || MODEL_FLASH;
 
