@@ -17,6 +17,7 @@ const MODEL_MAP = {
 const MODEL_FLASH = MODEL_MAP.flash;
 const MODEL_PRO = MODEL_MAP.pro;
 const MODEL_DIAGRAM = process.env.GEMINI_MODEL_DIAGRAM || MODEL_FLASH;
+const VERTEX_MAX_OUTPUT_TOKENS = 65_536;
 
 type TaskType =
   | 'chat'
@@ -205,7 +206,8 @@ const parseJsonArray = (raw: string) => {
 
 export const callGemini = async (options: CallGeminiOptions) => {
   const ai = getClient();
-  const maxOutputTokens = PLAN_LIMITS[options.planName].max_output_tokens[options.taskType];
+  const planMaxOutputTokens = PLAN_LIMITS[options.planName].max_output_tokens[options.taskType];
+  const maxOutputTokens = Math.min(planMaxOutputTokens, VERTEX_MAX_OUTPUT_TOKENS);
 
   const config: any = {
     temperature: options.temperature ?? 0.3

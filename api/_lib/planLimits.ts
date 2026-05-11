@@ -65,7 +65,7 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
     max_tokens_per_roadmap: 500_000,
     max_tokens_per_chat_message: 20_000,
     max_output_tokens: {
-      roadmap: 80_000,
+      roadmap: 60_000,
       quiz: 10_000,
       flashcards: 20_000,
       chat: 4_000
