@@ -3,6 +3,7 @@ import { ActionSuggestion, LimitReason } from './usageLimits.js';
 const reasonMessages: Record<LimitReason, string> = {
   monthly_limit: 'Voce atingiu o limite mensal do seu plano.',
   monthly_tokens_exhausted: 'Voce atingiu o limite mensal de tokens do seu plano.',
+  provider_quota_exhausted: 'O processamento de IA ficou indisponivel no momento por falta de cota/creditos do servidor. Tente novamente em alguns minutos.',
   roadmap_too_large: 'Este estudo ficou grande demais. Divida em partes menores.',
   youtube_too_long: 'Este video excede o limite por video do seu plano.',
   too_many_sources: 'Seu plano permite menos fontes por roteiro.',
