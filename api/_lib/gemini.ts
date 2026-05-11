@@ -74,11 +74,17 @@ const getClient = () => {
     throw new Error('Vertex mode obrigatório: defina GOOGLE_GENAI_USE_VERTEXAI=true');
   }
 
-  const project = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
-  const location = process.env.GOOGLE_CLOUD_LOCATION || process.env.VERTEX_LOCATION || 'us-central1';
-  if (!project) throw new Error('GOOGLE_CLOUD_PROJECT missing for Vertex mode');
-
   const googleAuthOptions = parseGoogleAuthOptionsFromEnv();
+  const credentials = googleAuthOptions?.credentials as any;
+  const project =
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT ||
+    credentials?.project_id ||
+    credentials?.projectId;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || process.env.VERTEX_LOCATION || 'us-central1';
+  if (!project) {
+    throw new Error('GOOGLE_CLOUD_PROJECT missing for Vertex mode e project_id ausente na service account');
+  }
 
   return new GoogleGenAI({
     vertexai: true,
