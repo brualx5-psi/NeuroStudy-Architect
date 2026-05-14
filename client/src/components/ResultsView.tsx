@@ -65,6 +65,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const [interdisciplinaryInput, setInterdisciplinaryInput] = useState<Record<number, string>>({}); // Armazena o tema digitado por card
     const [isCelebrating, setIsCelebrating] = useState(false); // Estado para animação de celebração
     const [isHudCollapsed, setIsHudCollapsed] = useState(false);
+    const [recoveryMode, setRecoveryMode] = useState(false);
 
     // Função "Insight Cerebral": Apenas expande a visualização. A geração agora é sob demanda (lazy).
     const handleInsightClick = (index: number) => {
@@ -258,8 +259,33 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 )}
             </div>
 
+            {/* GUIDANCE BOX */}
+            {(!isParetoOnly || isBook) && (
+                <div className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                        <div className="flex-1 space-y-1.5">
+                            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-2">Como usar este roteiro</p>
+                            <p className="text-sm text-indigo-900"><span className="font-bold">Advance Organizer</span> = bússola, não resumo</p>
+                            <p className="text-sm text-indigo-900"><span className="font-bold">Core Concepts</span> = sintetize com suas palavras, não copie tudo</p>
+                            <p className="text-sm text-indigo-900"><span className="font-bold">Checkpoints</span> = sem olhar para cima; use a sugestão como gabarito/correção</p>
+                        </div>
+                        <button
+                            onClick={() => setRecoveryMode(prev => !prev)}
+                            className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-all border-2 ${recoveryMode ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200' : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-100'}`}
+                        >
+                            {recoveryMode ? 'Mostrar conceitos' : 'Modo Recuperação: ocultar conceitos'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* SEÇÃO 1: CONCEITOS GLOBAIS (Em Livro = Pareto Global) */}
             {(!isParetoOnly || isBook) && guide.coreConcepts && guide.coreConcepts.length > 0 && (
+                recoveryMode ? (
+                    <div className="bg-amber-50 rounded-xl py-4 px-6 border border-amber-100 text-center">
+                        <p className="text-sm text-amber-700 italic">conceitos ocultos para recuperação ativa</p>
+                    </div>
+                ) : (
                 <section className="space-y-6">
                     <div className="flex items-center gap-2 px-2">
                         {isBook ? <Target className="w-6 h-6 text-red-500" /> : <BookOpen className="w-6 h-6 text-indigo-600" />}
@@ -338,10 +364,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         ))}
                     </div>
                 </section>
+                )
             )}
 
             {/* SEÇÃO 1.5: CONCEITOS DE SUPORTE (O Contexto 80%) */}
-            {(!isParetoOnly || isBook) && guide.supportConcepts && guide.supportConcepts.length > 0 && (
+            {(!isParetoOnly || isBook) && !recoveryMode && guide.supportConcepts && guide.supportConcepts.length > 0 && (
                 <section className="space-y-4 animate-in slide-in-from-bottom-6 duration-700">
                     <div className="flex items-center gap-2 px-2">
                         <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -492,6 +519,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="bg-gray-50 p-4 rounded-xl border-l-4 border-gray-400">
                                                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block flex items-center gap-1"><PenTool className="w-3 h-3" /> Escreva Exatamente Isso:</span>
+                                                <p className="text-[10px] text-amber-600 font-bold italic mb-1">Sem olhar para cima</p>
                                                 <MarkdownText className="text-sm text-gray-700 italic font-serif prose-p:my-2 prose-ul:my-2 prose-ol:my-2">{checkpoint.noteExactly}</MarkdownText>
                                             </div>
                                             <div className={`p - 4 rounded - xl border - l - 4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'} `}>
@@ -500,6 +528,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                                     {checkpoint.drawLabel === 'essential' ? 'DESENHO OBRIGATÓRIO:' : 'SUGESTÃO DE DESENHO:'}
                                                 </span>
                                                 <MarkdownText className={`text - sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'} `}>{checkpoint.drawExactly}</MarkdownText>
+                                                <p className="text-[10px] text-gray-400 italic mt-2">Use como gabarito, não como primeira anotação</p>
                                             </div>
                                         </div>
                                     </div>
