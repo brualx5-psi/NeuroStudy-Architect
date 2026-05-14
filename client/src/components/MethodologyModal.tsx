@@ -418,6 +418,30 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose, onC
               </div>
 
               <div className="space-y-8">
+                <div className="bg-indigo-50 border border-indigo-200 p-5 rounded-2xl">
+                  <h3 className="text-lg font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-indigo-600" /> Recomendação de uso
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-3 text-sm">
+                    <div className="bg-white/80 p-3 rounded-xl border border-indigo-100">
+                      <strong className="text-indigo-800 block mb-1">1. Advance Organizer é bússola, não é resumo</strong>
+                      <p className="text-indigo-700">Anote só o tema, a ideia central e no que prestar atenção. Não tente copiar tudo logo no começo.</p>
+                    </div>
+                    <div className="bg-white/80 p-3 rounded-xl border border-indigo-100">
+                      <strong className="text-indigo-800 block mb-1">2. Conceitos Fundamentais: entenda antes de anotar</strong>
+                      <p className="text-indigo-700">Abra a seção quando precisar, sintetize com suas palavras e não copie tudo. Recolha depois para testar sua memória.</p>
+                    </div>
+                    <div className="bg-white/80 p-3 rounded-xl border border-indigo-100">
+                      <strong className="text-indigo-800 block mb-1">3. Escreva Exatamente Isso: tente antes, revele depois</strong>
+                      <p className="text-indigo-700">Use o olho como gabarito. Primeiro escreva com suas palavras; depois revele para comparar e corrigir lacunas.</p>
+                    </div>
+                    <div className="bg-white/80 p-3 rounded-xl border border-indigo-100">
+                      <strong className="text-indigo-800 block mb-1">4. Desenho como inspiração visual</strong>
+                      <p className="text-indigo-700">A sugestão de desenho fica visível para orientar, mas adapte ao seu raciocínio e às conexões que você fez.</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* 1. ANTES DA AULA */}
                 <div className="flex gap-6 items-start">
                   <div className="bg-indigo-50 text-indigo-600 p-4 rounded-xl shrink-0"><FileText className="w-6 h-6" /></div>
