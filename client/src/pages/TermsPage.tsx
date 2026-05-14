@@ -1,9 +1,39 @@
 import React from 'react';
-import { ArrowLeft, Scale, Shield, AlertTriangle, CreditCard, XCircle, Mail } from 'lucide-react';
+import { ArrowLeft, Scale, Shield, CreditCard, Mail } from 'lucide-react';
+import { PLAN_LIMITS, PLAN_PRICES, PlanName } from '../config/planLimits';
 
 interface TermsPageProps {
     onBack?: () => void;
 }
+
+const formatNumber = (value: number) => value.toLocaleString('pt-BR');
+
+const planCards: Array<{
+    plan: PlanName;
+    title: string;
+    subtitle: string;
+    highlight?: boolean;
+    annualPrice?: string;
+}> = [
+    {
+        plan: 'free',
+        title: 'Plano Free',
+        subtitle: 'Experimente a metodologia'
+    },
+    {
+        plan: 'starter',
+        title: 'NeuroStudy Starter',
+        subtitle: 'Equilíbrio diário',
+        annualPrice: 'R$ 299/ano'
+    },
+    {
+        plan: 'pro',
+        title: 'NeuroStudy Pro',
+        subtitle: 'Limites máximos',
+        highlight: true,
+        annualPrice: 'R$ 599/ano'
+    }
+];
 
 export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
     const handleBack = () => {
@@ -81,28 +111,46 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                     <section>
                         <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
                             <CreditCard className="w-5 h-5 text-indigo-600" />
-                            Planos e Preços
+                            Planos, Preços e Limites de Uso
                         </h2>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <h3 className="font-bold text-slate-900 mb-2">Plano Gratuito</h3>
-                                <ul className="text-sm text-slate-600 space-y-1">
-                                    <li>• 3 roteiros de estudo por mês</li>
-                                    <li>• 30 minutos de análise YouTube</li>
-                                    <li>• 10 pesquisas web</li>
-                                    <li>• 20 mensagens no chat</li>
-                                </ul>
-                            </div>
-                            <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-200">
-                                <h3 className="font-bold text-indigo-900 mb-2">Plano Premium - R$ 29,90/mês</h3>
-                                <ul className="text-sm text-indigo-700 space-y-1">
-                                    <li>• Roteiros ilimitados</li>
-                                    <li>• Uso ilimitado de todas as funcionalidades</li>
-                                    <li>• Suporte prioritário</li>
-                                    <li>• Acesso a recursos exclusivos</li>
-                                </ul>
-                            </div>
+                        <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+                            O NeuroStudy possui plano gratuito e planos pagos com limites mensais diferentes. Os limites não são ilimitados: eles existem para manter a qualidade, estabilidade e custo de processamento da IA.
+                        </p>
+                        <div className="grid md:grid-cols-3 gap-4">
+                            {planCards.map(({ plan, title, subtitle, highlight, annualPrice }) => {
+                                const limits = PLAN_LIMITS[plan];
+                                const isFree = plan === 'free';
+
+                                return (
+                                    <div
+                                        key={plan}
+                                        className={`p-4 rounded-xl border ${highlight
+                                            ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-100'
+                                            : 'bg-slate-50 border-slate-200'
+                                            }`}
+                                    >
+                                        <h3 className={`font-bold mb-1 ${highlight ? 'text-indigo-900' : 'text-slate-900'}`}>{title}</h3>
+                                        <p className={`text-xs font-semibold mb-2 ${highlight ? 'text-indigo-700' : 'text-slate-500'}`}>{subtitle}</p>
+                                        <p className={`text-sm font-black mb-3 ${highlight ? 'text-indigo-900' : 'text-slate-800'}`}>
+                                            {isFree ? 'Gratuito' : `${PLAN_PRICES[plan]}/mês`}
+                                            {annualPrice && <span className="block text-xs font-bold text-slate-500">ou {annualPrice}</span>}
+                                        </p>
+                                        <ul className={`text-sm space-y-1 ${highlight ? 'text-indigo-700' : 'text-slate-600'}`}>
+                                            <li>• {formatNumber(limits.roadmaps)} roteiros de estudo/mês</li>
+                                            <li>• {formatNumber(limits.sources_per_study)} fontes por roteiro</li>
+                                            <li>• {formatNumber(limits.pages_per_source)} páginas por fonte</li>
+                                            <li>• {formatNumber(limits.youtube_minutes)} min de YouTube/mês</li>
+                                            <li>• Até {formatNumber(limits.youtube_minutes_per_video)} min por vídeo</li>
+                                            <li>• {formatNumber(limits.web_research)} pesquisas web/mês</li>
+                                            <li>• {formatNumber(limits.chat_messages)} mensagens no chat/mês</li>
+                                        </ul>
+                                    </div>
+                                );
+                            })}
                         </div>
+                        <p className="text-xs text-slate-500 mt-4 leading-relaxed">
+                            Os planos pagos são processados por meio do provedor de pagamento disponível no checkout. Valores, recursos e limites podem ser atualizados mediante comunicação na plataforma ou nos canais oficiais.
+                        </p>
                     </section>
 
                     {/* 4. Responsabilidades */}
@@ -162,10 +210,10 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                             Cancelamento e Reembolso
                         </h2>
                         <ul className="space-y-2 text-slate-600 list-disc list-inside">
-                            <li>O plano Premium pode ser cancelado a qualquer momento</li>
-                            <li>Ao cancelar, você mantém acesso até o fim do período pago</li>
-                            <li>Não há reembolso proporcional por dias não utilizados</li>
-                            <li>A conta gratuita permanece ativa após cancelamento do Premium</li>
+                            <li>Os planos pagos Starter e Pro podem ser cancelados a qualquer momento</li>
+                            <li>Ao cancelar, você mantém acesso até o fim do período pago, salvo regras específicas do checkout</li>
+                            <li>Não há reembolso proporcional por dias não utilizados, exceto quando exigido por lei ou por condição promocional expressa</li>
+                            <li>A conta gratuita permanece ativa após cancelamento do plano pago</li>
                         </ul>
                     </section>
 
