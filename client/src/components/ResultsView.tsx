@@ -65,7 +65,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const [interdisciplinaryInput, setInterdisciplinaryInput] = useState<Record<number, string>>({}); // Armazena o tema digitado por card
     const [isCelebrating, setIsCelebrating] = useState(false); // Estado para animação de celebração
     const [isHudCollapsed, setIsHudCollapsed] = useState(false);
-    const [recoveryMode, setRecoveryMode] = useState(false);
+    const [expandedSections, setExpandedSections] = useState({ core: true, support: true });
+    const [revealedNotes, setRevealedNotes] = useState<Set<string>>(new Set());
 
     // Função "Insight Cerebral": Apenas expande a visualização. A geração agora é sob demanda (lazy).
     const handleInsightClick = (index: number) => {
@@ -76,6 +77,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             newExpanded.add(index);
         }
         setExpandedConcepts(newExpanded);
+    };
+
+    const toggleSection = (section: 'core' | 'support') => {
+        setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
+
+    const toggleNoteReveal = (id: string) => {
+        setRevealedNotes(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
     };
 
     // Nova função para gerenciar o clique na aba e gerar conteúdo se necessário
@@ -259,41 +273,22 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 )}
             </div>
 
-            {/* GUIDANCE BOX */}
-            {(!isParetoOnly || isBook) && (
-                <div className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                        <div className="flex-1 space-y-1.5">
-                            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-2">Como usar este roteiro</p>
-                            <p className="text-sm text-indigo-900"><span className="font-bold">Advance Organizer</span> = bússola, não resumo</p>
-                            <p className="text-sm text-indigo-900"><span className="font-bold">Core Concepts</span> = sintetize com suas palavras, não copie tudo</p>
-                            <p className="text-sm text-indigo-900"><span className="font-bold">Checkpoints</span> = sem olhar para cima; use a sugestão como gabarito/correção</p>
-                        </div>
-                        <button
-                            onClick={() => setRecoveryMode(prev => !prev)}
-                            className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-all border-2 ${recoveryMode ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200' : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-100'}`}
-                        >
-                            {recoveryMode ? 'Mostrar conceitos' : 'Modo Recuperação: ocultar conceitos'}
-                        </button>
-                    </div>
-                </div>
-            )}
-
             {/* SEÇÃO 1: CONCEITOS GLOBAIS (Em Livro = Pareto Global) */}
             {(!isParetoOnly || isBook) && guide.coreConcepts && guide.coreConcepts.length > 0 && (
-                recoveryMode ? (
-                    <div className="bg-amber-50 rounded-xl py-4 px-6 border border-amber-100 text-center">
-                        <p className="text-sm text-amber-700 italic">conceitos ocultos para recuperação ativa</p>
-                    </div>
-                ) : (
                 <section className="space-y-6">
-                    <div className="flex items-center gap-2 px-2">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('core')}
+                        className="w-full flex items-center gap-2 px-2 text-left group"
+                    >
+                        {expandedSections.core ? <ChevronDown className="w-5 h-5 text-gray-500 transition-transform" /> : <ChevronRight className="w-5 h-5 text-gray-500 transition-transform" />}
                         {isBook ? <Target className="w-6 h-6 text-red-500" /> : <BookOpen className="w-6 h-6 text-indigo-600" />}
-                        <h2 className="text-xl font-bold text-gray-800">
+                        <span className="text-xl font-bold text-gray-800 group-hover:text-indigo-700 transition-colors">
                             {isBook ? 'Pareto Global (A "Big Picture")' : 'Conceitos Fundamentais'}
-                        </h2>
-                    </div>
+                        </span>
+                    </button>
 
+                    {expandedSections.core && (
                     <div className="grid grid-cols-1 gap-6">
                         {/* Lista de Conceitos com Insight Cerebral (Reutilizada lógica existente) */}
                         {guide.coreConcepts.map((concept: any, idx: number) => (
@@ -363,19 +358,25 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             </div>
                         ))}
                     </div>
+                    )}
                 </section>
-                )
             )}
 
             {/* SEÇÃO 1.5: CONCEITOS DE SUPORTE (O Contexto 80%) */}
-            {(!isParetoOnly || isBook) && !recoveryMode && guide.supportConcepts && guide.supportConcepts.length > 0 && (
+            {(!isParetoOnly || isBook) && guide.supportConcepts && guide.supportConcepts.length > 0 && (
                 <section className="space-y-4 animate-in slide-in-from-bottom-6 duration-700">
-                    <div className="flex items-center gap-2 px-2">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('support')}
+                        className="w-full flex items-center gap-2 px-2 text-left group"
+                    >
+                        {expandedSections.support ? <ChevronDown className="w-5 h-5 text-gray-500 transition-transform" /> : <ChevronRight className="w-5 h-5 text-gray-500 transition-transform" />}
                         <Lightbulb className="w-5 h-5 text-amber-500" />
-                        <h2 className="text-lg font-bold text-gray-700">
+                        <span className="text-lg font-bold text-gray-700 group-hover:text-amber-700 transition-colors">
                             Conceitos de Suporte (Contexto)
-                        </h2>
-                    </div>
+                        </span>
+                    </button>
+                    {expandedSections.support && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {guide.supportConcepts.map((concept: any, idx: number) => (
                             <div key={idx} className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50 hover:bg-amber-50 transition-colors">
@@ -387,6 +388,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             </div>
                         ))}
                     </div>
+                    )}
                 </section>
             )}
 
@@ -518,17 +520,31 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="bg-gray-50 p-4 rounded-xl border-l-4 border-gray-400">
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block flex items-center gap-1"><PenTool className="w-3 h-3" /> Escreva Exatamente Isso:</span>
-                                                <p className="text-[10px] text-amber-600 font-bold italic mb-1">Sem olhar para cima</p>
-                                                <MarkdownText className="text-sm text-gray-700 italic font-serif prose-p:my-2 prose-ul:my-2 prose-ol:my-2">{checkpoint.noteExactly}</MarkdownText>
+                                                <div className="flex items-center justify-between gap-3 mb-2">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1"><PenTool className="w-3 h-3" /> Escreva Exatamente Isso:</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); toggleNoteReveal(checkpoint.id); }}
+                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-gray-200 text-[10px] font-bold text-gray-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
+                                                        title={revealedNotes.has(checkpoint.id) ? 'Ocultar conteúdo' : 'Revelar conteúdo'}
+                                                    >
+                                                        <Eye className="w-3 h-3" />
+                                                        {revealedNotes.has(checkpoint.id) ? 'Ocultar' : 'Revelar'}
+                                                    </button>
+                                                </div>
+                                                {revealedNotes.has(checkpoint.id) ? (
+                                                    <MarkdownText className="text-sm text-gray-700 italic font-serif prose-p:my-2 prose-ul:my-2 prose-ol:my-2">{checkpoint.noteExactly}</MarkdownText>
+                                                ) : (
+                                                    <p className="text-xs text-gray-500 italic">Tente escrever com suas palavras antes de revelar.</p>
+                                                )}
                                             </div>
-                                            <div className={`p - 4 rounded - xl border - l - 4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'} `}>
-                                                <span className={`text - [10px] font - bold uppercase tracking - wider mb - 2 block flex items - center gap - 1 ${checkpoint.drawLabel === 'essential' ? 'text-orange-700' : 'text-blue-700'} `}>
+                                            <div className={`p-4 rounded-xl border-l-4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'}`}>
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 block flex items-center gap-1 ${checkpoint.drawLabel === 'essential' ? 'text-orange-700' : 'text-blue-700'}`}>
                                                     <Target className="w-3 h-3" />
                                                     {checkpoint.drawLabel === 'essential' ? 'DESENHO OBRIGATÓRIO:' : 'SUGESTÃO DE DESENHO:'}
                                                 </span>
-                                                <MarkdownText className={`text - sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'} `}>{checkpoint.drawExactly}</MarkdownText>
-                                                <p className="text-[10px] text-gray-400 italic mt-2">Use como gabarito, não como primeira anotação</p>
+                                                <MarkdownText className={`text-sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'}`}>{checkpoint.drawExactly}</MarkdownText>
+                                                <p className="text-[10px] text-gray-500 italic mt-2">Use como inspiração visual; adapte ao seu raciocínio.</p>
                                             </div>
                                         </div>
                                     </div>
