@@ -31,6 +31,27 @@ interface ResultsViewProps {
     onUsageLimit?: (reason: LimitReason) => void;
 }
 
+const MarkdownText: React.FC<{ children?: string | null; className?: string }> = ({ children, className = '' }) => (
+    <div className={`prose prose-sm max-w-none prose-p:my-0 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-strong:font-bold prose-em:italic ${className}`}>
+        <ReactMarkdown>{children || ''}</ReactMarkdown>
+    </div>
+);
+
+const MarkdownInline: React.FC<{ children?: string | null; className?: string }> = ({ children, className = '' }) => (
+    <span className={`prose prose-sm max-w-none prose-p:my-0 prose-strong:font-bold prose-em:italic ${className}`}>
+        <ReactMarkdown
+            components={{
+                p: ({ children }) => <span>{children}</span>,
+                ul: ({ children }) => <span className="block my-1">{children}</span>,
+                ol: ({ children }) => <span className="block my-1">{children}</span>,
+                li: ({ children }) => <span className="block">• {children}</span>
+            }}
+        >
+            {children || ''}
+        </ReactMarkdown>
+    </span>
+);
+
 export const ResultsView: React.FC<ResultsViewProps> = ({
     guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled,
     onOpenSubscription, onExportPdf, onExportNotion, onUsageLimit
@@ -217,7 +238,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     {guide.coreConcepts.map((concept: any, i: number) => (
                                         <li key={i} className="text-gray-700">
                                             <strong className="text-gray-900 block mb-1">{concept.concept}</strong>
-                                            {concept.definition}
+                                            <MarkdownText className="text-gray-700">{concept.definition}</MarkdownText>
                                         </li>
                                     ))}
                                 </ul>
@@ -230,9 +251,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block flex items-center gap-2">
                             <Lightbulb className="w-4 h-4 text-yellow-500" /> {isBook ? 'Advance Organizer: O que esperar' : 'Advance Organizer'}
                         </span>
-                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 text-slate-700 leading-relaxed text-lg shadow-inner">
+                        <MarkdownText className="bg-slate-50 p-6 rounded-xl border border-slate-100 text-slate-700 leading-relaxed text-lg shadow-inner prose-p:my-2 prose-ul:my-2 prose-ol:my-2">
                             {guide.overview}
-                        </div>
+                        </MarkdownText>
                     </div>
                 )}
             </div>
@@ -264,7 +285,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         </button>
                                     </div>
                                 </div>
-                                <p className="text-gray-600 leading-relaxed text-base pl-[3.5rem]">{concept.definition}</p>
+                                <MarkdownText className="text-gray-600 leading-relaxed text-base pl-[3.5rem]">{concept.definition}</MarkdownText>
                                 {/* ÁREA EXPANDIDA (Igual ao original) */}
                                 {expandedConcepts.has(idx) && (
                                     <div className="mt-6 pl-0 md:pl-[3.5rem] animate-in fade-in slide-in-from-top-2">
@@ -335,7 +356,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
                                     {concept.concept}
                                 </h3>
-                                <p className="text-xs text-gray-600 leading-relaxed">{concept.definition}</p>
+                                <MarkdownText className="text-xs text-gray-600 leading-relaxed">{concept.definition}</MarkdownText>
                             </div>
                         ))}
                     </div>
@@ -378,9 +399,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         <span className={`text - [10px] font - bold uppercase tracking - wider mb - 2 block flex items - center gap - 1 ${chapter.completed ? 'text-green-600' : 'text-orange-600'} `}>
                                             <Zap className="w-3 h-3" /> Essência (80/20)
                                         </span>
-                                        <p className={`text - sm leading - relaxed ${chapter.completed ? 'text-green-900' : 'text-orange-900 font-medium'} `}>
+                                        <MarkdownInline className={`block text - sm leading - relaxed ${chapter.completed ? 'text-green-900' : 'text-orange-900 font-medium'} `}>
                                             {chapter.paretoChunk}
-                                        </p>
+                                        </MarkdownInline>
                                     </div>
                                 </summary>
 
@@ -400,7 +421,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                                 {chapter.coreConcepts.map((concept: any, idx: number) => (
                                                     <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                                                         <strong className="text-indigo-700 block mb-1">{concept.concept}</strong>
-                                                        <p className="text-sm text-gray-600">{concept.definition}</p>
+                                                        <MarkdownText className="text-sm text-gray-600">{concept.definition}</MarkdownText>
                                                     </div>
                                                 ))}
                                             </div>
@@ -413,7 +434,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                             <div className="bg-yellow-100 p-2 rounded-full shrink-0"><Brain className="w-6 h-6 text-yellow-700" /></div>
                                             <div>
                                                 <h4 className="font-bold text-yellow-800 mb-1">Check Mental</h4>
-                                                <p className="text-yellow-900 font-medium italic">"{chapter.reflectionQuestion}"</p>
+                                                <MarkdownText className="text-yellow-900 font-medium italic">{chapter.reflectionQuestion}</MarkdownText>
                                                 <p className="text-xs text-yellow-600 mt-2 uppercase font-bold tracking-wide">Pausa para responder mentalmente antes de prosseguir.</p>
                                             </div>
                                         </div>
@@ -427,7 +448,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                                 {chapter.supportConcepts.map((sc: any, idx: number) => (
                                                     <div key={idx} className="flex items-start gap-2 text-sm text-gray-500">
                                                         <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
-                                                        <span><strong className="text-gray-700">{sc.concept}:</strong> {sc.definition}</span>
+                                                        <span><strong className="text-gray-700">{sc.concept}:</strong> <MarkdownInline className="text-gray-500">{sc.definition}</MarkdownInline></span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -466,19 +487,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     <div className="pl-12 space-y-4">
                                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
                                             <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1 block flex items-center gap-1"><Zap className="w-3 h-3" /> O que procurar:</span>
-                                            <p className="text-sm text-indigo-900 font-medium">{checkpoint.lookFor}</p>
+                                            <MarkdownText className="text-sm text-indigo-900 font-medium">{checkpoint.lookFor}</MarkdownText>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="bg-gray-50 p-4 rounded-xl border-l-4 border-gray-400">
                                                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block flex items-center gap-1"><PenTool className="w-3 h-3" /> Escreva Exatamente Isso:</span>
-                                                <p className="text-sm text-gray-700 italic font-serif">"{checkpoint.noteExactly}"</p>
+                                                <MarkdownText className="text-sm text-gray-700 italic font-serif prose-p:my-2 prose-ul:my-2 prose-ol:my-2">{checkpoint.noteExactly}</MarkdownText>
                                             </div>
                                             <div className={`p - 4 rounded - xl border - l - 4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'} `}>
                                                 <span className={`text - [10px] font - bold uppercase tracking - wider mb - 2 block flex items - center gap - 1 ${checkpoint.drawLabel === 'essential' ? 'text-orange-700' : 'text-blue-700'} `}>
                                                     <Target className="w-3 h-3" />
                                                     {checkpoint.drawLabel === 'essential' ? 'DESENHO OBRIGATÓRIO:' : 'SUGESTÃO DE DESENHO:'}
                                                 </span>
-                                                <p className={`text - sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'} `}>{checkpoint.drawExactly}</p>
+                                                <MarkdownText className={`text - sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'} `}>{checkpoint.drawExactly}</MarkdownText>
                                             </div>
                                         </div>
                                     </div>

@@ -15,13 +15,30 @@ const getAuthenticatedUserId = async () => {
   return data.user.id;
 };
 
+const scheduleLocalBackup = (studies: StudySession[], folders: Folder[]) => {
+  const writeBackup = () => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ studies, folders }));
+    } catch (err) {
+      console.warn('[Storage] Erro ao salvar backup local:', err);
+    }
+  };
+
+  const requestIdleCallback = (window as any).requestIdleCallback;
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(writeBackup, { timeout: 2000 });
+  } else {
+    window.setTimeout(writeBackup, 0);
+  }
+};
+
 /**
  * Salva os dados do usuário, escolhendo entre Supabase (Modo Nuvem) ou LocalStorage (Modo Local/Amigos).
  * Permite receber o userId já resolvido para evitar corrida com auth.getUser().
  */
 export const saveUserData = async (studies: StudySession[], folders: Folder[], userIdOverride?: string) => {
-  // Sempre salva no localStorage como backup.
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ studies, folders }));
+  // Sempre salva no localStorage como backup, mas fora do caminho crítico do render.
+  scheduleLocalBackup(studies, folders);
 
   if (!isCloudMode()) return;
 
@@ -39,7 +56,6 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[], u
       updated_at: new Date().toISOString()
     };
     console.log('[Storage] Salvando para user_id:', userId);
-    console.log('[Storage] Payload completo:', JSON.stringify(payload).slice(0, 500) + '...');
     console.log('[Storage] Studies no payload:', payload.content.studies?.length || 0);
 
     const { data, error } = await supabase!

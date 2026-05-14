@@ -795,7 +795,6 @@ export function AppContent() {
 
             clearTimeout(progressTimer);
             setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide } : s));
-            setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide } : s));
             setProcessingState({ isLoading: false, error: null, step: 'idle' });
             setActiveTab('guide');
         } catch (err: any) {
