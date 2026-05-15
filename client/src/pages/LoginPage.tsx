@@ -194,6 +194,19 @@ export const LoginPage: React.FC = () => {
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const isNative = Capacitor.isNativePlatform();
     const nativeRedirectUrl = 'neurostudy://auth';
+    const webRedirectUrl = (() => {
+        const { protocol, hostname, origin } = window.location;
+
+        if (hostname === 'neurostudy.com.br' || hostname === 'www.neurostudy.com.br') {
+            return 'https://www.neurostudy.com.br';
+        }
+
+        if (protocol === 'https:' && hostname.endsWith('.neurostudy.com.br')) {
+            return origin;
+        }
+
+        return origin;
+    })();
 
     // Show Terms or Privacy page
     if (currentView === 'terms') {
@@ -210,7 +223,7 @@ export const LoginPage: React.FC = () => {
                 provider: 'google',
                 options: isNative
                     ? { redirectTo: nativeRedirectUrl, skipBrowserRedirect: true }
-                    : { redirectTo: window.location.origin }
+                    : { redirectTo: webRedirectUrl }
             });
             if (error) throw error;
             if (isNative && data?.url) {
@@ -230,7 +243,7 @@ export const LoginPage: React.FC = () => {
             const { error } = await supabase!.auth.signInWithOtp({
                 email,
                 options: {
-                    emailRedirectTo: isNative ? nativeRedirectUrl : window.location.origin,
+                    emailRedirectTo: isNative ? nativeRedirectUrl : webRedirectUrl,
                 }
             });
             if (error) throw error;
