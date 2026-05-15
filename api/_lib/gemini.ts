@@ -508,6 +508,13 @@ export const generateStudyGuide = async (
       - NAO gere "paredoes de texto" denso.
       - Deve ser algo que valha a pena copiar e revisar depois.
   - "drawExactly": Uma instrucao visual clara do que desenhar (ex: 'Desenhe um triangulo com...').
+
+  COBERTURA DOS CORE CONCEPTS NO CHECKLIST:
+  - Os checkpoints devem seguir a ordem natural/cronologica da Fonte Principal. A cronologia manda na ordem; os Core Concepts mandam na cobertura minima.
+  - Ao final da sequencia, TODO Core Concept deve ter sido praticado em pelo menos 1 checkpoint.
+  - Um checkpoint pode integrar ate 3 Core Concepts relacionados, desde que isso faca sentido pedagogico.
+  - Quando um Core Concept estiver distribuido ao longo do material, crie um checkpoint de sintese no ponto cronologico em que ele se consolida.
+  - Nao adiante nem recue artificialmente no fluxo apenas para cumprir cobertura. Nao crie checkpoints mecanicos ou artificiais; preserve utilidade pratica, retrieval practice e ordem natural do estudo.
   ` : ''}
 
   Estrategia Adicional: ${modeInstructions}
