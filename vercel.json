@@ -1,4 +1,17 @@
 {
+    "redirects": [
+        {
+            "source": "/((?!api/).*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "neurostudy.com.br"
+                }
+            ],
+            "destination": "https://www.neurostudy.com.br/$1",
+            "permanent": true
+        }
+    ],
     "rewrites": [
         {
             "source": "/api/extension/callback",
