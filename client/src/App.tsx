@@ -34,6 +34,7 @@ import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
 import { PageSelectorModal, PageSelection } from './components/PageSelectorModal';
 import { extractPdfPages } from './services/pdfPageExtractor';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { buildStudyGuideMarkdown, getMarkdownFilename } from './services/markdownExport';
 
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
@@ -766,6 +767,26 @@ export function AppContent() {
         }
     };
 
+    const handleExportGuideMarkdown = () => {
+        if (!activeStudy?.guide) return;
+        try {
+            const guide = activeStudy.guide;
+            const markdown = buildStudyGuideMarkdown(guide);
+            const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = getMarkdownFilename(guide.title);
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch (e) {
+            console.error(e);
+            alert('Falha ao exportar Markdown.');
+        }
+    };
+
     const handleExportNotion = async () => {
         // Placeholder: ainda não temos integração real com Notion aqui.
         // Importante: não upsellar usuário Pro por um recurso que não está plugado.
@@ -1367,6 +1388,7 @@ export function AppContent() {
                                                 isReviewScheduled={!!activeStudy.nextReviewDate}
                                                 onOpenSubscription={() => setShowSubscriptionModal(true)}
                                                 onExportPdf={handleExportGuidePdf}
+                                                onExportMarkdown={handleExportGuideMarkdown}
                                                 onExportNotion={handleExportNotion}
                                                 onUsageLimit={openUsageLimitModal}
                                             />

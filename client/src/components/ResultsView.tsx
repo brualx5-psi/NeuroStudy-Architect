@@ -26,6 +26,7 @@ interface ResultsViewProps {
 
     // Paid actions
     onExportPdf?: () => void;
+    onExportMarkdown?: () => void;
     onExportNotion?: () => void;
 
     onUsageLimit?: (reason: LimitReason) => void;
@@ -54,7 +55,7 @@ const MarkdownInline: React.FC<{ children?: string | null; className?: string }>
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
     guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled,
-    onOpenSubscription, onExportPdf, onExportNotion, onUsageLimit
+    onOpenSubscription, onExportPdf, onExportMarkdown, onExportNotion, onUsageLimit
 }) => {
     const { isPaid, canUseFeynman, incrementUsage, usage } = useAuth();
 
@@ -581,6 +582,17 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             >
                                 <FileDown className="w-4 h-4" />
                                 <span className="text-xs">Exportar PDF</span>
+                                {!isPaid && <Crown className="w-3 h-3 text-indigo-600" />}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (!isPaid) return onOpenSubscription();
+                                    onExportMarkdown?.();
+                                }}
+                                className="flex-1 sm:flex-none border-2 border-slate-200 bg-white text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span className="text-xs">Markdown</span>
                                 {!isPaid && <Crown className="w-3 h-3 text-indigo-600" />}
                             </button>
                             <button
