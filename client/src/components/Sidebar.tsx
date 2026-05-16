@@ -170,7 +170,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {editingFolderId === folder.id ? (
                   <div className="w-full space-y-1" onClick={e => e.stopPropagation()}>
                     <input
-                      autoFocus
                       className="w-full text-xs p-1 border rounded"
                       placeholder="Nome da pasta"
                       value={editName}
@@ -245,7 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className="p-1 ml-4 my-1 space-y-1 animate-in slide-in-from-left-2 duration-200">
                       <div className="flex items-center gap-2">
                         <CornerDownRight className="w-3 h-3 text-gray-400" />
-                        <input autoFocus placeholder="Nome da subpasta..." className="text-xs p-1 border rounded w-full focus:ring-1 focus:ring-green-500 outline-none bg-green-50"
+                        <input placeholder="Nome da subpasta..." className="text-xs p-1 border rounded w-full focus:ring-1 focus:ring-green-500 outline-none bg-green-50"
                           value={newSubfolderName} onChange={e => setNewSubfolderName(e.target.value)}
                           onKeyDown={e => {
                             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreateFolder(folder.id); }
@@ -349,7 +348,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {creatingRootFolderIn === rootId && (
               <div className="p-2 mx-2 bg-white border rounded shadow-sm my-2 animate-fade-in space-y-1">
                 <div className="flex items-center gap-2">
-                  <input autoFocus placeholder="Nome da pasta..." className="text-xs p-1 w-full outline-none"
+                  <input placeholder="Nome da pasta..." className="text-xs p-1 w-full outline-none"
                     value={newRootFolderName} onChange={e => setNewRootFolderName(e.target.value)}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreateFolder(rootId); }
