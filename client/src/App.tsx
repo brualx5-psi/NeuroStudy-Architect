@@ -318,13 +318,56 @@ export function AppContent() {
 
     const handleGoToHome = () => { setIsMobileMenuOpen(false); setActiveStudyId(null); setView('landing'); };
 
-    const createFolder = (name: string, parentId?: string) => {
+    const createFolder = (name: string, parentId?: string, description?: string) => {
         const newFolder: Folder = { id: Date.now().toString(), name, parentId };
+        if (description && description.trim().length > 0) {
+            newFolder.description = description.trim();
+        }
         setFolders([...folders, newFolder]);
         return newFolder.id;
     };
 
-    const renameFolder = (id: string, newName: string) => { setFolders(prev => prev.map(f => f.id === id ? { ...f, name: newName } : f)); };
+    const renameFolder = (id: string, newName: string, description?: string) => {
+        setFolders(prev => prev.map(f => {
+            if (f.id !== id) return f;
+            const next: Folder = { ...f, name: newName };
+            if (description === undefined) {
+                // signature legada: não mexe na descrição existente.
+                return next;
+            }
+            const trimmed = description.trim();
+            if (trimmed.length > 0) {
+                next.description = trimmed;
+            } else {
+                delete next.description;
+            }
+            return next;
+        }));
+    };
+
+    const getFolderModuleContext = (folderId?: string) => {
+        if (!folderId) return undefined;
+        const foldersById = new Map(folders.map(folder => [folder.id, folder]));
+        const chain: Folder[] = [];
+        const visited = new Set<string>();
+        let current = foldersById.get(folderId);
+
+        while (current && !visited.has(current.id)) {
+            visited.add(current.id);
+            chain.push(current);
+            current = current.parentId ? foldersById.get(current.parentId) : undefined;
+        }
+
+        const context = chain
+            .flatMap(folder => {
+                const description = folder.description?.trim();
+                return description ? [`${folder.name}: ${description}`] : [];
+            })
+            .join('\n');
+
+        return context || undefined;
+    };
+
     const deleteFolder = (id: string) => {
         const idsToDelete = new Set<string>();
         const collectIds = (fid: string) => {
@@ -563,7 +606,10 @@ export function AppContent() {
         setStudies(prev => prev.map(s => { if (s.id === newStudy.id) return { ...s, sources: [newSource] }; return s; }));
 
         setQuickInputMode('none'); setInputText(''); setView('app');
-        if (autoGenerate) { setTimeout(() => handleGenerateGuideForStudy(newStudy.id, [newSource], mode, isBook), 100); }
+        if (autoGenerate) {
+            const folderContext = getFolderModuleContext(effectiveFolderId);
+            setTimeout(() => handleGenerateGuideForStudy(newStudy.id, [newSource], mode, isBook, folderContext), 100);
+        }
     };
 
     const handleParetoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -793,7 +839,7 @@ export function AppContent() {
         alert('Integração com Notion: em desenvolvimento. Se você quiser, eu implemento o fluxo de OAuth + export.');
     };
 
-    const handleGenerateGuideForStudy = async (studyId: string, sources: StudySource[], mode: StudyMode, isBook: boolean) => {
+    const handleGenerateGuideForStudy = async (studyId: string, sources: StudySource[], mode: StudyMode, isBook: boolean, moduleContext?: string) => {
         // ADMIN BYPASS
         const roadmapCheck = canPerformAction(planName, usage, sources, 'roadmap', { isAdmin });
 
@@ -812,7 +858,7 @@ export function AppContent() {
             const progressTimer = setTimeout(() => { setProcessingState(prev => ({ ...prev, step: 'generating' })); }, 3500);
 
             // ATENÇÃO: Agora passamos o ARRAY de fontes para o geminiService
-            const guide = await generateStudyGuide(sources, mode, isBinary, isBook);
+            const guide = await generateStudyGuide(sources, mode, isBinary, isBook, moduleContext);
 
             clearTimeout(progressTimer);
             setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide } : s));
@@ -838,7 +884,8 @@ export function AppContent() {
             return;
         }
 
-        await handleGenerateGuideForStudy(activeStudy.id, activeStudy.sources, activeStudy.mode, activeStudy.isBook || false);
+        const folderContext = getFolderModuleContext(activeStudy.folderId);
+        await handleGenerateGuideForStudy(activeStudy.id, activeStudy.sources, activeStudy.mode, activeStudy.isBook || false, folderContext);
     };
 
     const handleGenerateSlides = async () => {

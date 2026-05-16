@@ -128,13 +128,19 @@ export const generateStudyGuide = async (
   sources: StudySource[],
   mode: StudyMode = StudyMode.NORMAL,
   _isBinary: boolean = false,
-  isBook: boolean = false
+  isBook: boolean = false,
+  moduleContext?: string
 ): Promise<StudyGuide> => {
-  const response = await postJson<{ guide: StudyGuide }>('/api/ai?action=roadmap', {
+  const trimmedContext = moduleContext?.trim();
+  const body: Record<string, unknown> = {
     sources,
     mode,
     isBook
-  });
+  };
+  if (trimmedContext) {
+    body.moduleContext = trimmedContext;
+  }
+  const response = await postJson<{ guide: StudyGuide }>('/api/ai?action=roadmap', body);
   return response.guide;
 };
 

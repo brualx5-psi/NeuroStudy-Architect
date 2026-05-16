@@ -86,6 +86,7 @@ export interface Folder {
   id: string;
   name: string;
   parentId?: string;
+  description?: string;
 }
 
 export interface StudySource {

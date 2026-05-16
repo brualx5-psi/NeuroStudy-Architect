@@ -99,6 +99,9 @@ export interface Folder {
   id: string;
   name: string;
   parentId?: string;
+  // Contexto/descrição opcional da pasta (módulo). Usado como bússola pedagógica
+  // ao gerar o Objetivo da aula e o roteiro — não substitui a Fonte Principal.
+  description?: string;
 }
 
 export interface StudySource {

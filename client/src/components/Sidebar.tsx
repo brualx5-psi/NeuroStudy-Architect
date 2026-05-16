@@ -9,8 +9,8 @@ interface SidebarProps {
   studies: StudySession[];
   activeStudyId: string | null;
   onSelectStudy: (id: string) => void;
-  onCreateFolder: (name: string, parentId?: string) => void;
-  onRenameFolder: (id: string, newName: string) => void;
+  onCreateFolder: (name: string, parentId?: string, description?: string) => void;
+  onRenameFolder: (id: string, newName: string, description?: string) => void;
   onCreateStudy: (folderId: string, title: string) => void;
   onDeleteStudy: (id: string) => void;
   onDeleteFolder: (id: string) => void;
@@ -47,12 +47,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   const [creatingSubfolderIn, setCreatingSubfolderIn] = useState<string | null>(null);
   const [newSubfolderName, setNewSubfolderName] = useState('');
+  const [newSubfolderDescription, setNewSubfolderDescription] = useState('');
 
   const [creatingRootFolderIn, setCreatingRootFolderIn] = useState<string | null>(null);
   const [newRootFolderName, setNewRootFolderName] = useState('');
+  const [newRootFolderDescription, setNewRootFolderDescription] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -77,24 +80,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const startEditing = (folder: Folder) => {
     setEditingFolderId(folder.id);
     setEditName(folder.name);
+    setEditDescription(folder.description || '');
   };
 
   const saveEdit = () => {
     if (editingFolderId && editName.trim()) {
-      onRenameFolder(editingFolderId, editName);
+      onRenameFolder(editingFolderId, editName.trim(), editDescription);
     }
     setEditingFolderId(null);
+    setEditDescription('');
+  };
+
+  const cancelEdit = () => {
+    setEditingFolderId(null);
+    setEditDescription('');
   };
 
   const handleCreateFolder = (parentId: string) => {
-    const name = parentId.startsWith('root-') ? newRootFolderName : newSubfolderName;
+    const isRoot = parentId.startsWith('root-');
+    const name = isRoot ? newRootFolderName : newSubfolderName;
+    const description = (isRoot ? newRootFolderDescription : newSubfolderDescription).trim();
     if (name.trim()) {
-      onCreateFolder(name, parentId);
+      onCreateFolder(name.trim(), parentId, description.length > 0 ? description : undefined);
       setNewSubfolderName('');
+      setNewSubfolderDescription('');
       setNewRootFolderName('');
+      setNewRootFolderDescription('');
       setCreatingSubfolderIn(null);
       setCreatingRootFolderIn(null);
-      if (!parentId.startsWith('root-')) setExpandedFolders(prev => ({ ...prev, [parentId]: true }));
+      if (!isRoot) setExpandedFolders(prev => ({ ...prev, [parentId]: true }));
     }
   };
 
@@ -154,17 +168,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => toggleFolder(folder.id)}
               >
                 {editingFolderId === folder.id ? (
-                  <input
-                    autoFocus className="w-full text-xs p-1 border rounded"
-                    value={editName} onChange={e => setEditName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && saveEdit()} onBlur={saveEdit} onClick={e => e.stopPropagation()}
-                  />
+                  <div className="w-full space-y-1" onClick={e => e.stopPropagation()}>
+                    <input
+                      autoFocus
+                      className="w-full text-xs p-1 border rounded"
+                      placeholder="Nome da pasta"
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                        if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                      }}
+                    />
+                    <textarea
+                      className="w-full text-[11px] p-1 border rounded resize-none"
+                      placeholder="Descrição do módulo (opcional) — ex: contexto pedagógico para guiar a IA"
+                      rows={2}
+                      maxLength={500}
+                      value={editDescription}
+                      onChange={e => setEditDescription(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                      }}
+                    />
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={cancelEdit}
+                        className="px-2 py-0.5 text-[10px] text-gray-500 hover:text-gray-700 rounded"
+                      >Cancelar</button>
+                      <button
+                        onClick={saveEdit}
+                        className="px-2 py-0.5 text-[10px] bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                      >Salvar</button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <div className="flex items-center gap-2 text-gray-700 overflow-hidden">
                       {isOpen ? <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" /> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-gray-400 shrink-0"><path d="m9 18 6-6-6-6" /></svg>}
                       <FolderIcon className={`w-4 h-4 shrink-0 ${themeColor}`} />
-                      <span className="truncate max-w-[140px] text-sm">{folder.name}</span>
+                      <span
+                        className="truncate max-w-[140px] text-sm"
+                        title={folder.description ? folder.description : folder.name}
+                      >
+                        {folder.name}
+                      </span>
+                      {folder.description && (
+                        <span
+                          className="text-[9px] text-gray-400 shrink-0"
+                          title={folder.description}
+                          aria-label="Esta pasta tem contexto pedagógico"
+                        >·</span>
+                      )}
                     </div>
                     <div className="flex gap-1">
                       <button onClick={(e) => { e.stopPropagation(); onFolderExam(folder.id); }} className="p-0.5 text-purple-600 hover:bg-purple-100 rounded" title="Provão: Gerar Simulado da Pasta"><GraduationCap className="w-3 h-3" /></button>
@@ -187,13 +242,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div>
                   {/* INPUT PARA NOVA SUBPASTA */}
                   {creatingSubfolderIn === folder.id && (
-                    <div className="flex items-center gap-2 p-1 ml-4 my-1 animate-in slide-in-from-left-2 duration-200">
-                      <CornerDownRight className="w-3 h-3 text-gray-400" />
-                      <input autoFocus placeholder="Nome da subpasta..." className="text-xs p-1 border rounded w-full focus:ring-1 focus:ring-green-500 outline-none bg-green-50"
-                        value={newSubfolderName} onChange={e => setNewSubfolderName(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleCreateFolder(folder.id)}
+                    <div className="p-1 ml-4 my-1 space-y-1 animate-in slide-in-from-left-2 duration-200">
+                      <div className="flex items-center gap-2">
+                        <CornerDownRight className="w-3 h-3 text-gray-400" />
+                        <input autoFocus placeholder="Nome da subpasta..." className="text-xs p-1 border rounded w-full focus:ring-1 focus:ring-green-500 outline-none bg-green-50"
+                          value={newSubfolderName} onChange={e => setNewSubfolderName(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreateFolder(folder.id); }
+                          }}
+                        />
+                        <button onClick={() => { setCreatingSubfolderIn(null); setNewSubfolderName(''); setNewSubfolderDescription(''); }}><X className="w-3 h-3 text-gray-400" /></button>
+                      </div>
+                      <textarea
+                        placeholder="Descrição do módulo (opcional) — guia o recorte da IA"
+                        className="ml-5 text-[11px] p-1 border rounded w-[calc(100%-1.5rem)] focus:ring-1 focus:ring-green-500 outline-none bg-white resize-none"
+                        rows={2}
+                        maxLength={500}
+                        value={newSubfolderDescription}
+                        onChange={e => setNewSubfolderDescription(e.target.value)}
                       />
-                      <button onClick={() => setCreatingSubfolderIn(null)}><X className="w-3 h-3 text-gray-400" /></button>
                     </div>
                   )}
 
@@ -280,12 +347,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {isExpanded && !isCollapsed && (
           <>
             {creatingRootFolderIn === rootId && (
-              <div className="flex items-center gap-2 p-2 mx-2 bg-white border rounded shadow-sm my-2 animate-fade-in">
-                <input autoFocus placeholder="Nome da pasta..." className="text-xs p-1 w-full outline-none"
-                  value={newRootFolderName} onChange={e => setNewRootFolderName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleCreateFolder(rootId)}
+              <div className="p-2 mx-2 bg-white border rounded shadow-sm my-2 animate-fade-in space-y-1">
+                <div className="flex items-center gap-2">
+                  <input autoFocus placeholder="Nome da pasta..." className="text-xs p-1 w-full outline-none"
+                    value={newRootFolderName} onChange={e => setNewRootFolderName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreateFolder(rootId); }
+                    }}
+                  />
+                  <button onClick={() => { setCreatingRootFolderIn(null); setNewRootFolderName(''); setNewRootFolderDescription(''); }}><X className="w-3 h-3 text-gray-400" /></button>
+                </div>
+                <textarea
+                  placeholder="Descrição do módulo (opcional) — ex: 'Este módulo aborda a evolução histórica das terapias comportamentais...'"
+                  className="text-[11px] p-1 w-full outline-none border rounded resize-none"
+                  rows={2}
+                  maxLength={500}
+                  value={newRootFolderDescription}
+                  onChange={e => setNewRootFolderDescription(e.target.value)}
                 />
-                <button onClick={() => setCreatingRootFolderIn(null)}><X className="w-3 h-3 text-gray-400" /></button>
               </div>
             )}
 

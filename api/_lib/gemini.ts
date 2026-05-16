@@ -382,7 +382,8 @@ export const generateStudyGuide = async (
   planName: PlanName,
   sources: StudySourceInput[],
   mode: string,
-  isBook: boolean
+  isBook: boolean,
+  moduleContext?: string
 ) => {
   const schemaProperties = isBook ? { ...COMMON_PROPERTIES, ...CHAPTERS_PROPERTY } : { ...COMMON_PROPERTIES };
   const finalSchema: Schema = {
@@ -428,6 +429,18 @@ export const generateStudyGuide = async (
     `;
   }
 
+  const sanitizedModuleContext = moduleContext?.trim().slice(0, 500);
+  const moduleContextInstruction = sanitizedModuleContext ? `
+  CONTEXTO DO MODULO/PASTA (bússola pedagógica opcional do usuário):
+  ${JSON.stringify(sanitizedModuleContext)}
+
+  COMO USAR ESTE CONTEXTO:
+  - A Fonte Principal continua mandando no conteudo, na ordem e nos fatos do roteiro.
+  - O contexto do modulo/pasta serve apenas para orientar recorte, enfase e ponte pedagogica no "Objetivo da aula" e nos checkpoints.
+  - Nao invente fatos, autores, datas, exemplos ou justificativas curriculares que nao estejam na Fonte Principal ou nas Fontes Complementares.
+  - Se a Fonte Principal parecer mais tecnica/conceitual do que o contexto do modulo sugere, sinalize isso de forma transparente no "Objetivo da aula" e conecte apenas o que estiver ancorado na fonte.
+  ` : '';
+
   let modeInstructions = '';
   if (isBook) {
     switch (mode) {
@@ -450,6 +463,8 @@ export const generateStudyGuide = async (
   Voce e o NeuroStudy Architect.
   CONTEXTO: (${isBook ? 'LIVRO COMPLETO' : 'Material de Estudo'}).
   MISSAO: Analisar e criar um guia pratico baseado em Neurociencia.
+
+  ${moduleContextInstruction}
 
   ${structureInstruction}
 

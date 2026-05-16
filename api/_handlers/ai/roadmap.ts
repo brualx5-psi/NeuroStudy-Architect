@@ -61,6 +61,7 @@ export default async function handler(req: any, res: any) {
     sources: any[];
     mode: string;
     isBook?: boolean;
+    moduleContext?: string;
   }>(req);
 
   const { planName, isAdmin } = await getUserAccess(auth.userId);
@@ -110,11 +111,15 @@ export default async function handler(req: any, res: any) {
       sourcesForGemini[0].isPrimary = true;
     }
 
+    const rawModuleContext = typeof body.moduleContext === 'string' ? body.moduleContext.trim() : '';
+    const moduleContext = rawModuleContext ? rawModuleContext.slice(0, 500) : undefined;
+
     const { guide, usageTokens } = await generateStudyGuide(
       planName,
       sourcesForGemini,
       body.mode || 'NORMAL',
-      Boolean(body.isBook)
+      Boolean(body.isBook),
+      moduleContext
     );
 
     // Incrementar uso APÓS sucesso
