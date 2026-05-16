@@ -314,6 +314,10 @@ const COMMON_PROPERTIES = {
   }
 };
 
+const MODULE_ALIGNMENT_PROPERTY = {
+  moduleAlignment: { type: Type.STRING }
+};
+
 const CHAPTERS_PROPERTY = {
   chapters: {
     type: Type.ARRAY,
@@ -385,7 +389,10 @@ export const generateStudyGuide = async (
   isBook: boolean,
   moduleContext?: string
 ) => {
-  const schemaProperties = isBook ? { ...COMMON_PROPERTIES, ...CHAPTERS_PROPERTY } : { ...COMMON_PROPERTIES };
+  const sanitizedModuleContext = moduleContext?.trim().slice(0, 500);
+  const schemaProperties = isBook
+    ? { ...COMMON_PROPERTIES, ...(sanitizedModuleContext ? MODULE_ALIGNMENT_PROPERTY : {}), ...CHAPTERS_PROPERTY }
+    : { ...COMMON_PROPERTIES, ...(sanitizedModuleContext ? MODULE_ALIGNMENT_PROPERTY : {}) };
   const finalSchema: Schema = {
     type: Type.OBJECT,
     properties: schemaProperties,
@@ -429,7 +436,6 @@ export const generateStudyGuide = async (
     `;
   }
 
-  const sanitizedModuleContext = moduleContext?.trim().slice(0, 500);
   const moduleContextInstruction = sanitizedModuleContext ? `
   CONTEXTO DO MODULO/PASTA (bússola pedagógica opcional do usuário):
   ${JSON.stringify(sanitizedModuleContext)}
@@ -439,6 +445,14 @@ export const generateStudyGuide = async (
   - O contexto do modulo/pasta serve apenas para orientar recorte, enfase e ponte pedagogica no "Objetivo da aula" e nos checkpoints.
   - Nao invente fatos, autores, datas, exemplos ou justificativas curriculares que nao estejam na Fonte Principal ou nas Fontes Complementares.
   - Se a Fonte Principal parecer mais tecnica/conceitual do que o contexto do modulo sugere, sinalize isso de forma transparente no "Objetivo da aula" e conecte apenas o que estiver ancorado na fonte.
+
+  ALINHAMENTO COM O MODULO ('moduleAlignment'):
+  - Gere tambem o campo opcional 'moduleAlignment' em 1 a 3 frases.
+  - Explique como esta aula/fonte se encaixa no contexto do modulo/pasta.
+  - Se estiver bem alinhada, diga a conexao principal.
+  - Se a fonte estiver mais tecnica/conceitual, pratica ou pontual do que o modulo sugere, sinalize essa diferenca com honestidade e diga qual papel ela cumpre no modulo.
+  - Se a relacao nao estiver clara na fonte, diga que a conexao com o modulo e limitada e que o roteiro seguira fielmente a fonte.
+  - Nao invente conexoes historicas, autores, datas, objetivos do professor ou conteudos que nao estejam ancorados no material.
   ` : '';
 
   let modeInstructions = '';

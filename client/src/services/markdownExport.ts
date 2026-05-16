@@ -50,6 +50,11 @@ export const buildStudyGuideMarkdown = (guide: StudyGuide) => {
     pushIfPresent(lines, guide.overview);
   }
 
+  if (guide.moduleAlignment) {
+    lines.push('## Alinhamento com o módulo', '');
+    pushIfPresent(lines, guide.moduleAlignment);
+  }
+
   if (guide.globalApplication) {
     lines.push('## Aplicação Global', '');
     pushIfPresent(lines, guide.globalApplication);

@@ -45,6 +45,7 @@ export interface StudyGuide {
   subject: string;
   title: string;
   overview: string;
+  moduleAlignment?: string;
   globalApplication?: string;
   coreConcepts: CoreConcept[];
 

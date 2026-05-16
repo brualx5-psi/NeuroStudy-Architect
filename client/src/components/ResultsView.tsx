@@ -272,6 +272,16 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </MarkdownText>
                     </div>
                 )}
+                {guide.moduleAlignment && (
+                    <div className="mt-4 bg-indigo-50/80 border border-indigo-100 rounded-xl p-4">
+                        <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-indigo-500" /> Alinhamento com o módulo
+                        </span>
+                        <MarkdownText className="text-sm text-indigo-900 leading-relaxed prose-p:my-1 prose-ul:my-1 prose-ol:my-1">
+                            {guide.moduleAlignment}
+                        </MarkdownText>
+                    </div>
+                )}
             </div>
 
             {/* SEÇÃO 1: CONCEITOS GLOBAIS (Em Livro = Pareto Global) */}
