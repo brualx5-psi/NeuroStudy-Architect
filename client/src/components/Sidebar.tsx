@@ -300,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
-  const SectionHeader = ({ id, title, icon: Icon, colorClass, rootId }: any) => {
+  const renderSectionHeader = ({ id, title, icon: Icon, colorClass, rootId }: any) => {
     const isExpanded = expandedSections[rootId] ?? true;
     const isCollapsed = !isOpen && !isHovered;
 
@@ -426,9 +426,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className={`flex-1 overflow-hidden p-2 ${!isOpen && !isHovered ? 'md:flex md:flex-col md:justify-around' : 'space-y-6'}`}>
-          <SectionHeader id="neuro" title="NeuroStudy" icon={Layers} colorClass="bg-indigo-50" rootId="root-neuro" />
-          <SectionHeader id="books" title="Biblioteca" icon={BookOpen} colorClass="bg-orange-50" rootId="root-books" />
-          <SectionHeader id="pareto" title="Pareto 80/20" icon={Target} colorClass="bg-red-50" rootId="root-pareto" />
+          {renderSectionHeader({ id: 'neuro', title: 'NeuroStudy', icon: Layers, colorClass: 'bg-indigo-50', rootId: 'root-neuro' })}
+          {renderSectionHeader({ id: 'books', title: 'Biblioteca', icon: BookOpen, colorClass: 'bg-orange-50', rootId: 'root-books' })}
+          {renderSectionHeader({ id: 'pareto', title: 'Pareto 80/20', icon: Target, colorClass: 'bg-red-50', rootId: 'root-pareto' })}
         </div>
 
         <div className="p-3 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 space-y-2">

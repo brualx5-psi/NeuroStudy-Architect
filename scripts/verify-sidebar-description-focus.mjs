@@ -10,4 +10,14 @@ if (!sidebar.includes('Descrição do módulo (opcional)')) {
   throw new Error('Campo de descrição do módulo não encontrado na Sidebar.');
 }
 
-console.log('Sidebar descrição de módulo sem roubo de foco: OK');
+if (sidebar.includes('<SectionHeader')) {
+  throw new Error('SectionHeader não deve ser renderizado como componente JSX dentro da Sidebar; a função inline é recriada a cada render e remonta o formulário, perdendo foco.');
+}
+
+for (const rootId of ['root-neuro', 'root-books', 'root-pareto']) {
+  if (!sidebar.includes(`renderSectionHeader({`) || !sidebar.includes(`rootId: '${rootId}'`)) {
+    throw new Error(`renderSectionHeader deve ser chamado como função auxiliar para ${rootId}.`);
+  }
+}
+
+console.log('Sidebar descrição de módulo sem roubo/perda de foco: OK');
