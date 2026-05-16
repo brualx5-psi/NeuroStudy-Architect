@@ -17,7 +17,8 @@ const gemini = read('api/_lib/gemini.ts');
 
 assertIncludes(clientTypes, 'description?: string', 'Folder do client deve aceitar descrição opcional');
 assertIncludes(rootTypes, 'description?: string', 'Folder raiz deve aceitar descrição opcional');
-assertIncludes(sidebar, 'Descrição do módulo (opcional)', 'Sidebar deve permitir descrição/contexto do módulo');
+assertIncludes(sidebar, 'Descrição curta do módulo (opcional)', 'Sidebar deve permitir descrição/contexto do módulo');
+assertIncludes(sidebar, 'MODULE_DESCRIPTION_MAX_LENGTH = 500', 'Sidebar deve manter limite visível do contexto do módulo');
 assertIncludes(sidebar, 'onRenameFolder(editingFolderId, editName.trim(), editDescription)', 'Edição deve permitir limpar descrição existente');
 assertIncludes(app, 'getFolderModuleContext', 'App deve ter helper para buscar contexto da pasta ativa');
 assertIncludes(app, 'current = current.parentId ? foldersById.get(current.parentId) : undefined', 'App deve herdar contexto de pastas-pai');

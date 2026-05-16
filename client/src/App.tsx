@@ -38,6 +38,7 @@ import { buildStudyGuideMarkdown, getMarkdownFilename } from './services/markdow
 
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
+const PRIMARY_SOURCE_CONTEXT_CHAR_LIMIT = 100_000;
 
 export function AppContent() {
     const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage, isAdmin: isAdminFromProfile } = useAuth();
@@ -239,6 +240,10 @@ export function AppContent() {
         if (source.textContent) return source.textContent.length;
         if (source.type === InputType.PDF) return extractTextFromPdfBase64(source.content).length;
         return (source.content || '').length;
+    };
+
+    const getPrimarySourceContextLength = (source: StudySource) => {
+        return (source.textContent || source.content || '').length;
     };
 
     const handleSplitRoadmap = () => {
@@ -850,6 +855,15 @@ export function AppContent() {
 
         // Encontra a fonte primária para definir o passo inicial (transcribing vs analyzing)
         const primarySource = sources.find(s => s.isPrimary) || sources[0];
+        const primarySourceLength = primarySource ? getPrimarySourceContextLength(primarySource) : 0;
+        if (primarySourceLength > PRIMARY_SOURCE_CONTEXT_CHAR_LIMIT) {
+            const proceed = window.confirm(
+                `A fonte principal tem ${primarySourceLength.toLocaleString()} caracteres. Para este roteiro, a IA consegue usar diretamente os primeiros ${PRIMARY_SOURCE_CONTEXT_CHAR_LIMIT.toLocaleString()} caracteres da fonte principal.\n\n` +
+                'Para não perder o final da fala do professor, o ideal é dividir a transcrição em partes/roteiros menores.\n\n' +
+                'Deseja gerar mesmo assim usando o início da fonte?'
+            );
+            if (!proceed) return;
+        }
         const isVideo = primarySource?.type === InputType.VIDEO;
         const isBinary = sources.some(s => s.type === InputType.PDF || s.type === InputType.EPUB || s.type === InputType.MOBI); // Simplificação
 

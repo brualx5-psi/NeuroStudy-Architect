@@ -6,8 +6,16 @@ if (sidebar.includes('autoFocus')) {
   throw new Error('Sidebar não deve usar autoFocus nos campos de pasta; isso rouba foco do textarea de descrição ao re-renderizar.');
 }
 
-if (!sidebar.includes('Descrição do módulo (opcional)')) {
-  throw new Error('Campo de descrição do módulo não encontrado na Sidebar.');
+if (!sidebar.includes('Descrição curta do módulo (opcional)')) {
+  throw new Error('Campo de descrição curta do módulo não encontrado na Sidebar.');
+}
+
+if (!sidebar.includes('MODULE_DESCRIPTION_MAX_LENGTH = 500') || !sidebar.includes('/{MODULE_DESCRIPTION_MAX_LENGTH}')) {
+  throw new Error('Sidebar deve deixar claro o limite de 500 caracteres da descrição do módulo.');
+}
+
+if (!sidebar.includes('transcrição completa entra como fonte')) {
+  throw new Error('Sidebar deve orientar que transcrição completa entra como fonte, não como descrição do módulo.');
 }
 
 if (sidebar.includes('<SectionHeader')) {

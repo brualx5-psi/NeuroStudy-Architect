@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { FolderIcon, Plus, FileText, ChevronDown, Trash, X, Edit, CornerDownRight, GraduationCap, NeuroLogo, Search, Layers, BookOpen, Target, LogOut, User } from './Icons';
 // ChevronRight agora é inline (SVG direto no JSX) para evitar problema de bundling
 
+const MODULE_DESCRIPTION_MAX_LENGTH = 500;
+
 interface SidebarProps {
   folders: Folder[];
   studies: StudySession[];
@@ -181,15 +183,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                     <textarea
                       className="w-full text-[11px] p-1 border rounded resize-none"
-                      placeholder="Descrição do módulo (opcional) — ex: contexto pedagógico para guiar a IA"
+                      placeholder="Descrição curta do módulo (opcional) — use até 500 caracteres; para fala inteira, adicione como fonte de texto"
                       rows={2}
-                      maxLength={500}
+                      maxLength={MODULE_DESCRIPTION_MAX_LENGTH}
                       value={editDescription}
                       onChange={e => setEditDescription(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
                       }}
                     />
+                    <div className="flex justify-between text-[10px] text-gray-400">
+                      <span>Máx. 500 caracteres; transcrição completa entra como fonte.</span>
+                      <span>{editDescription.length}/{MODULE_DESCRIPTION_MAX_LENGTH}</span>
+                    </div>
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={cancelEdit}
@@ -253,13 +259,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button onClick={() => { setCreatingSubfolderIn(null); setNewSubfolderName(''); setNewSubfolderDescription(''); }}><X className="w-3 h-3 text-gray-400" /></button>
                       </div>
                       <textarea
-                        placeholder="Descrição do módulo (opcional) — guia o recorte da IA"
+                        placeholder="Descrição curta do módulo (opcional) — guia o recorte da IA"
                         className="ml-5 text-[11px] p-1 border rounded w-[calc(100%-1.5rem)] focus:ring-1 focus:ring-green-500 outline-none bg-white resize-none"
                         rows={2}
-                        maxLength={500}
+                        maxLength={MODULE_DESCRIPTION_MAX_LENGTH}
                         value={newSubfolderDescription}
                         onChange={e => setNewSubfolderDescription(e.target.value)}
                       />
+                      <div className="ml-5 flex justify-between text-[10px] text-gray-400">
+                        <span>Máx. 500 caracteres; transcrição completa entra como fonte.</span>
+                        <span>{newSubfolderDescription.length}/{MODULE_DESCRIPTION_MAX_LENGTH}</span>
+                      </div>
                     </div>
                   )}
 
@@ -357,13 +367,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button onClick={() => { setCreatingRootFolderIn(null); setNewRootFolderName(''); setNewRootFolderDescription(''); }}><X className="w-3 h-3 text-gray-400" /></button>
                 </div>
                 <textarea
-                  placeholder="Descrição do módulo (opcional) — ex: 'Este módulo aborda a evolução histórica das terapias comportamentais...'"
+                  placeholder="Descrição curta do módulo (opcional) — ex: 'Evolução histórica das terapias comportamentais e seus fundamentos operantes.'"
                   className="text-[11px] p-1 w-full outline-none border rounded resize-none"
                   rows={2}
-                  maxLength={500}
+                  maxLength={MODULE_DESCRIPTION_MAX_LENGTH}
                   value={newRootFolderDescription}
                   onChange={e => setNewRootFolderDescription(e.target.value)}
                 />
+                <div className="flex justify-between text-[10px] text-gray-400">
+                  <span>Máx. 500 caracteres; transcrição completa entra como fonte.</span>
+                  <span>{newRootFolderDescription.length}/{MODULE_DESCRIPTION_MAX_LENGTH}</span>
+                </div>
               </div>
             )}
 
