@@ -21,7 +21,7 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose, onC
               <BrainCircuit className="w-8 h-8 text-indigo-300" />
               O Método NeuroStudy
             </h2>
-            <p className="text-indigo-200 text-sm mt-1">Advance Organizer + Active Learning + Recuperação Espaçada</p>
+            <p className="text-indigo-200 text-sm mt-1">Objetivo da aula + Active Learning + Recuperação Espaçada</p>
           </div>
           <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors">
             <X className="w-6 h-6" />
@@ -149,7 +149,7 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose, onC
                     <strong>Conceito:</strong> O cérebro precisa de "ganchos" antigos para pendurar ideias novas.
                   </p>
                   <p className="text-sm text-gray-700 mt-2">
-                    <strong>Na Plataforma:</strong> O <strong>Advance Organizer</strong> cria uma "ponte mental" antes de você começar o estudo denso. Ele ativa o que você já sabe para acelerar a absorção do novo.
+                    <strong>Na Plataforma:</strong> O <strong>Objetivo da aula</strong> cria uma "ponte mental" antes de você começar o estudo denso. Ele apresenta o recorte explícito do material e no que prestar atenção, sem substituir a fonte.
                   </p>
                 </div>
 
@@ -424,8 +424,8 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose, onC
                   </h3>
                   <div className="grid md:grid-cols-2 gap-3 text-sm">
                     <div className="bg-white/80 p-3 rounded-xl border border-indigo-100">
-                      <strong className="text-indigo-800 block mb-1">1. Advance Organizer é bússola, não é resumo</strong>
-                      <p className="text-indigo-700">Anote só o tema, a ideia central e no que prestar atenção. Não tente copiar tudo logo no começo.</p>
+                      <strong className="text-indigo-800 block mb-1">1. Objetivo da aula é bússola, não é resumo</strong>
+                      <p className="text-indigo-700">Leia para entender o recorte da aula e no que prestar atenção. Não tente copiar tudo logo no começo.</p>
                     </div>
                     <div className="bg-white/80 p-3 rounded-xl border border-indigo-100">
                       <strong className="text-indigo-800 block mb-1">2. Conceitos Fundamentais: entenda antes de anotar</strong>
@@ -449,7 +449,7 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose, onC
                     <h3 className="text-xl font-bold text-gray-900 mb-2">1. Antes da Aula: O Preparo</h3>
                     <p className="text-gray-600 mb-2">A plataforma gera o <strong>Roteiro NeuroStudy</strong> com checkpoints.</p>
                     <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
-                      <li>Leia o "Resumo Ultra-Conciso" para alinhar seu cérebro.</li>
+                      <li>Leia o "Objetivo da aula" para alinhar seu cérebro ao recorte e à intenção do roteiro.</li>
                       <li>Dê uma olhada nos Conceitos Chave para saber o que esperar.</li>
                     </ul>
                   </div>

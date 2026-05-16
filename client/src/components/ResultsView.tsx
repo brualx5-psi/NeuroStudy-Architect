@@ -219,7 +219,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 }
             `}</style>
 
-            {/* HEADER - ADVANCE ORGANIZER (Contexto do Livro ou Material) */}
+            {/* HEADER - OBJETIVO DA AULA (Contexto do Livro ou Material) */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full blur-3xl -z-10 opacity-50"></div>
 
@@ -238,7 +238,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     )}
                 </div>
 
-                {/* ADVANCE ORGANIZER: VISUALIZAÇÃO CONDICIONAL */}
+                {/* OBJETIVO DA AULA: VISUALIZAÇÃO CONDICIONAL */}
                 {isParetoOnly && !isBook ? (
                     /* MODO PARETO TEXTO (Mantido) */
                     <div className="mt-8 animate-in fade-in duration-700">
@@ -265,7 +265,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     /* MODO NORMAL E MODO LIVRO */
                     <div className="mt-4">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block flex items-center gap-2">
-                            <Lightbulb className="w-4 h-4 text-yellow-500" /> {isBook ? 'Advance Organizer: O que esperar' : 'Advance Organizer'}
+                            <Lightbulb className="w-4 h-4 text-yellow-500" /> {isBook ? 'Objetivo do livro' : 'Objetivo da aula'}
                         </span>
                         <MarkdownText className="bg-slate-50 p-6 rounded-xl border border-slate-100 text-slate-700 leading-relaxed text-lg shadow-inner prose-p:my-2 prose-ul:my-2 prose-ol:my-2">
                             {guide.overview}

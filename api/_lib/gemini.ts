@@ -455,7 +455,7 @@ export const generateStudyGuide = async (
 
   ${isBook ? `
   MODO LIVRO AVANCADO (ESTRUTURA HIERARQUICA):
-  1. ADVANCE ORGANIZER ('overview'):
+  1. OBJETIVO DO LIVRO ('overview'):
      - O QUE E: Preparacao cognitiva. Diga o que esperar do livro como um todo.
   2. PARETO GLOBAL ('coreConcepts' fora dos capitulos):
      - CRITERIO OBJETIVO: Inclua APENAS se houver conceitos transversais repetidos em 3+ capitulos.
@@ -519,17 +519,22 @@ export const generateStudyGuide = async (
 
   Estrategia Adicional: ${modeInstructions}
 
-  INSTRUCOES ESPECIFICAS PARA CAMPO 'overview' (Advance Organizer):
+  INSTRUCOES ESPECIFICAS PARA CAMPO 'overview' (Objetivo da aula):
+  - O campo 'overview' aparece para o usuario como "Objetivo da aula". Ele deve funcionar como bussola de estudo, nao como resumo completo.
   ${mode === 'PARETO' ? `
   - ESTILO: ARTIGO "BOTTOM LINE UP FRONT" (Jornalistico/Executivo).
   - Escreva um texto corrido, denso e direto.
   - OMITA analogias, metaforas ou introducoes suaves.
-  - Comece IMEDIATAMENTE entregando o valor central (os 20%).
+  - Comece IMEDIATAMENTE entregando o objetivo central, o recorte da aula e o valor dos 20% essenciais.
+  - Se a fonte nao deixar claro o papel deste topico no curso/modulo, nao invente justificativa curricular.
   - Use paragrafos curtos e objetivos.
   - Tom: Profissional, eficiente e acelerado.
   ` : `
-  - RESUMO ULTRA-CONCISO.
-  - Responda apenas: "Do que trata esta aula?"
+  - OBJETIVO ULTRA-CONCISO DA AULA.
+  - Responda: "Qual e o objetivo desta aula?"
+  - Explique o recorte da aula e quais conceitos o aluno deve observar.
+  - Se a propria fonte deixar claro o papel deste topico no curso/modulo, mencione; se nao deixar claro, nao invente justificativa curricular.
+  - Se a fonte for mais conceitual do que o titulo/modulo sugere, diga isso de forma transparente sem inventar contexto externo.
   - Use TEXTO DIRETO e PRATICO. Seja o mais breve possivel (aprox. 2 a 5 linhas), sem perder informacoes cruciais.
   - Sem "Era uma vez" ou analogias longas aqui. Va direto ao ponto.
   `}

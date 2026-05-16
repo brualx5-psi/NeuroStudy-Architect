@@ -45,7 +45,8 @@ export const buildStudyGuideMarkdown = (guide: StudyGuide) => {
   pushKeyValue(lines, 'Assunto', guide.subject);
 
   if (guide.overview) {
-    lines.push('## Advance Organizer', '');
+    const overviewTitle = guide.bookChapters?.length ? 'Objetivo do livro' : 'Objetivo da aula';
+    lines.push(`## ${overviewTitle}`, '');
     pushIfPresent(lines, guide.overview);
   }
 
