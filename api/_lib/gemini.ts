@@ -7,15 +7,25 @@ import { getSupabaseAdmin } from './supabase.js';
 // Examples:
 //   GEMINI_MODEL_FLASH=gemini-2.5-flash
 //   GEMINI_MODEL_PRO=gemini-2.5-pro
+//   GEMINI_MODEL_EXPERIMENTAL=gemini-3.1-pro-preview
+//   GEMINI_3_VERTEX_LOCATION=global
+//   GEMINI_3_API_VERSION=v1beta
+//   GEMINI_MODEL_PRO_FALLBACK=gemini-2.5-pro
 //   GEMINI_MODEL_DIAGRAM=models/nano-banana-pro-preview
+// Gemini 3.x Preview exige endpoint global no Vertex; veja getVertexLocationForModel().
 const MODEL_MAP = {
-  flash: process.env.GEMINI_MODEL_FLASH || 'gemini-2.0-flash',
-  pro: process.env.GEMINI_MODEL_PRO || 'gemini-pro-latest',
+  flash: process.env.GEMINI_MODEL_FLASH || 'gemini-2.5-flash',
+  pro: process.env.GEMINI_MODEL_PRO || 'gemini-2.5-pro',
+  router: process.env.GEMINI_MODEL_ROUTER || 'gemini-3.1-flash-lite',
+  experimental: process.env.GEMINI_MODEL_EXPERIMENTAL || 'gemini-3.1-pro-preview',
   diagram: process.env.GEMINI_MODEL_DIAGRAM || null, // null = usa flash
 } as const;
 
 const MODEL_FLASH = MODEL_MAP.flash;
 const MODEL_PRO = MODEL_MAP.pro;
+const MODEL_ROUTER = MODEL_MAP.router;
+const MODEL_EXPERIMENTAL = MODEL_MAP.experimental;
+const MODEL_PRO_FALLBACK = process.env.GEMINI_MODEL_PRO_FALLBACK || 'gemini-2.5-pro';
 const MODEL_DIAGRAM = process.env.GEMINI_MODEL_DIAGRAM || MODEL_FLASH;
 const VERTEX_MAX_OUTPUT_TOKENS = 65_536;
 
@@ -70,30 +80,84 @@ const parseGoogleAuthOptionsFromEnv = () => {
   return { credentials: parsed };
 };
 
-const getClient = () => {
+const DEFAULT_VERTEX_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || process.env.VERTEX_LOCATION || 'us-central1';
+const DEFAULT_VERTEX_API_VERSION = process.env.GOOGLE_GENAI_API_VERSION || 'v1';
+const GEMINI_3_VERTEX_LOCATION = process.env.GEMINI_3_VERTEX_LOCATION || process.env.GEMINI_PREVIEW_VERTEX_LOCATION || 'global';
+const GEMINI_3_API_VERSION = process.env.GEMINI_3_API_VERSION || process.env.GEMINI_PREVIEW_API_VERSION || 'v1beta';
+const vertexClients = new Map<string, GoogleGenAI>();
+let googleAuthOptionsLoaded = false;
+let cachedGoogleAuthOptions: ReturnType<typeof parseGoogleAuthOptionsFromEnv>;
+
+const getGoogleAuthOptions = () => {
+  if (!googleAuthOptionsLoaded) {
+    cachedGoogleAuthOptions = parseGoogleAuthOptionsFromEnv();
+    googleAuthOptionsLoaded = true;
+  }
+  return cachedGoogleAuthOptions;
+};
+
+const normalizeModelName = (model: string) => model.replace(/^models\//, '').trim();
+
+const isGemini3Model = (model: string) => normalizeModelName(model).startsWith('gemini-3');
+
+const getSpecificLocationOverride = (model: string) => {
+  const normalized = normalizeModelName(model);
+
+  if (normalized === normalizeModelName(MODEL_FLASH)) return process.env.GEMINI_MODEL_FLASH_LOCATION;
+  if (normalized === normalizeModelName(MODEL_PRO)) return process.env.GEMINI_MODEL_PRO_LOCATION;
+  if (normalized === normalizeModelName(MODEL_ROUTER)) return process.env.GEMINI_MODEL_ROUTER_LOCATION;
+  if (normalized === normalizeModelName(MODEL_EXPERIMENTAL)) return process.env.GEMINI_MODEL_EXPERIMENTAL_LOCATION;
+  if (normalized === normalizeModelName(MODEL_DIAGRAM)) return process.env.GEMINI_MODEL_DIAGRAM_LOCATION;
+  if (normalized === normalizeModelName(MODEL_PRO_FALLBACK)) return process.env.GEMINI_MODEL_PRO_FALLBACK_LOCATION;
+
+  return undefined;
+};
+
+const getVertexLocationForModel = (model: string) => {
+  const explicitLocation = getSpecificLocationOverride(model)?.trim();
+  if (explicitLocation) return explicitLocation;
+
+  // Gemini 3/3.1 Preview no Vertex usa endpoint global. Manter isso automático evita
+  // quebrar os modelos 2.5 estáveis que seguem usando GOOGLE_CLOUD_LOCATION/us-central1.
+  if (isGemini3Model(model)) return GEMINI_3_VERTEX_LOCATION;
+
+  return DEFAULT_VERTEX_LOCATION;
+};
+
+const getApiVersionForModel = (model: string) => {
+  if (isGemini3Model(model)) return GEMINI_3_API_VERSION;
+  return DEFAULT_VERTEX_API_VERSION;
+};
+
+const getClient = (location: string = DEFAULT_VERTEX_LOCATION, apiVersion: string = DEFAULT_VERTEX_API_VERSION) => {
   if (!isVertexMode()) {
     throw new Error('Vertex mode obrigatório: defina GOOGLE_GENAI_USE_VERTEXAI=true');
   }
 
-  const googleAuthOptions = parseGoogleAuthOptionsFromEnv();
+  const googleAuthOptions = getGoogleAuthOptions();
   const credentials = googleAuthOptions?.credentials as any;
   const project =
     process.env.GOOGLE_CLOUD_PROJECT ||
     process.env.GCLOUD_PROJECT ||
     credentials?.project_id ||
     credentials?.projectId;
-  const location = process.env.GOOGLE_CLOUD_LOCATION || process.env.VERTEX_LOCATION || 'us-central1';
   if (!project) {
     throw new Error('GOOGLE_CLOUD_PROJECT missing for Vertex mode e project_id ausente na service account');
   }
 
-  return new GoogleGenAI({
+  const cacheKey = `${project}:${location}:${apiVersion}`;
+  const cached = vertexClients.get(cacheKey);
+  if (cached) return cached;
+
+  const client = new GoogleGenAI({
     vertexai: true,
     project,
     location,
-    apiVersion: process.env.GOOGLE_GENAI_API_VERSION || 'v1',
+    apiVersion,
     ...(googleAuthOptions ? { googleAuthOptions } : {})
   });
+  vertexClients.set(cacheKey, client);
+  return client;
 };
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
@@ -130,6 +194,39 @@ const isQuotaLikeError = (error: any) => {
     text.includes('credit') ||
     text.includes('429')
   );
+};
+
+const isModelAvailabilityError = (error: any) => {
+  const text = [error?.message, error?.statusText, error?.error?.message]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const hasSpecificModelSignal =
+    text.includes('publisher model') ||
+    text.includes('was not found') ||
+    text.includes('does not have access') ||
+    text.includes('not supported in location') ||
+    text.includes('unsupported location');
+
+  return (
+    hasSpecificModelSignal ||
+    ((error?.status === 403 || error?.status === 404) && text.includes('model')) ||
+    (text.includes('permission_denied') && text.includes('model'))
+  );
+};
+
+const getModelFallback = (model: string, error: any) => {
+  if (model === MODEL_PRO && MODEL_FLASH !== MODEL_PRO && isQuotaLikeError(error)) {
+    return MODEL_FLASH;
+  }
+
+  if (isModelAvailabilityError(error)) {
+    if (isGemini3Model(model) && MODEL_PRO_FALLBACK !== model) return MODEL_PRO_FALLBACK;
+    if (model === MODEL_PRO && MODEL_PRO_FALLBACK !== MODEL_PRO) return MODEL_PRO_FALLBACK;
+  }
+
+  return null;
 };
 
 const selectModel = (
@@ -205,7 +302,6 @@ const parseJsonArray = (raw: string) => {
 };
 
 export const callGemini = async (options: CallGeminiOptions) => {
-  const ai = getClient();
   const planMaxOutputTokens = PLAN_LIMITS[options.planName].max_output_tokens[options.taskType];
   const maxOutputTokens = Math.min(planMaxOutputTokens, VERTEX_MAX_OUTPUT_TOKENS);
 
@@ -233,37 +329,40 @@ export const callGemini = async (options: CallGeminiOptions) => {
     model = MODEL_FLASH;
   }
 
-  // Debug: log which model is used per task without leaking prompts/user data.
-  if (process.env.DEBUG_MODEL_LOGS === '1') {
-    console.log(`[gemini] plan=${options.planName} task=${String(options.taskType)} model=${model}`);
-  }
-
-  const request = {
-    model,
+  const makeRequest = (requestModel: string) => ({
+    model: requestModel,
     contents,
     config
+  });
+
+  const runRequest = async (requestModel: string) => {
+    const location = getVertexLocationForModel(requestModel);
+    const apiVersion = getApiVersionForModel(requestModel);
+    const ai = getClient(location, apiVersion);
+
+    // Debug: log which model/location is used per task without leaking prompts/user data.
+    if (process.env.DEBUG_MODEL_LOGS === '1') {
+      console.log(`[gemini] plan=${options.planName} task=${String(options.taskType)} model=${requestModel} location=${location} apiVersion=${apiVersion}`);
+    }
+
+    return fetchWithRetry(() =>
+      withTimeout(ai.models.generateContent(makeRequest(requestModel)), options.timeoutMs ?? 60_000)
+    );
   };
 
-  const timeoutMs = options.timeoutMs ?? 60_000;
   let response: any;
 
   try {
-    response = await fetchWithRetry(() =>
-      withTimeout(ai.models.generateContent(request), timeoutMs)
-    );
+    response = await runRequest(model);
   } catch (error: any) {
-    if (model === MODEL_PRO && MODEL_FLASH !== MODEL_PRO && isQuotaLikeError(error)) {
-      const fallbackRequest = {
-        ...request,
-        model: MODEL_FLASH,
-      };
+    const fallbackModel = getModelFallback(model, error);
+    if (!fallbackModel) throw error;
 
-      response = await fetchWithRetry(() =>
-        withTimeout(ai.models.generateContent(fallbackRequest), timeoutMs)
-      );
-    } else {
-      throw error;
+    if (process.env.DEBUG_MODEL_LOGS === '1') {
+      console.warn(`[gemini] fallback task=${String(options.taskType)} from=${model} to=${fallbackModel}`);
     }
+
+    response = await runRequest(fallbackModel);
   }
 
   const text = getTextFromResponse(response);
@@ -851,7 +950,8 @@ export const sendChatMessage = async (
   history: Array<{ role: string; text: string }>,
   message: string
 ) => {
-  const ai = getClient();
+  const chatModel = MODEL_FLASH;
+  const ai = getClient(getVertexLocationForModel(chatModel), getApiVersionForModel(chatModel));
 
   // Keep chat snappy: limit history and truncate long messages.
   const maxHistory = Number(process.env.GEMINI_CHAT_HISTORY_MAX || 4);
@@ -868,7 +968,7 @@ export const sendChatMessage = async (
     }));
 
   const chat = ai.chats.create({
-    model: MODEL_FLASH,
+    model: chatModel,
     history: trimmedHistory,
     config: { systemInstruction }
   });
