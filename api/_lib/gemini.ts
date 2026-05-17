@@ -455,6 +455,17 @@ export const generateStudyGuide = async (
   - Nao invente conexoes historicas, autores, datas, objetivos do professor ou conteudos que nao estejam ancorados no material.
   ` : '';
 
+  const historicalNarrativeInstruction = `
+  DETECCAO DE AULA HISTORICA/NARRATIVA:
+  - Antes de escolher os Core Concepts e Checkpoints, classifique mentalmente se a Fonte Principal e principalmente CONCEITUAL/TECNICA, HISTORICA/NARRATIVA ou MISTA.
+  - Se a aula for historica/narrativa, ou se o contexto do modulo/pasta mencionar historia, historico, evolucao, ondas, surgimento ou linha do tempo, use a Fonte Principal para decidir se ha marcos cronologicos reais a preservar.
+  - Se for MISTA, combine os dois eixos: explique os conceitos tecnicos, mas organize-os na ordem historica em que aparecem e mostre o papel deles na transicao narrada pela fonte.
+  - Em aulas historicas, Core Concepts podem ser eventos, autores, estudos, periodicos, transicoes institucionais e mudancas de nomenclatura, nao apenas definicoes tecnicas.
+  - Para aulas historicas, nao transforme a aula em glossario generico de conceitos. Extraia quem fez o que, quando, por que isso importou e como um marco levou ao seguinte.
+  - Se aparecerem datas, decadas, nomes, estudos ou instituicoes na Fonte Principal, priorize esses elementos nos checkpoints quando forem centrais para a narrativa.
+  - Preserve a transicao historica principal ancorada na fonte (ex: fase inicial -> marco intermediario -> consequencia para a area), sem inventar fatos externos.
+  `;
+
   let modeInstructions = '';
   if (isBook) {
     switch (mode) {
@@ -481,6 +492,8 @@ export const generateStudyGuide = async (
   ${moduleContextInstruction}
 
   ${structureInstruction}
+
+  ${historicalNarrativeInstruction}
 
   ${isBook ? `
   MODO LIVRO AVANCADO (ESTRUTURA HIERARQUICA):
@@ -544,6 +557,12 @@ export const generateStudyGuide = async (
   - Um checkpoint pode integrar ate 3 Core Concepts relacionados, desde que isso faca sentido pedagogico.
   - Quando um Core Concept estiver distribuido ao longo do material, crie um checkpoint de sintese no ponto cronologico em que ele se consolida.
   - Nao adiante nem recue artificialmente no fluxo apenas para cumprir cobertura. Nao crie checkpoints mecanicos ou artificiais; preserve utilidade pratica, retrieval practice e ordem natural do estudo.
+
+  CHECKPOINTS EM AULAS HISTORICAS/NARRATIVAS:
+  - Se a aula estiver contando uma historia da area, cada checkpoint deve representar um marco narrativo/cronologico central, nao uma definicao solta.
+  - Em "mission" e "lookFor", oriente o aluno a observar personagens, datas/decadas, estudos, instituicoes, problemas metodologicos e transicoes entre fases.
+  - Em "noteExactly", registre a cadeia historica em topicos curtos: marco, evidencia/exemplo da fonte e consequencia para a area.
+  - Evite checkpoints genericos de definicao quando a fonte usa conceitos tecnicos apenas como contexto historico.
   ` : ''}
 
   Estrategia Adicional: ${modeInstructions}
