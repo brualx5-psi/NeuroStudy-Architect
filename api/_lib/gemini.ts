@@ -248,7 +248,11 @@ const selectModel = (
   if (alwaysFlashTasks.includes(taskType)) return MODEL_FLASH;
   if (taskType === 'diagram') return MODEL_DIAGRAM;
 
-  if (taskType === 'studyGuide' || taskType === 'slides') {
+  // Roteiro é a saída principal do NeuroStudy: em planos pagos, prioriza fidelidade
+  // pedagógica e narrativa usando PRO. O plano free ainda faz downgrade em callGemini.
+  if (taskType === 'studyGuide') return MODEL_PRO;
+
+  if (taskType === 'slides') {
     if (isBook || contentLength > 50000 || sourceCount >= 3) {
       return MODEL_PRO;
     }
