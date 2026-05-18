@@ -5,7 +5,7 @@ import { generateTool, generateDiagram, isUsageLimitError } from '../services/ge
 import {
     CheckCircle, BookOpen, Brain, Target,
     Smile, RefreshCw, Layers, Calendar, Clock,
-    ChevronDown, ChevronRight, PenTool, Zap, Lightbulb, Crown, FileDown, Rocket as NotionIcon,
+    ChevronDown, ChevronRight, PenTool, Zap, Lightbulb, Crown, FileDown,
     Eye, X, Download
 } from './Icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,7 +27,6 @@ interface ResultsViewProps {
     // Paid actions
     onExportPdf?: () => void;
     onExportMarkdown?: () => void;
-    onExportNotion?: () => void;
 
     onUsageLimit?: (reason: LimitReason) => void;
 }
@@ -55,7 +54,7 @@ const MarkdownInline: React.FC<{ children?: string | null; className?: string }>
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
     guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled,
-    onOpenSubscription, onExportPdf, onExportMarkdown, onExportNotion, onUsageLimit
+    onOpenSubscription, onExportPdf, onExportMarkdown, onUsageLimit
 }) => {
     const { isPaid, canUseFeynman, incrementUsage, usage } = useAuth();
 
@@ -603,18 +602,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             >
                                 <Download className="w-4 h-4" />
                                 <span className="text-xs">Markdown</span>
-                                {!isPaid && <Crown className="w-3 h-3 text-indigo-600" />}
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (!isPaid) return onOpenSubscription();
-                                    if (onExportNotion) return onExportNotion();
-                                    alert('Exportar para Notion ainda não está disponível.');
-                                }}
-                                className="flex-1 sm:flex-none border-2 border-slate-200 bg-white text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-                            >
-                                <NotionIcon className="w-4 h-4" />
-                                <span className="text-xs">Notion</span>
                                 {!isPaid && <Crown className="w-3 h-3 text-indigo-600" />}
                             </button>
                         </div>

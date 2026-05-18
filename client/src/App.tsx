@@ -35,7 +35,6 @@ import { PageSelectorModal, PageSelection } from './components/PageSelectorModal
 import { extractPdfPages } from './services/pdfPageExtractor';
 import { buildStudyGuideMarkdown, getMarkdownFilename } from './services/markdownExport';
 import { exportGuidePdf } from './services/guidePdfExport';
-import { exportGuideToNotion } from './services/notionExport';
 
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
@@ -748,16 +747,6 @@ export function AppContent() {
         }
     };
 
-    const handleExportNotion = async () => {
-        if (!activeStudy?.guide) return;
-        try {
-            await exportGuideToNotion(activeStudy.guide);
-        } catch (e) {
-            console.error(e);
-            alert('Falha ao preparar exportação para Notion.');
-        }
-    };
-
     const handleGenerateGuideForStudy = async (studyId: string, sources: StudySource[], mode: StudyMode, isBook: boolean, moduleContext?: string) => {
         // ADMIN BYPASS
         const roadmapCheck = canPerformAction(planName, usage, sources, 'roadmap', { isAdmin });
@@ -1364,7 +1353,6 @@ export function AppContent() {
                                                 onOpenSubscription={() => setShowSubscriptionModal(true)}
                                                 onExportPdf={handleExportGuidePdf}
                                                 onExportMarkdown={handleExportGuideMarkdown}
-                                                onExportNotion={handleExportNotion}
                                                 onUsageLimit={openUsageLimitModal}
                                             />
                                         )}
