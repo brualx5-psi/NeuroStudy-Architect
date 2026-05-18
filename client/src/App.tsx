@@ -35,6 +35,7 @@ import { PageSelectorModal, PageSelection } from './components/PageSelectorModal
 import { extractPdfPages } from './services/pdfPageExtractor';
 import { buildStudyGuideMarkdown, getMarkdownFilename } from './services/markdownExport';
 import { exportGuidePdf } from './services/guidePdfExport';
+import { exportGuideToNotion } from './services/notionExport';
 
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
@@ -748,9 +749,13 @@ export function AppContent() {
     };
 
     const handleExportNotion = async () => {
-        // Placeholder: ainda não temos integração real com Notion aqui.
-        // Importante: não upsellar usuário Pro por um recurso que não está plugado.
-        alert('Integração com Notion: em desenvolvimento. Se você quiser, eu implemento o fluxo de OAuth + export.');
+        if (!activeStudy?.guide) return;
+        try {
+            await exportGuideToNotion(activeStudy.guide);
+        } catch (e) {
+            console.error(e);
+            alert('Falha ao preparar exportação para Notion.');
+        }
     };
 
     const handleGenerateGuideForStudy = async (studyId: string, sources: StudySource[], mode: StudyMode, isBook: boolean, moduleContext?: string) => {
