@@ -2,7 +2,7 @@
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode, SlideContent } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards, uploadFileForTranscription, transcribeMedia, isUsageLimitError } from './services/geminiService';
 import { loadUserData, saveUserData, isCloudMode } from './services/storage';
-import { hasCompletedOnboarding } from './services/userProfileService';
+import { hasCompletedOnboarding, loadProfile } from './services/userProfileService';
 import { ResultsView } from './components/ResultsView';
 import { SlidesView } from './components/SlidesView';
 import { QuizView } from './components/QuizView';
@@ -110,7 +110,8 @@ export function AppContent() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const initialOnboardingComplete = hasCompletedOnboarding();
     const [isOnboardingComplete, setIsOnboardingComplete] = useState(initialOnboardingComplete);
-    const [showOnboarding, setShowOnboarding] = useState(!initialOnboardingComplete);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
     const [usageLimit, setUsageLimit] = useState<{ isOpen: boolean; reason: LimitReason | null }>({ isOpen: false, reason: null });
     const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -132,6 +133,40 @@ export function AppContent() {
     const bookInputRef = useRef<HTMLInputElement>(null);
 
     // TODOS os useEffect precisam vir antes de qualquer return condicional
+    useEffect(() => {
+        let cancelled = false;
+
+        if (loading) return () => {
+            cancelled = true;
+        };
+
+        if (!user?.id) {
+            setIsOnboardingLoading(false);
+            setIsOnboardingComplete(false);
+            setShowOnboarding(false);
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        const syncOnboardingProfile = async () => {
+            setIsOnboardingLoading(true);
+            const profile = await loadProfile(user.id);
+            if (cancelled) return;
+
+            const completed = profile?.hasCompletedOnboarding ?? false;
+            setIsOnboardingComplete(completed);
+            setShowOnboarding(!completed);
+            setIsOnboardingLoading(false);
+        };
+
+        syncOnboardingProfile();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [loading, user?.id]);
+
     useEffect(() => {
         let cancelled = false;
 
@@ -198,8 +233,8 @@ export function AppContent() {
         setEditingSourceId(null);
     }, [activeStudyId]);
 
-    // Se estiver carregando a sessão, mostra um loading bonito
-    if (loading) {
+    // Se estiver carregando a sessão/perfil, mostra um loading bonito
+    if (loading || (Boolean(user) && isOnboardingLoading)) {
         return (
             <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
                 <div className="bg-white p-4 rounded-2xl shadow-xl shadow-indigo-100/50">

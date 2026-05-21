@@ -1,7 +1,15 @@
-import { StudySession, Folder } from '../types';
+import { StudySession, Folder, UserProfile } from '../types';
 import { supabase } from './supabase';
+import { getProfile } from './userProfileService';
 
 const LOCAL_STORAGE_KEY = 'neurostudy_data';
+
+type UserDataContent = {
+  studies?: StudySession[];
+  folders?: Folder[];
+  profile?: UserProfile | null;
+  [key: string]: unknown;
+};
 
 /**
  * Verifica se o modo nuvem (Supabase) está ativo.
@@ -50,9 +58,10 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[], u
     }
 
     // Usa upsert para evitar condição de corrida e erros de chave duplicada
+    const profile = getProfile();
     const payload = {
       user_id: userId,
-      content: { studies, folders },
+      content: { studies, folders, ...(profile ? { profile } : {}) },
       updated_at: new Date().toISOString()
     };
     console.log('[Storage] Salvando para user_id:', userId);
@@ -116,8 +125,12 @@ export const loadUserData = async (userIdOverride?: string): Promise<{ studies: 
       return defaultData;
     }
 
-    console.log('[Storage] Retornando dados:', { studies: data.content?.studies?.length || 0, folders: data.content?.folders?.length || 0 });
-    return data.content || defaultData;
+    const content = (data.content || defaultData) as UserDataContent;
+    console.log('[Storage] Retornando dados:', { studies: content.studies?.length || 0, folders: content.folders?.length || 0 });
+    return {
+      studies: content.studies || [],
+      folders: content.folders || []
+    };
   } catch (err) {
     console.warn('[Storage] Exceção ao carregar da nuvem, usando localStorage:', err);
     const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
