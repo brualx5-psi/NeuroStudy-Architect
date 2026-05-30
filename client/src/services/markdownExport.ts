@@ -114,6 +114,7 @@ export const buildStudyGuideMarkdown = (guide: StudyGuide) => {
     lines.push('## Checkpoints / Checklist de Estudo', '');
     guide.checkpoints.forEach((checkpoint, index) => {
       lines.push(`### Checkpoint ${index + 1}${checkpoint.timestamp ? ` — ${checkpoint.timestamp}` : ''}`, '');
+      pushKeyValue(lines, 'Referência da fonte', checkpoint.sourceLocator);
       pushKeyValue(lines, 'Missão', checkpoint.mission);
       pushKeyValue(lines, 'O que procurar', checkpoint.lookFor);
       pushKeyValue(lines, 'Escreva exatamente isso', checkpoint.noteExactly);

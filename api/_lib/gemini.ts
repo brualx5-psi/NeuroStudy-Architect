@@ -313,6 +313,27 @@ const normalizeReviewText = (value: any) => {
   return value.replace(/\s+/g, ' ').trim();
 };
 
+const TIMESTAMP_MARKER_REGEX = /(?:^|[\s\[])(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*(?:-|–|—|-->|a|até|ate)\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?/gim;
+const PAGE_OR_SLIDE_MARKER_REGEX = /(?:\[(?:p[aá]gina|pagina|page|slide)\s*\d+\]|(?:p[aá]gina|pagina|page|slide)\s*\d+)/gim;
+
+const countMatches = (text: string, regex: RegExp) => (text.match(regex) || []).length;
+
+const hasTimestampedTranscript = (source: StudySourceInput | undefined) => {
+  if (!source) return false;
+  const name = source.name?.toLowerCase() || '';
+  const type = source.type?.toUpperCase() || '';
+  const text = source.textContent || source.content || '';
+  return type === 'VIDEO' || name.includes('transcri') || countMatches(text, TIMESTAMP_MARKER_REGEX) >= 3;
+};
+
+const hasPageOrSlideMarkers = (source: StudySourceInput | undefined) => {
+  if (!source) return false;
+  const name = source.name?.toLowerCase() || '';
+  const type = source.type?.toUpperCase() || '';
+  const text = source.textContent || source.content || '';
+  return type === 'PDF' || name.includes('slide') || countMatches(text, PAGE_OR_SLIDE_MARKER_REGEX) >= 2;
+};
+
 const buildGuideReviewContext = (guide: any) => {
   const lines: string[] = [];
 
@@ -360,6 +381,8 @@ const buildGuideReviewContext = (guide: any) => {
     lines.push('Checkpoints/checklist do roteiro:');
     guide.checkpoints.forEach((checkpoint: any, index: number) => {
       pushField(`Checkpoint ${index + 1} - Missao`, checkpoint?.mission);
+      pushField(`Checkpoint ${index + 1} - Momento/tempo`, checkpoint?.timestamp);
+      pushField(`Checkpoint ${index + 1} - Fonte/pagina/slide`, checkpoint?.sourceLocator);
       pushField(`Checkpoint ${index + 1} - O que procurar`, checkpoint?.lookFor);
       pushField(`Checkpoint ${index + 1} - Escreva exatamente isso`, checkpoint?.noteExactly);
       pushField(`Checkpoint ${index + 1} - Pergunta`, checkpoint?.question);
@@ -507,6 +530,7 @@ const COMMON_PROPERTIES = {
       properties: {
         mission: { type: Type.STRING },
         timestamp: { type: Type.STRING },
+        sourceLocator: { type: Type.STRING, description: 'Referencia complementar da fonte: tempo da aula, pagina do PDF, slide, ou ambos quando existirem.' },
         lookFor: { type: Type.STRING },
         noteExactly: { type: Type.STRING },
         drawExactly: { type: Type.STRING },
@@ -584,6 +608,7 @@ type StudySourceInput = {
   content: string;
   textContent?: string;
   isPrimary?: boolean;
+  durationMinutes?: number;
 };
 
 export const generateStudyGuide = async (
@@ -620,9 +645,13 @@ export const generateStudyGuide = async (
     });
   }
 
+  const primaryIsTimedTranscript = hasTimestampedTranscript(primarySource);
+  const primaryHasPageOrSlideMarkers = hasPageOrSlideMarkers(primarySource);
+  const hasComplementaryPageOrSlideSource = complementarySources.some(hasPageOrSlideMarkers);
+  const hasComplementaryTimedTranscript = complementarySources.some(hasTimestampedTranscript);
+
   let structureInstruction = '';
-  const primaryName = primarySource.name.toLowerCase();
-  if (primarySource.type === 'VIDEO' || primaryName.includes('transcri')) {
+  if (primaryIsTimedTranscript) {
     structureInstruction = `
     ESTRUTURA OBRIGATORIA (Baseada em VIDEO/AULA):
     - O esqueleto do roteiro (Checkpoints) DEVE seguir a cronologia da Fonte Principal.
@@ -639,6 +668,17 @@ export const generateStudyGuide = async (
     - Integre o conteudo das Fontes Complementares dentro dos topicos da Fonte Principal.
     `;
   }
+
+  const locatorInstruction = `
+  REGRA DE LOCALIZACAO DA FONTE (tempo, slide e pagina):
+  - A Fonte Principal escolhida pelo usuario define o eixo do roteiro.
+  - Se a Fonte Principal for transcricao/aula com timestamps, o campo 'timestamp' DEVE trazer os minutos exatos para assistir (ex: "00:05 - 00:11"). A 'mission' deve dizer "Assista de..." ou "Revise a fala de...".
+  - Se houver slides/PDF como fonte complementar com marcadores de pagina/slide, preencha tambem 'sourceLocator' com a pagina/slide relacionada quando a correspondencia estiver clara (ex: "Aula 00:05-00:11 • Slides/PDF pag. 3-4"). Nao invente pagina de slide se nao houver marcador claro.
+  - Se a Fonte Principal for slide/PDF/texto sem tempo de fala, NAO invente minutos. Nesse caso use em 'timestamp' um marcador de progresso textual, pagina ou slide (ex: "Slides/PDF pag. 2-3" ou "Secao: ...").
+  - Se existir transcricao e slide sobre o mesmo assunto, mas a fonte nao deixar claro que a fala acompanha aquele slide naquele momento, nao force sincronizacao. Use tempo da transcricao apenas quando ela for o eixo da aula; use pagina/slide quando o slide/PDF for o eixo.
+  - O campo 'sourceLocator' deve complementar o 'timestamp': quando houver tempo + pagina/slide, mostre ambos; quando so houver um deles, repita apenas o marcador util.
+  - Estado detectado neste pedido: Fonte Principal com timestamps = ${primaryIsTimedTranscript ? 'SIM' : 'NAO'}; Fonte Principal com paginas/slides = ${primaryHasPageOrSlideMarkers ? 'SIM' : 'NAO'}; Fontes complementares com paginas/slides = ${hasComplementaryPageOrSlideSource ? 'SIM' : 'NAO'}; Fontes complementares com timestamps = ${hasComplementaryTimedTranscript ? 'SIM' : 'NAO'}.
+  `;
 
   const moduleContextInstruction = sanitizedModuleContext ? `
   CONTEXTO DO MODULO/PASTA (bússola pedagógica opcional do usuário):
@@ -696,6 +736,8 @@ export const generateStudyGuide = async (
   ${moduleContextInstruction}
 
   ${structureInstruction}
+
+  ${locatorInstruction}
 
   ${historicalNarrativeInstruction}
 
@@ -803,8 +845,9 @@ export const generateStudyGuide = async (
   REGRAS CRITICAS DE CHECKPOINTS:
   1. MICRO-LEARNING: Divida o conteudo em 'checkpoints' de LUA (Leitura/Visualizacao Unica Ativa) de 5 a 7 minutos no maximo.
   2. VIDEO/AUDIO/TRANSCRIPT: Se a entrada for baseada em tempo (video, audio ou transcricao com timestamps), o campo 'timestamp' DEVE conter o intervalo EXATO (ex: "00:00 - 05:30").
-  3. EVITE TEDIO: Crie checkpoints curtos e acionaveis. Se o video tem 1 hora, teremos ~10 checkpoints.
-  4. 'mission': Diga exatamente o que fazer nesses 5 min (ex: "Assista dos 10:00 aos 15:00 focando em...").
+  3. SLIDE/PDF: Se a entrada for baseada em slide/PDF com marcadores de pagina, use paginas/slides no 'timestamp' quando nao houver tempo de fala. Se houver tempo de fala + slide, mantenha o tempo no 'timestamp' e coloque tempo + pagina/slide em 'sourceLocator'.
+  4. EVITE TEDIO: Crie checkpoints curtos e acionaveis. Se o video tem 1 hora, teremos ~10 checkpoints.
+  5. 'mission': Diga exatamente o que fazer nesses 5 min (ex: "Assista dos 10:00 aos 15:00 focando em..."). Se for slide/PDF sem fala, diga quais paginas/slides revisar.
   `;
 
   const parts = [{ text: combinedContext }];

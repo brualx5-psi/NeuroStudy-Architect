@@ -103,11 +103,13 @@ export default async function handler(req: any, res: any) {
       type: s.originalType,
       content: s.extractedText,
       textContent: s.extractedText,
-      isPrimary: false
+      durationMinutes: s.durationMinutes,
+      isPrimary: Boolean(s.isPrimary)
     }));
 
-    // Marcar primeira fonte como primária
-    if (sourcesForGemini.length > 0) {
+    // Preservar a fonte principal escolhida no cliente; se nenhuma vier marcada,
+    // usar a primeira como fallback de compatibilidade.
+    if (sourcesForGemini.length > 0 && !sourcesForGemini.some(s => s.isPrimary)) {
       sourcesForGemini[0].isPrimary = true;
     }
 

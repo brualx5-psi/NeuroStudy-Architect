@@ -31,6 +31,7 @@ export interface Checkpoint {
   id: string;
   mission: string;
   timestamp: string;
+  sourceLocator?: string; // Ex.: "Aula 00:05-00:10 • Slides/PDF pág. 3-4"
   lookFor: string;      // "O que procurar"
   noteExactly: string;  // "Escreva exatamente isso"
   drawExactly: string;  // "Desenhe exatamente isso"

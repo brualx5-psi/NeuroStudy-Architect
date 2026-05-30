@@ -59,7 +59,7 @@ export const extractTextFromPdfFile = async (file: File): Promise<string> => {
         .replace(/\s+/g, ' ')
         .trim();
 
-      if (pageText) pages.push(pageText);
+      if (pageText) pages.push(`[Página ${pageNumber}]\n${pageText}`);
     }
 
     return pages.join('\n\n').trim();

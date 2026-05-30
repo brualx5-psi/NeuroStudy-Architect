@@ -45,6 +45,7 @@ export type NormalizedSource = {
     extractedText: string;
     charCount: number;
     durationMinutes?: number;
+    isPrimary?: boolean;
     error?: SourceErrorCode;
     errorMessage?: string;
 };
@@ -325,7 +326,8 @@ export const prepareSourcesForRoadmap = async (
                 resolvedType: 'link_transcript',
                 name: source.name || `Transcrição: ${url.slice(0, 30)}...`,
                 extractedText: result.text,
-                charCount: result.text.length
+                charCount: result.text.length,
+                isPrimary: Boolean(source.isPrimary)
             });
 
             totalCharCount += result.text.length;
@@ -346,7 +348,8 @@ export const prepareSourcesForRoadmap = async (
                 resolvedType: 'web_article',
                 name: source.name || `Site: ${url.slice(0, 30)}...`,
                 extractedText: textContent,
-                charCount: textContent.length
+                charCount: textContent.length,
+                isPrimary: Boolean(source.isPrimary)
             });
 
             totalCharCount += textContent.length;
@@ -367,7 +370,8 @@ export const prepareSourcesForRoadmap = async (
                 resolvedType: 'pdf',
                 name: source.name || 'PDF sem nome',
                 extractedText: limitedText,
-                charCount
+                charCount,
+                isPrimary: Boolean(source.isPrimary)
             });
 
             totalCharCount += charCount;
@@ -384,7 +388,8 @@ export const prepareSourcesForRoadmap = async (
             name: source.name || 'Fonte sem nome',
             extractedText: textContent,
             charCount: textContent.length,
-            durationMinutes: source.durationMinutes
+            durationMinutes: source.durationMinutes,
+            isPrimary: Boolean(source.isPrimary)
         });
 
         totalCharCount += textContent.length;

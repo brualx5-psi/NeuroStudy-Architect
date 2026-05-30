@@ -201,6 +201,7 @@ class PdfLayout {
     const titleLines = this.wrap(titleText, 10, innerW);
 
     const fields: Array<{ label: string; lines: string[] }> = [];
+    if (cp.timestamp || cp.sourceLocator) fields.push({ label: 'Momento/fonte', lines: this.wrap(cp.sourceLocator || cp.timestamp, 9, innerW - 4) });
     if (cp.lookFor) fields.push({ label: 'O que procurar', lines: this.wrap(cp.lookFor, 9, innerW - 4) });
     if (cp.noteExactly) fields.push({ label: 'Escreva exatamente isso', lines: this.wrap(cp.noteExactly, 9, innerW - 4) });
     if (cp.drawExactly && cp.drawLabel !== 'none') fields.push({ label: 'Sugestão de desenho', lines: this.wrap(cp.drawExactly, 9, innerW - 4) });

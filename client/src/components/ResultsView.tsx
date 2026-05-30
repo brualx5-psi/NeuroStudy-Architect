@@ -520,7 +520,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         </div>
                                         <div>
                                             <h4 className={`font - bold text - lg ${checkpoint.completed ? 'text-green-800 line-through' : 'text-gray-900'} `}>{checkpoint.mission}</h4>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Momento sugerido: {checkpoint.timestamp}</p>
+                                            <p className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Momento/fonte: {checkpoint.timestamp}</p>
+                                            {checkpoint.sourceLocator && checkpoint.sourceLocator !== checkpoint.timestamp && (
+                                                <p className="text-xs text-gray-500 mt-1">Referência: {checkpoint.sourceLocator}</p>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="pl-12 space-y-4">

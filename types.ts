@@ -30,6 +30,7 @@ export interface Checkpoint {
   id: string;
   mission: string;
   timestamp: string;
+  sourceLocator?: string;
   lookFor: string;
   noteExactly: string;
   question: string;
