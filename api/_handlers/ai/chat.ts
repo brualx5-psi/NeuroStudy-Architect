@@ -26,6 +26,7 @@ export default async function handler(req: any, res: any) {
   const body = await readJson<{
     history: Array<{ role: string; text: string }>;
     message: string;
+    guide?: any;
   }>(req);
 
   const { planName, isAdmin } = await getUserAccess(auth.userId);
@@ -43,7 +44,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { text, usageTokens } = await sendChatMessage(planName, body.history || [], body.message || '');
+    const { text, usageTokens } = await sendChatMessage(planName, body.history || [], body.message || '', body.guide || null);
     const estimatedTokens = check.estimatedTokens || 0;
 
     await incrementUsage(auth.userId, month, planName, {

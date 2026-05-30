@@ -306,6 +306,7 @@ const parseJsonArray = (raw: string) => {
 };
 
 const GUIDE_REVIEW_CONTEXT_CHAR_LIMIT = 40_000;
+const CHAT_GUIDE_CONTEXT_CHAR_LIMIT = 12_000;
 
 const normalizeReviewText = (value: any) => {
   if (typeof value !== 'string') return '';
@@ -1078,17 +1079,35 @@ export const generateFlashcards = async (planName: PlanName, guide: any) => {
 export const sendChatMessage = async (
   planName: PlanName,
   history: Array<{ role: string; text: string }>,
-  message: string
+  message: string,
+  guide?: any
 ) => {
   const chatModel = MODEL_FLASH;
   const ai = getClient(getVertexLocationForModel(chatModel), getApiVersionForModel(chatModel));
 
-  // Keep chat snappy: limit history and truncate long messages.
-  const maxHistory = Number(process.env.GEMINI_CHAT_HISTORY_MAX || 4);
+  // Keep chat snappy, but preserve enough turns to avoid losing the current thread.
+  const maxHistory = Number(process.env.GEMINI_CHAT_HISTORY_MAX || 10);
   const maxChars = Number(process.env.GEMINI_CHAT_MSG_MAX_CHARS || 900);
-  const systemInstruction =
-    process.env.GEMINI_CHAT_SYSTEM ||
-    'Professor virtual socratico e ativo. Responda em PT-BR. Seja natural, curto e interativo. Use 1 pergunta por vez.';
+  const guideContext = guide ? buildGuideReviewContext(guide).slice(0, CHAT_GUIDE_CONTEXT_CHAR_LIMIT) : '';
+  const extraInstruction = process.env.GEMINI_CHAT_SYSTEM_EXTRA?.trim();
+  const systemInstruction = `
+  Voce e o Professor Virtual NeuroStudy, com postura socratica & ativa, mas fiel ao roteiro atual.
+  Responda SEMPRE em Portugues do Brasil.
+
+  ${guideContext ? `CONTEUDO DO ROTEIRO ATUAL (fonte principal para responder):\n${guideContext}` : 'CONTEUDO DO ROTEIRO ATUAL: nenhum roteiro foi enviado; responda apenas sobre metodos de estudo ou peca para o aluno gerar/abrir um roteiro.'}
+
+  CONTRATO PEDAGOGICO DO PROFESSOR SOCRATICO & ATIVO:
+  - A pergunta atual do aluno manda na agenda. Nao use o chat para puxar um assunto novo sem necessidade.
+  - Se o aluno pedir resposta clara, explicar "por que", "o que e", "qual a resposta" ou corrigir uma duvida especifica: responda primeiro de forma direta, curta e completa. Depois, se ajudar, faca no maximo 1 pergunta socratica conectada ao mesmo ponto.
+  - Se o aluno pedir ajuda para pensar, teste, pista, revisao ativa ou "me ajuda a raciocinar": use o modo socratico com 1 pergunta por vez.
+  - Se o aluno estiver aprofundando um ponto da conversa anterior, continue esse fio ate resolver ou ate o aluno mudar/encerrar o assunto.
+  - Nao pule para outro conceito/checkpoint sem ponte explicita. Ex.: se ele pergunta por que Skinner errou ao colocar "resposta", nao mude para reforco positivo a menos que isso seja necessario para explicar exatamente essa duvida.
+  - Se o aluno mudar de assunto ou disser que quer encerrar, aceite a mudanca e siga a nova pergunta.
+  - Se a pergunta for fora do roteiro, diga de forma educada que isso nao parece estar conectado ao roteiro atual e ofereca voltar ao roteiro ou explicar brevemente se ele confirmar.
+  - Se algo nao estiver no roteiro, nao invente: diga que o roteiro nao traz isso e diferencie claramente qualquer conhecimento geral.
+  - Seja natural, objetivo e interativo. Evite aulas longas. Uma resposta ideal tem 3 a 8 linhas, salvo se o aluno pedir detalhes.
+  ${extraInstruction ? `\nINSTRUCAO EXTRA DO SISTEMA:\n${extraInstruction}` : ''}
+  `;
 
   const trimmedHistory = (history || [])
     .slice(-Math.max(0, maxHistory))

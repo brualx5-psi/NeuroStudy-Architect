@@ -216,7 +216,8 @@ export const sendChatMessage = async (
 ): Promise<string> => {
   const response = await postJson<{ text: string }>('/api/ai?action=chat', {
     history,
-    message: msg
+    message: msg,
+    guide: _studyGuide
   });
   return response.text || '';
 };
