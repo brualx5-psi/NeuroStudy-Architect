@@ -1,6 +1,6 @@
 export type PlanName = 'free' | 'starter' | 'pro';
 
-export type TokenTaskType = 'roadmap' | 'quiz' | 'flashcards' | 'chat';
+export type TokenTaskType = 'roadmap' | 'quiz' | 'flashcards' | 'chat' | 'slides';
 
 export type PlanLimits = {
   roadmaps: number;
@@ -32,7 +32,8 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
       roadmap: 30_000,
       quiz: 3_000,
       flashcards: 5_000,
-      chat: 1_000
+      chat: 1_000,
+      slides: 4_000
     }
   },
   starter: {
@@ -50,7 +51,8 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
       roadmap: 50_000,
       quiz: 5_000,
       flashcards: 10_000,
-      chat: 2_000
+      chat: 2_000,
+      slides: 8_000
     }
   },
   pro: {
@@ -68,7 +70,8 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
       roadmap: 60_000,
       quiz: 10_000,
       flashcards: 20_000,
-      chat: 4_000
+      chat: 4_000,
+      slides: 12_000
     }
   }
 };

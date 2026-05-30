@@ -844,21 +844,36 @@ export const generateStudyGuide = async (
 };
 
 export const generateSlides = async (planName: PlanName, guide: any) => {
+  const guideContext = buildGuideReviewContext(guide);
   const prompt = `
-  Crie uma apresentacao de Slides (.pdf style) sobre: "${guide.subject}".
-  Contexto: Baseie-se no guia de estudo fornecido.
+  Voce e um designer instrucional criando slides para revisar uma aula ja transformada em roteiro.
+
+  TEMA (apenas rotulo; nao use para puxar conteudo generico): ${guide.subject}
+
+  CONTEUDO DO ROTEIRO PARA SLIDES:
+  ${guideContext}
+
+  REGRA DE ANCORAGEM OBRIGATORIA:
+  - Slides devem explicar o roteiro gerado, nao o tema generico.
+  - Use os nomes, marcos, transicoes, checkpoints e conceitos que aparecem no roteiro.
+  - Cada slide de conteudo deve nascer de um item concreto do roteiro: Objetivo da aula/livro, Alinhamento com o modulo, Conceitos Fundamentais, Capitulos ou Checkpoints.
+  - Nao crie slides sobre termos amplos apenas porque o assunto sugere. Ex.: se o roteiro historico cita uma transicao/instituicao/estudo, priorize esse marco em vez de transformar tudo em glossario tecnico.
+  - Se a aula for historica/narrativa, organize os slides por sequencia, marcos, autores/estudos/transicoes e consequencias citadas no roteiro.
+  - Se a aula for tecnica/conceitual, organize os slides por mecanismos, distincao pratica, erro comum e aplicacao citados no roteiro.
+  - Bullets devem ser curtos, mas especificos; evite bullet vago como "conceitos principais" sem nomear qual conceito/marco do roteiro.
+  - speakerNotes deve dizer exatamente o que explicar naquele slide usando o conteudo do roteiro, sem inventar exemplos externos.
 
   Gere um JSON com uma lista de slides. Cada slide deve ter:
-  - "title": Titulo impactante.
-  - "bullets": Array de 3 a 5 pontos chave (texto curto).
-  - "speakerNotes": O que falar nesse slide (roteiro para o apresentador).
+  - "title": Titulo especifico e fiel ao roteiro.
+  - "bullets": Array de 3 a 5 pontos chave, cada um ancorado em conteudo do roteiro.
+  - "speakerNotes": O que falar nesse slide (roteiro para o apresentador), com 2 a 5 frases.
 
-  Estrutura sugerida:
-  1. Capa
-  2. Introducao/Contexto
-  3. Conceitos Chave (1 slide por conceito principal)
-  4. Aplicacao Pratica
-  5. Conclusao/Proximos Passos
+  Estrutura sugerida, adaptando ao roteiro:
+  1. Capa com o titulo/assunto do roteiro
+  2. Objetivo da aula/livro e recorte do material
+  3. Sequencia dos marcos/conceitos centrais do roteiro
+  4. Checkpoints ou aplicacao pratica que o aluno deve dominar
+  5. Fechamento com a sintese do que revisar
 
   Retorne APENAS o JSON estrito: [{ "title": "...", "bullets": ["..."], "speakerNotes": "..." }, ...]
   `;
@@ -866,11 +881,11 @@ export const generateSlides = async (planName: PlanName, guide: any) => {
   const selectedModel = selectModel('slides', JSON.stringify(guide).length);
   const { text, usageTokens, response } = await callGemini({
     planName,
-    taskType: 'roadmap',
+    taskType: 'slides',
     prompt,
     model: selectedModel,
     responseMimeType: 'application/json',
-    temperature: 0.3
+    temperature: 0.25
   });
 
   const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim() || '[]');
