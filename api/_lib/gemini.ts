@@ -305,6 +305,106 @@ const parseJsonArray = (raw: string) => {
   throw new Error('INVALID_JSON_FROM_MODEL');
 };
 
+const GUIDE_REVIEW_CONTEXT_CHAR_LIMIT = 40_000;
+
+const normalizeReviewText = (value: any) => {
+  if (typeof value !== 'string') return '';
+  return value.replace(/\s+/g, ' ').trim();
+};
+
+const buildGuideReviewContext = (guide: any) => {
+  const lines: string[] = [];
+
+  const pushField = (label: string, value: any) => {
+    const text = normalizeReviewText(value);
+    if (text) lines.push(`${label}: ${text}`);
+  };
+
+  const pushConcepts = (label: string, concepts: any[] | undefined) => {
+    if (!Array.isArray(concepts) || !concepts.length) return;
+    lines.push(`${label}:`);
+    concepts.forEach((concept, index) => {
+      const name = normalizeReviewText(concept?.concept || concept?.title || concept?.name);
+      const definition = normalizeReviewText(concept?.definition || concept?.summary || concept?.content);
+      if (name || definition) lines.push(`- ${index + 1}. ${name}${definition ? ` — ${definition}` : ''}`);
+    });
+  };
+
+  pushField('Titulo', guide?.title);
+  pushField('Assunto', guide?.subject);
+  pushField('Objetivo da aula/livro', guide?.overview);
+  pushField('Alinhamento com o modulo', guide?.moduleAlignment);
+  pushField('Aplicacao global', guide?.globalApplication);
+  pushConcepts('Conceitos fundamentais do roteiro', guide?.coreConcepts);
+  pushConcepts('Conceitos de suporte do roteiro', guide?.supportConcepts);
+
+  const chapters = Array.isArray(guide?.bookChapters)
+    ? guide.bookChapters
+    : Array.isArray(guide?.chapters)
+      ? guide.chapters
+      : [];
+  if (chapters.length) {
+    lines.push('Capitulos/partes do roteiro:');
+    chapters.forEach((chapter: any, index: number) => {
+      pushField(`Capitulo ${index + 1}`, chapter?.title);
+      pushField(`Capitulo ${index + 1} - Essencia/Pareto`, chapter?.paretoChunk || chapter?.summary);
+      pushField(`Capitulo ${index + 1} - Conteudo`, chapter?.content);
+      pushConcepts(`Capitulo ${index + 1} - Conceitos locais`, chapter?.coreConcepts);
+      pushConcepts(`Capitulo ${index + 1} - Conceitos de suporte`, chapter?.supportConcepts);
+      pushField(`Capitulo ${index + 1} - Check mental`, chapter?.reflectionQuestion);
+    });
+  }
+
+  if (Array.isArray(guide?.checkpoints) && guide.checkpoints.length) {
+    lines.push('Checkpoints/checklist do roteiro:');
+    guide.checkpoints.forEach((checkpoint: any, index: number) => {
+      pushField(`Checkpoint ${index + 1} - Missao`, checkpoint?.mission);
+      pushField(`Checkpoint ${index + 1} - O que procurar`, checkpoint?.lookFor);
+      pushField(`Checkpoint ${index + 1} - Escreva exatamente isso`, checkpoint?.noteExactly);
+      pushField(`Checkpoint ${index + 1} - Pergunta`, checkpoint?.question);
+    });
+  }
+
+  const context = lines.join('\n').slice(0, GUIDE_REVIEW_CONTEXT_CHAR_LIMIT).trim();
+  return context || `Assunto: ${normalizeReviewText(guide?.subject) || 'roteiro sem assunto informado'}`;
+};
+
+const buildBalancedDifficultyInstruction = (qty: number, difficulty: 'easy' | 'medium' | 'hard' | 'mixed') => {
+  if (difficulty === 'mixed') {
+    const base = Math.floor(qty / 3);
+    const counts = { easy: base, medium: base, hard: base };
+    const remainder = qty - base * 3;
+
+    if (remainder >= 1) counts.medium += 1;
+    if (remainder >= 2) counts.easy += 1;
+
+    return `DISTRIBUICAO DE DIFICULDADE: gere EXATAMENTE ${counts.easy} easy, ${counts.medium} medium e ${counts.hard} hard.
+  - Se forem 12 questoes no modo misto, gere 4 easy, 4 medium e 4 hard.
+  - easy: verificacao direta de compreensao dos contextos essenciais.
+  - medium: aplicacao/conexao entre contextos essenciais.
+  - hard: analise, comparacao, sequencia causal/narrativa ou transferencia.
+  - Nao substitua hard por trivia periferica; hard deve aprofundar o essencial.`;
+  }
+
+  const difficultyMap = {
+    easy: 'easy (compreensao basica - questoes diretas sobre contextos essenciais)',
+    medium: 'medium (aplicacao em situacao nova - requer raciocinio e conexao de ideias essenciais)',
+    hard: 'hard (analise, comparacao e identificacao de padroes - questoes complexas sobre o essencial)'
+  };
+  return `DIFICULDADE: TODAS as ${qty} questoes devem ser de nivel ${difficultyMap[difficulty]}.
+  NAO gere questoes de outros niveis. APENAS "${difficulty}".`;
+};
+
+const essentialContextInstruction = `
+  FOCO NOS CONTEXTOS ESSENCIAIS DO ROTEIRO:
+  - Nao distribua as questoes de forma uniforme por todos os termos.
+  - 70% das questoes devem avaliar contextos essenciais: Objetivo da aula/livro, Alinhamento com o modulo, Conceitos Fundamentais e Checkpoints centrais.
+  - 20% devem avaliar aplicacao, conexao ou consequencia desses contextos essenciais.
+  - 10% podem abordar detalhes perifericos, mas apenas se eles ajudarem a compreender um contexto essencial.
+  - Detalhes perifericos so devem aparecer quando ajudam a compreender um contexto essencial.
+  - Se a aula for historica/narrativa, o essencial pode ser marco, sequencia, transicao, autor/estudo, problema resolvido e consequencia para a area.
+  - Se a aula for tecnica/conceitual, o essencial pode ser mecanismo, distincao clinica/pratica, criterio de aplicacao e erro comum relevante.`;
+
 export const callGemini = async (options: CallGeminiOptions) => {
   const planMaxOutputTokens = PLAN_LIMITS[options.planName].max_output_tokens[options.taskType];
   const maxOutputTokens = Math.min(planMaxOutputTokens, VERTEX_MAX_OUTPUT_TOKENS);
@@ -787,33 +887,31 @@ export const generateQuiz = async (
   const openCount = config?.distribution?.open ?? Math.floor(qty / 2);
   const difficulty = config?.difficulty || 'mixed';
 
-  // Build difficulty instruction based on user selection
-  let difficultyInstruction = '';
-  if (difficulty === 'mixed') {
-    difficultyInstruction = `DISTRIBUICAO DE DIFICULDADE:
-  - 40% easy (compreensao basica)
-  - 40% medium (aplicacao em situacao nova)
-  - 20% hard (analise, comparacao, padroes)`;
-  } else {
-    const difficultyMap = {
-      easy: 'easy (compreensao basica - questoes diretas sobre conceitos fundamentais)',
-      medium: 'medium (aplicacao em situacao nova - requer raciocinio e conexao de ideias)',
-      hard: 'hard (analise, comparacao e identificacao de padroes - questoes complexas)'
-    };
-    difficultyInstruction = `DIFICULDADE: TODAS as ${qty} questoes devem ser de nivel ${difficultyMap[difficulty]}.
-  NAO gere questoes de outros niveis. APENAS "${difficulty}".`;
-  }
+  const difficultyInstruction = buildBalancedDifficultyInstruction(qty, difficulty);
+  const guideContext = buildGuideReviewContext(guide);
 
   const prompt = `
   Voce e um especialista em avaliacao educacional baseada em Neurociencia.
   
-  TEMA: ${guide.subject}
+  TEMA (apenas rotulo; nao use para puxar conteudo generico): ${guide.subject}
+
+  CONTEUDO DO ROTEIRO PARA REVISAO:
+  ${guideContext}
   
   CRIE UM QUIZ DE ALTA QUALIDADE com ${qty} questoes:
   - ${mcCount} questoes de Alternativa (type: 'multiple_choice')
   - ${openCount} questoes Dissertativas (type: 'open')
 
   ${difficultyInstruction}
+
+  ${essentialContextInstruction}
+
+  REGRA DE ANCORAGEM OBRIGATORIA:
+  - Quiz e prova devem revisar o roteiro gerado, nao o tema generico.
+  - priorize Objetivo da aula, Alinhamento com o modulo, checkpoints e conceitos do roteiro.
+  - Se o roteiro for historico/narrativo, avalie marcos, sequencia, autores/estudos/transicoes e consequencias indicadas no roteiro.
+  - Se conceitos tecnicos aparecem apenas como pano de fundo, nao transforme a prova em glossario tecnico.
+  - nao puxe definicoes genericas de fora so porque o assunto sugere; use apenas o que esta no roteiro acima.
 
   Cubra os principais topicos do guia sem repetir o mesmo subtema.
 
@@ -887,13 +985,26 @@ export const generateQuiz = async (
 
 export const generateFlashcards = async (planName: PlanName, guide: any) => {
   const selectedModel = selectModel('flashcard');
+  const guideContext = buildGuideReviewContext(guide);
 
   const prompt = `
   Voce e um especialista em Spaced Repetition e Active Recall.
   
-  TEMA: ${guide.subject}
+  TEMA (apenas rotulo; nao use para puxar conteudo generico): ${guide.subject}
+
+  CONTEUDO DO ROTEIRO PARA REVISAO:
+  ${guideContext}
   
-  Crie flashcards baseados APENAS nos conceitos centrais do guia (nao invente).
+  Crie flashcards baseados APENAS no roteiro acima.
+
+  ${essentialContextInstruction}
+
+  REGRA DE ANCORAGEM OBRIGATORIA:
+  - Flashcards devem revisar o roteiro gerado, nao o tema generico.
+  - priorize Objetivo da aula, Alinhamento com o modulo, checkpoints e conceitos do roteiro.
+  - Se o roteiro for historico/narrativo, transforme marcos, sequencia, autores/estudos/transicoes e consequencias em cartoes de recall.
+  - Se conceitos tecnicos aparecem apenas como pano de fundo, nao transforme os flashcards em glossario tecnico.
+  - nao puxe definicoes genericas de fora so porque o assunto sugere; use apenas o que esta no roteiro acima.
 
   QUANTIDADE: 10-14 cartoes.
 
