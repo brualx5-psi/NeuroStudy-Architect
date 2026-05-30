@@ -90,6 +90,16 @@ export interface Folder {
   description?: string;
 }
 
+export interface PdfPageSelectionMetadata {
+  mode: 'all' | 'range' | 'visual';
+  pageRanges?: string;
+  selectedPages?: number[];
+  selectedPageCount?: number;
+  originalPageCount?: number;
+  processedPageCount?: number;
+  isPageSelectionApplied?: boolean;
+}
+
 export interface StudySource {
   id: string;
   type: InputType;
@@ -97,6 +107,7 @@ export interface StudySource {
   content: string;
   mimeType?: string;
   dateAdded: number;
+  pdfPageSelection?: PdfPageSelectionMetadata;
 }
 
 export interface ProcessingState {

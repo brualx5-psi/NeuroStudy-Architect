@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode, SlideContent } from './types';
+import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode, SlideContent, PdfPageSelectionMetadata } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards, uploadFileForTranscription, transcribeMedia, isUsageLimitError } from './services/geminiService';
 import { loadUserData, saveUserData, isCloudMode } from './services/storage';
 import { hasCompletedOnboarding, loadProfile } from './services/userProfileService';
@@ -28,11 +28,11 @@ import { useSettings, SettingsProvider } from './contexts/SettingsContext';
 import { LoginPage } from './pages/LoginPage';
 import { NeuroLogo, UploadCloud, FileText, Search, BookOpen, Monitor, Plus, Trash, Link, Rocket, BatteryCharging, Activity, Globe, Edit, CheckCircle, Layers, Target, Menu, Bell, Calendar, GenerateIcon, Eye, Settings, Play, X, Lock, ChevronRight, Zap, HelpCircle, Sparkles, Loader2 } from './components/Icons';
 import { canPerformAction, LimitReason } from './services/usageLimits';
-import { extractTextFromPdfBase64 } from './services/textExtraction';
+import { extractTextFromPdfBase64, extractTextFromPdfFile } from './services/textExtraction';
 import { looksLikeVideoUrl, isSupportedVideoUrl } from './utils/videoUrlUtils';
 import { UnsupportedLinkModal } from './components/UnsupportedLinkModal';
 import { PageSelectorModal, PageSelection } from './components/PageSelectorModal';
-import { extractPdfPages } from './services/pdfPageExtractor';
+import { extractPdfPages, getPdfPageCount } from './services/pdfPageExtractor';
 import { buildStudyGuideMarkdown, getMarkdownFilename } from './services/markdownExport';
 import { exportGuidePdf } from './services/guidePdfExport';
 
@@ -279,6 +279,39 @@ export function AppContent() {
 
     const getPrimarySourceContextLength = (source: StudySource) => {
         return (source.textContent || source.content || '').length;
+    };
+
+    const buildPdfPageSelectionMetadata = async (
+        originalFile: File,
+        processedFile: File,
+        pageSelection?: PageSelection
+    ): Promise<PdfPageSelectionMetadata> => {
+        const [originalPageCount, processedPageCount] = await Promise.all([
+            getPdfPageCount(originalFile).catch(() => undefined),
+            getPdfPageCount(processedFile).catch(() => undefined)
+        ]);
+        const selectedPages = pageSelection?.parsedPages ? [...pageSelection.parsedPages] : undefined;
+        const selectedPageCount = selectedPages?.length || processedPageCount || originalPageCount;
+
+        return {
+            mode: pageSelection?.mode || 'all',
+            pageRanges: pageSelection?.pageRanges,
+            selectedPages,
+            selectedPageCount,
+            originalPageCount,
+            processedPageCount,
+            isPageSelectionApplied: Boolean(pageSelection && pageSelection.mode !== 'all' && selectedPages?.length)
+        };
+    };
+
+    const getPdfSelectionLabel = (source: StudySource) => {
+        const metadata = source.pdfPageSelection;
+        if (!metadata) return null;
+        const count = metadata.processedPageCount || metadata.selectedPageCount || metadata.originalPageCount;
+        if (metadata.mode === 'all' || !metadata.isPageSelectionApplied) {
+            return `PDF completo${count ? `: ${count} pág.` : ''}`;
+        }
+        return `PDF recortado${count ? `: ${count} pág.` : ''}${metadata.pageRanges ? ` • ${metadata.pageRanges}` : ''}`;
     };
 
     const handleSplitRoadmap = () => {
@@ -543,7 +576,7 @@ export function AppContent() {
                     if (name.toLowerCase().endsWith('.epub')) finalType = InputType.EPUB;
                     else if (name.toLowerCase().endsWith('.mobi')) finalType = InputType.MOBI;
                     if (finalType === InputType.PDF) {
-                        const extracted = extractTextFromPdfBase64(base64Content);
+                        const extracted = await extractTextFromPdfFile(selectedFile) || extractTextFromPdfBase64(base64Content);
                         if (extracted) {
                             // Limite de páginas removido - permite PDF de qualquer tamanho
                             textContent = extracted;
@@ -612,15 +645,16 @@ export function AppContent() {
 
         // Se for PDF com seleção de páginas específicas, extrai antes
         let processedFile = content;
-        if (content instanceof File && type === InputType.PDF && (pageSelection?.mode === 'range' || pageSelection?.mode === 'visual') && pageSelection.parsedPages && pageSelection.parsedPages.length > 0) {
+        const originalPdfFile = content instanceof File && type === InputType.PDF ? content : null;
+        if (originalPdfFile && (pageSelection?.mode === 'range' || pageSelection?.mode === 'visual') && pageSelection.parsedPages && pageSelection.parsedPages.length > 0) {
             try {
                 console.log(`📄 Extraindo ${pageSelection.parsedPages.length} páginas: ${pageSelection.pageRanges}`);
-                processedFile = await extractPdfPages(content, pageSelection.parsedPages);
-                console.log(`✅ PDF reduzido: ${content.name} → ${(processedFile as File).name}`);
+                processedFile = await extractPdfPages(originalPdfFile, pageSelection.parsedPages);
+                console.log(`✅ PDF reduzido: ${originalPdfFile.name} → ${(processedFile as File).name}`);
             } catch (error) {
                 console.error('Erro ao extrair páginas:', error);
-                // Se falhar, usa o arquivo original
-                processedFile = content;
+                alert('Não consegui recortar o PDF selecionado. Nada foi enviado ainda. Tente novamente ou use todas as páginas.');
+                return;
             }
         }
 
@@ -631,18 +665,22 @@ export function AppContent() {
         if (!newStudy) return; // Limite atingido, modal já exibido
 
         let sourceContent = ''; let mimeType = 'text/plain'; let name = ''; let textContent: string | undefined;
+        let pdfPageSelection: PdfPageSelectionMetadata | undefined;
         if (processedFile instanceof File) {
             sourceContent = await fileToBase64(processedFile); mimeType = processedFile.type; name = processedFile.name;
             if (type === InputType.PDF) {
-                const extracted = extractTextFromPdfBase64(sourceContent);
+                const extracted = await extractTextFromPdfFile(processedFile) || extractTextFromPdfBase64(sourceContent);
                 if (extracted) textContent = extracted;
+                if (originalPdfFile) {
+                    pdfPageSelection = await buildPdfPageSelectionMetadata(originalPdfFile, processedFile, pageSelection);
+                }
             }
         } else {
             sourceContent = processedFile; textContent = processedFile;
             if (type === InputType.DOI) name = 'DOI Link'; else if (type === InputType.URL) name = 'Website Link'; else name = 'Texto Colado';
         }
 
-        const newSource: StudySource = { id: Date.now().toString(), type, name, content: sourceContent, textContent, mimeType, dateAdded: Date.now(), isPrimary: true };
+        const newSource: StudySource = { id: Date.now().toString(), type, name, content: sourceContent, textContent, mimeType, dateAdded: Date.now(), isPrimary: true, pdfPageSelection };
         setStudies(prev => prev.map(s => { if (s.id === newStudy.id) return { ...s, sources: [newSource] }; return s; }));
 
         setQuickInputMode('none'); setInputText(''); setView('app');
@@ -719,13 +757,16 @@ export function AppContent() {
                 console.log(`✅ PDF reduzido: ${pendingSourceFile.file.name} → ${fileToProcess.name}`);
             } catch (error) {
                 console.error('Erro ao extrair páginas:', error);
-                // Se falhar, usa arquivo original
+                alert('Não consegui recortar o PDF selecionado. Nada foi enviado ainda. Tente novamente ou use todas as páginas.');
+                return;
             }
         }
 
+        const pdfPageSelection = await buildPdfPageSelectionMetadata(pendingSourceFile.file, fileToProcess, selection);
+
         // Processa o PDF (igual ao fluxo original)
         const base64Content = await fileToBase64(fileToProcess);
-        const extracted = extractTextFromPdfBase64(base64Content);
+        const extracted = await extractTextFromPdfFile(fileToProcess) || extractTextFromPdfBase64(base64Content);
 
         const isFirstSource = (!activeStudy.sources || activeStudy.sources.length === 0);
         const newSource: StudySource = {
@@ -736,7 +777,8 @@ export function AppContent() {
             textContent: extracted || undefined,
             mimeType: 'application/pdf',
             dateAdded: Date.now(),
-            isPrimary: isFirstSource
+            isPrimary: isFirstSource,
+            pdfPageSelection
         };
 
         setStudies(prev => prev.map(s => {
@@ -1330,6 +1372,11 @@ export function AppContent() {
                                                                             </button>
                                                                             <span className="text-xs text-gray-300">|</span>
                                                                             <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">{source.type} • {new Date(source.dateAdded).toLocaleTimeString()}</span>
+                                                                            {getPdfSelectionLabel(source) && (
+                                                                                <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold" title="Confirmação das páginas salvas nesta fonte">
+                                                                                    {getPdfSelectionLabel(source)}
+                                                                                </span>
+                                                                            )}
                                                                             <button onClick={() => setPreviewSource(source)} className="flex items-center gap-1 text-[10px] text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors"><Eye className="w-3 h-3" /> Ver</button>
                                                                         </div>
                                                                     </div>

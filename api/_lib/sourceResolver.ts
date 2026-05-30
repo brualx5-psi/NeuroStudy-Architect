@@ -354,12 +354,9 @@ export const prepareSourcesForRoadmap = async (
         }
 
         if (sourceType === 'pdf') {
-            const rawBinary = typeof source.content === 'string'
-                ? source.content
-                : typeof source.textContent === 'string'
-                    ? source.textContent
-                    : '';
-            const extracted = extractTextFromPdfBase64(rawBinary);
+            const providedText = typeof source.textContent === 'string' ? source.textContent.trim() : '';
+            const rawBinary = typeof source.content === 'string' ? source.content : '';
+            const extracted = providedText || extractTextFromPdfBase64(rawBinary);
             const safeText = extracted || estimateTextFromBinary(rawBinary) || '';
             const limitedText = safeText.slice(0, MAX_PDF_CHARS);
             const charCount = limitedText.length;

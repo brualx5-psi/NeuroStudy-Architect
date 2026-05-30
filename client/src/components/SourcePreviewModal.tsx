@@ -76,6 +76,16 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
     };
   }, [source]);
 
+  const getPreviewPdfLabel = () => {
+    const metadata = source.pdfPageSelection;
+    if (!metadata) return 'Visualizando PDF';
+    const count = metadata.processedPageCount || metadata.selectedPageCount || metadata.originalPageCount;
+    if (metadata.mode === 'all' || !metadata.isPageSelectionApplied) {
+      return `Visualizando PDF completo${count ? ` • ${count} página(s)` : ''}`;
+    }
+    return `Visualizando PDF recortado${count ? ` • ${count} página(s)` : ''}${metadata.pageRanges ? ` • páginas ${metadata.pageRanges}` : ''}`;
+  };
+
   const renderContent = () => {
     switch (source.type) {
       case InputType.PDF: {
@@ -86,11 +96,17 @@ export const SourcePreviewModal: React.FC<SourcePreviewModalProps> = ({ source, 
         const src = pdfObjectUrl || fallbackDataUri;
 
         return (
-          <iframe
-            src={src}
-            className="w-full h-full rounded-lg border border-gray-200"
-            title="PDF Preview"
-          />
+          <div className="h-full flex flex-col gap-2">
+            <div className="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+              <p className="font-bold">{getPreviewPdfLabel()}</p>
+              <p>O preview abre na 1ª página; role dentro do PDF para ver as demais páginas salvas.</p>
+            </div>
+            <iframe
+              src={src}
+              className="w-full flex-1 min-h-0 rounded-lg border border-gray-200"
+              title="PDF Preview"
+            />
+          </div>
         );
       }
 
