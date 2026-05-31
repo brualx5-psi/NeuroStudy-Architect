@@ -104,22 +104,30 @@ const getEffectivePlan = (row: any): PlanName => {
 export const getUserPlan = async (userId: string): Promise<PlanName> => {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 'free';
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .select('subscription_status, manual_plan_override, manual_override_expires_at')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
+  if (error) {
+    console.warn('[usageStore] getUserPlan fallback to free', error.message);
+    return 'free';
+  }
   return getEffectivePlan(data);
 };
 
 export const getUserAccess = async (userId: string): Promise<UserAccess> => {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { planName: 'free', isAdmin: false };
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .select('subscription_status, is_admin, manual_plan_override, manual_override_expires_at')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
+  if (error) {
+    console.warn('[usageStore] getUserAccess fallback to free', error.message);
+    return { planName: 'free', isAdmin: false };
+  }
   return {
     planName: getEffectivePlan(data),
     isAdmin: Boolean(data?.is_admin)

@@ -7,6 +7,7 @@ import { PreferredSource } from '../types';
 import { SubscriptionModal } from './SubscriptionModal';
 import { cancelSubscription } from '../services/subscriptionService';
 import { AdminEmailPanel } from './AdminEmailPanel';
+import { sendSupportFeedback, SupportPayload } from '../services/supportService';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -14,7 +15,7 @@ interface SettingsModalProps {
   initialTab?: TabKey;
 }
 
-type TabKey = 'search' | 'productivity' | 'appearance' | 'notifications' | 'account' | 'admin';
+type TabKey = 'search' | 'productivity' | 'appearance' | 'notifications' | 'account' | 'support' | 'admin';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, initialTab }) => {
   const { settings, updateSettings } = useSettings();
@@ -35,6 +36,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
   const [permission, setPermission] = useState<NotificationPermission>(typeof Notification !== 'undefined' ? Notification.permission : 'default');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [supportCategory, setSupportCategory] = useState<SupportPayload['category']>('bug');
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [isSendingSupport, setIsSendingSupport] = useState(false);
+  const [supportStatus, setSupportStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const focusRecommendations: Record<string, { focus: number; break: number; autoStartBreak: boolean; label: string }> = {
     'Concurso': { focus: 50, break: 10, autoStartBreak: false, label: 'Ciclos longos para provas extensas' },
@@ -70,6 +76,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
   }, [isOpen, initialTab, settings.search.defaultSource, settings.search.preferPtEnHint, settings.focusArea, settings.pomodoro, settings.theme, settings.notifications]);
 
   if (!isOpen) return null;
+
+  const handleSendSupport = async () => {
+    if (supportSubject.trim().length < 3 || supportMessage.trim().length < 10) {
+      setSupportStatus({ type: 'error', text: 'Preencha um assunto e descreva o problema com um pouco mais de detalhe.' });
+      return;
+    }
+
+    try {
+      setIsSendingSupport(true);
+      setSupportStatus(null);
+      await sendSupportFeedback({
+        category: supportCategory,
+        subject: supportSubject.trim(),
+        message: supportMessage.trim(),
+        pageUrl: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+      });
+      setSupportSubject('');
+      setSupportMessage('');
+      setSupportStatus({ type: 'success', text: 'Recebido. Sua mensagem foi enviada para o suporte do NeuroStudy.' });
+    } catch (error: any) {
+      setSupportStatus({ type: 'error', text: error?.message || 'Não foi possível enviar agora.' });
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
 
   const handleSave = () => {
     updateSettings({
@@ -120,6 +152,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
               { key: 'appearance', label: 'Aparência' },
               { key: 'notifications', label: 'Notificações' },
               { key: 'account', label: 'Conta/Plano' },
+              { key: 'support', label: 'Suporte' },
               ...(isAdmin ? [{ key: 'admin', label: '⚙ Admin' }] : []),
             ].map(tab => (
               <button
@@ -459,6 +492,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
               </div>
             )}
 
+            {activeTab === 'support' && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/60 dark:bg-indigo-900/20 dark:border-indigo-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <HelpCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <p className="text-sm font-bold text-gray-800 dark:text-slate-100">Suporte, reclamações e feedback</p>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-slate-300">
+                    Use este canal para relatar erro, pedir ajuda com pagamento/plano ou enviar sugestão. A mensagem cai direto no e-mail de suporte do NeuroStudy.
+                  </p>
+                  {profile?.email && (
+                    <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-2">Responderemos pelo e-mail da sua conta: <strong>{profile.email}</strong></p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-600 dark:text-slate-300 mb-1 block">Categoria</span>
+                    <select
+                      value={supportCategory}
+                      onChange={(e) => setSupportCategory(e.target.value as SupportPayload['category'])}
+                      className="w-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 rounded-lg p-2 text-sm"
+                    >
+                      <option value="bug">Erro / bug</option>
+                      <option value="feedback">Feedback / sugestão</option>
+                      <option value="content">Qualidade do estudo gerado</option>
+                      <option value="billing">Pagamento / plano</option>
+                      <option value="other">Outro</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-600 dark:text-slate-300 mb-1 block">Assunto</span>
+                    <input
+                      value={supportSubject}
+                      onChange={(e) => setSupportSubject(e.target.value.slice(0, 120))}
+                      placeholder="Ex.: Quiz marcou errado / erro ao gerar roteiro"
+                      className="w-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 rounded-lg p-2 text-sm"
+                    />
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs font-bold text-gray-600 dark:text-slate-300 mb-1 block">Mensagem</span>
+                  <textarea
+                    value={supportMessage}
+                    onChange={(e) => setSupportMessage(e.target.value.slice(0, 3000))}
+                    placeholder="Descreva o que aconteceu. Se for erro, diga qual fonte usou, qual botão clicou e o que apareceu na tela."
+                    className="w-full min-h-[150px] border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 rounded-lg p-3 text-sm"
+                  />
+                  <span className="block text-right text-[11px] text-gray-400">{supportMessage.length}/3000</span>
+                </label>
+
+                {supportStatus && (
+                  <div className={`p-3 rounded-xl text-sm font-medium ${supportStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                    {supportStatus.text}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSendSupport}
+                  disabled={isSendingSupport || supportSubject.trim().length < 3 || supportMessage.trim().length < 10}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSendingSupport ? 'Enviando...' : 'Enviar para suporte'}
+                </button>
+              </div>
+            )}
+
             {activeTab === 'admin' && isAdmin && (
               <AdminEmailPanel />
             )}
@@ -466,9 +567,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
 
           <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
             <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 font-bold hover:bg-gray-50 dark:hover:bg-slate-700">
-              Cancelar
+              {activeTab === 'support' || activeTab === 'admin' ? 'Fechar' : 'Cancelar'}
             </button>
-            {activeTab !== 'admin' && (
+            {activeTab !== 'admin' && activeTab !== 'support' && (
               <button onClick={handleSave} className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow">
                 Salvar
               </button>
