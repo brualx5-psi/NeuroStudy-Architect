@@ -1,4 +1,4 @@
-import { ChatMessage, StudyGuide, SlideContent as Slide, QuizQuestion, Flashcard, StudyMode, StudySource } from '../types';
+import { ChatMessage, StudyGuide, SlideContent as Slide, QuizQuestion, Flashcard, StudyMode, StudySource, InputType } from '../types';
 import { supabase } from './supabase';
 
 export class UsageLimitError extends Error {
@@ -209,15 +209,38 @@ export const generateFlashcards = async (guide: StudyGuide): Promise<Flashcard[]
   return response.flashcards || [];
 };
 
+const CHAT_SOURCE_TEXT_CHAR_LIMIT = 120_000;
+
+const buildChatSourcePayload = (sources: StudySource[]) => {
+  return (sources || []).map((source) => {
+    const isTextLike = [InputType.TEXT, InputType.URL, InputType.DOI].includes(source.type);
+    const rawText = source.textContent || (isTextLike ? source.content : '') || '';
+    const textContent = rawText.slice(0, CHAT_SOURCE_TEXT_CHAR_LIMIT);
+
+    return {
+      id: source.id,
+      name: source.name,
+      type: source.type,
+      isPrimary: Boolean(source.isPrimary),
+      durationMinutes: source.durationMinutes,
+      pdfPageSelection: source.pdfPageSelection,
+      textContent,
+      isTruncatedForChat: rawText.length > textContent.length
+    };
+  });
+};
+
 export const sendChatMessage = async (
   history: ChatMessage[],
   msg: string,
-  _studyGuide: StudyGuide | null = null
+  _studyGuide: StudyGuide | null = null,
+  sources: StudySource[] = []
 ): Promise<string> => {
   const response = await postJson<{ text: string }>('/api/ai?action=chat', {
     history,
     message: msg,
-    guide: _studyGuide
+    guide: _studyGuide,
+    sources: buildChatSourcePayload(sources)
   });
   return response.text || '';
 };

@@ -1,17 +1,18 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, Sparkles } from './Icons';
-import { ChatMessage, StudyGuide } from '../types';
+import { ChatMessage, StudyGuide, StudySource } from '../types';
 import { sendChatMessage, isUsageLimitError } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
 import { canPerformAction, LimitReason } from '../services/usageLimits';
 
 interface ChatWidgetProps {
   studyGuide: StudyGuide | null;
+  sources?: StudySource[];
   onUsageLimit?: (reason: LimitReason) => void;
 }
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, onUsageLimit }) => {
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, sources = [], onUsageLimit }) => {
   const { planName, usage, isAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -36,7 +37,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, onUsageLimit
     setInput('');
     setIsLoading(true);
     try {
-      const responseText = await sendChatMessage(messages, textToSend, studyGuide);
+      const responseText = await sendChatMessage(messages, textToSend, studyGuide, sources);
       const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: responseText, timestamp: Date.now() };
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {

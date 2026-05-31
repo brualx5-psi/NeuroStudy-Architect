@@ -31,7 +31,7 @@ for (const snippet of requiredGemini) {
 const requiredHandler = [
   'guide?: any;',
   'body.guide',
-  'sendChatMessage(planName, body.history || [], body.message || \'\', body.guide || null)'
+  "sendChatMessage(planName, body.history || [], body.message || '', body.guide || null, body.sources || [])"
 ];
 for (const snippet of requiredHandler) {
   if (!handler.includes(snippet)) {

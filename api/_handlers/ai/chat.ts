@@ -27,6 +27,7 @@ export default async function handler(req: any, res: any) {
     history: Array<{ role: string; text: string }>;
     message: string;
     guide?: any;
+    sources?: any[];
   }>(req);
 
   const { planName, isAdmin } = await getUserAccess(auth.userId);
@@ -44,7 +45,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { text, usageTokens } = await sendChatMessage(planName, body.history || [], body.message || '', body.guide || null);
+    const { text, usageTokens } = await sendChatMessage(planName, body.history || [], body.message || '', body.guide || null, body.sources || []);
     const estimatedTokens = check.estimatedTokens || 0;
 
     await incrementUsage(auth.userId, month, planName, {

@@ -307,6 +307,9 @@ const parseJsonArray = (raw: string) => {
 
 const GUIDE_REVIEW_CONTEXT_CHAR_LIMIT = 40_000;
 const CHAT_GUIDE_CONTEXT_CHAR_LIMIT = 12_000;
+const CHAT_SOURCE_CONTEXT_CHAR_LIMIT = 18_000;
+const CHAT_SOURCE_CHUNK_CHAR_LIMIT = 1_600;
+const CHAT_SOURCE_CHUNKS_PER_SOURCE = 4;
 
 const normalizeReviewText = (value: any) => {
   if (typeof value !== 'string') return '';
@@ -332,6 +335,119 @@ const hasPageOrSlideMarkers = (source: StudySourceInput | undefined) => {
   const type = source.type?.toUpperCase() || '';
   const text = source.textContent || source.content || '';
   return type === 'PDF' || name.includes('slide') || countMatches(text, PAGE_OR_SLIDE_MARKER_REGEX) >= 2;
+};
+
+const normalizeSourceTextForChat = (value: any) => {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const removeDiacritics = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const CHAT_SOURCE_STOPWORDS = new Set([
+  'como', 'qual', 'quais', 'quando', 'onde', 'porque', 'por que', 'sobre', 'isso', 'esse', 'essa', 'isto',
+  'fonte', 'aula', 'roteiro', 'checkpoint', 'minuto', 'pagina', 'página', 'professor', 'voce', 'você',
+  'fala', 'falou', 'explica', 'explique', 'quero', 'saber', 'dessa', 'desse', 'aquele', 'aquela'
+]);
+
+const extractChatSearchTerms = (query: string) => {
+  const normalized = removeDiacritics(query.toLowerCase());
+  const terms = normalized
+    .split(/[^a-z0-9]+/i)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 4 && !CHAT_SOURCE_STOPWORDS.has(term));
+  return Array.from(new Set(terms)).slice(0, 24);
+};
+
+const splitSourceIntoChunks = (text: string) => {
+  const chunks: string[] = [];
+  const normalized = normalizeSourceTextForChat(text);
+  if (!normalized) return chunks;
+
+  const paragraphs = normalized.split(/\n{2,}/).filter(Boolean);
+  let current = '';
+  for (const paragraph of paragraphs) {
+    if ((current + '\n\n' + paragraph).length > CHAT_SOURCE_CHUNK_CHAR_LIMIT && current) {
+      chunks.push(current.trim());
+      current = paragraph;
+    } else {
+      current = current ? `${current}\n\n${paragraph}` : paragraph;
+    }
+  }
+  if (current) chunks.push(current.trim());
+
+  if (chunks.length <= 1 && normalized.length > CHAT_SOURCE_CHUNK_CHAR_LIMIT) {
+    const fixedChunks: string[] = [];
+    const step = Math.floor(CHAT_SOURCE_CHUNK_CHAR_LIMIT * 0.75);
+    for (let start = 0; start < normalized.length; start += step) {
+      fixedChunks.push(normalized.slice(start, start + CHAT_SOURCE_CHUNK_CHAR_LIMIT).trim());
+      if (fixedChunks.length >= 80) break;
+    }
+    return fixedChunks;
+  }
+
+  return chunks.slice(0, 80);
+};
+
+const scoreSourceChunk = (chunk: string, terms: string[], query: string) => {
+  const normalizedChunk = removeDiacritics(chunk.toLowerCase());
+  const normalizedQuery = removeDiacritics(query.toLowerCase());
+  let score = 0;
+  for (const term of terms) {
+    if (normalizedChunk.includes(term)) score += 3;
+  }
+  if (/minuto|tempo|timestamp|quando|em que hora|em qual hora/.test(normalizedQuery) && countMatches(chunk, TIMESTAMP_MARKER_REGEX) > 0) score += 2;
+  if (/pagina|página|slide|pdf|onde/.test(normalizedQuery) && countMatches(chunk, PAGE_OR_SLIDE_MARKER_REGEX) > 0) score += 2;
+  return score;
+};
+
+const buildChatSourceContext = (sources: any[] | undefined, queryText: string) => {
+  if (!Array.isArray(sources) || sources.length === 0) return '';
+  const terms = extractChatSearchTerms(queryText);
+  const lines: string[] = [];
+  const orderedSources = [...sources].sort((a, b) => Number(Boolean(b?.isPrimary)) - Number(Boolean(a?.isPrimary)));
+
+  for (const [sourceIndex, source] of orderedSources.entries()) {
+    const text = normalizeSourceTextForChat(source?.textContent || source?.sourceText || '');
+    if (!text) continue;
+
+    const chunks = splitSourceIntoChunks(text);
+    const scoredChunks = chunks
+      .map((chunk, index) => ({ chunk, index, score: scoreSourceChunk(chunk, terms, queryText) }))
+      .sort((a, b) => b.score - a.score || a.index - b.index);
+
+    let selected = scoredChunks
+      .filter((item, index) => item.score > 0 || (terms.length === 0 && index === 0))
+      .slice(0, CHAT_SOURCE_CHUNKS_PER_SOURCE);
+
+    // Fallback: se a pergunta depende de fonte, mas a busca lexical não achou
+    // termos suficientes (ex.: "isso" retomando a conversa), ainda envie o
+    // começo da Fonte Principal para o professor não fingir acesso inexistente.
+    if (!selected.length && source?.isPrimary) {
+      selected = scoredChunks.slice(0, 1);
+    }
+
+    if (!selected.length) continue;
+
+    const role = source?.isPrimary ? 'Fonte Principal' : 'Fonte Complementar';
+    const meta = [
+      source?.type ? `tipo=${source.type}` : '',
+      source?.durationMinutes ? `duracao=${source.durationMinutes}min` : '',
+      source?.pdfPageSelection?.pageRanges ? `paginas=${source.pdfPageSelection.pageRanges}` : '',
+      source?.isTruncatedForChat ? 'texto enviado ao chat foi truncado' : ''
+    ].filter(Boolean).join(' • ');
+
+    lines.push(`${role} ${sourceIndex + 1}: ${normalizeReviewText(source?.name) || 'Fonte sem nome'}${meta ? ` (${meta})` : ''}`);
+    selected.forEach((item, excerptIndex) => {
+      lines.push(`Trecho relevante ${excerptIndex + 1}:\n${item.chunk}`);
+    });
+  }
+
+  return lines.join('\n\n').slice(0, CHAT_SOURCE_CONTEXT_CHAR_LIMIT).trim();
 };
 
 const buildGuideReviewContext = (guide: any) => {
@@ -1123,7 +1239,8 @@ export const sendChatMessage = async (
   planName: PlanName,
   history: Array<{ role: string; text: string }>,
   message: string,
-  guide?: any
+  guide?: any,
+  sources?: any[]
 ) => {
   const chatModel = MODEL_FLASH;
   const ai = getClient(getVertexLocationForModel(chatModel), getApiVersionForModel(chatModel));
@@ -1132,6 +1249,8 @@ export const sendChatMessage = async (
   const maxHistory = Number(process.env.GEMINI_CHAT_HISTORY_MAX || 10);
   const maxChars = Number(process.env.GEMINI_CHAT_MSG_MAX_CHARS || 900);
   const guideContext = guide ? buildGuideReviewContext(guide).slice(0, CHAT_GUIDE_CONTEXT_CHAR_LIMIT) : '';
+  const sourceQuery = [...(history || []).slice(-4).map((m) => m.text || ''), message || ''].join('\n');
+  const sourceContext = buildChatSourceContext(sources, sourceQuery);
   const extraInstruction = process.env.GEMINI_CHAT_SYSTEM_EXTRA?.trim();
   const systemInstruction = `
   Voce e o Professor Virtual NeuroStudy, com postura socratica & ativa, mas fiel ao roteiro atual.
@@ -1139,7 +1258,13 @@ export const sendChatMessage = async (
 
   ${guideContext ? `CONTEUDO DO ROTEIRO ATUAL (fonte principal para responder):\n${guideContext}` : 'CONTEUDO DO ROTEIRO ATUAL: nenhum roteiro foi enviado; responda apenas sobre metodos de estudo ou peca para o aluno gerar/abrir um roteiro.'}
 
+  ${sourceContext ? `TRECHOS RELEVANTES DAS FONTES ENVIADAS (consulta complementar para verificar minutos, paginas e pontos fora dos checkpoints):\n${sourceContext}` : 'TRECHOS RELEVANTES DAS FONTES ENVIADAS: nenhum trecho de fonte foi enviado para este chat.'}
+
   CONTRATO PEDAGOGICO DO PROFESSOR SOCRATICO & ATIVO:
+  - Use o roteiro como mapa principal do estudo, mas use os trechos das fontes para verificar evidencias, minutos, paginas, slides ou pontos que nao viraram checkpoint.
+  - Quando o aluno perguntar "onde fala", "em que minuto", "em qual pagina", "isso esta na fonte?" ou questionar algo fora dos checkpoints, consulte primeiro os TRECHOS RELEVANTES DAS FONTES ENVIADAS.
+  - Se encontrar a informacao na fonte mas ela nao estiver no roteiro/checkpoint, diga isso explicitamente: "isso nao virou checkpoint, mas aparece na fonte...".
+  - Se os trechos enviados nao forem suficientes para confirmar literalmente, nao finja certeza: diga que pelo roteiro aparece X, mas que os trechos disponiveis nao permitem confirmar a fonte literal.
   - A pergunta atual do aluno manda na agenda. Nao use o chat para puxar um assunto novo sem necessidade.
   - Se o aluno pedir resposta clara, explicar "por que", "o que e", "qual a resposta" ou corrigir uma duvida especifica: responda primeiro de forma direta, curta e completa. Depois, se ajudar, faca no maximo 1 pergunta socratica conectada ao mesmo ponto.
   - Se o aluno pedir ajuda para pensar, teste, pista, revisao ativa ou "me ajuda a raciocinar": use o modo socratico com 1 pergunta por vez.
