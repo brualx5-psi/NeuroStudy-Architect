@@ -43,7 +43,7 @@ export const extractTextFromPdfBase64 = (content: string): string => {
 
 export const estimateTextFromBinary = (content: string) => extractPrintableText(decodeBase64(content));
 
-export const extractTextFromPdfFile = async (file: File): Promise<string> => {
+export const extractTextFromPdfFile = async (file: File, originalPageNumbers?: number[]): Promise<string> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -59,7 +59,8 @@ export const extractTextFromPdfFile = async (file: File): Promise<string> => {
         .replace(/\s+/g, ' ')
         .trim();
 
-      if (pageText) pages.push(`[Página ${pageNumber}]\n${pageText}`);
+      const pageLabel = originalPageNumbers?.[pageNumber - 1] ?? pageNumber;
+      if (pageText) pages.push(`[Página ${pageLabel}]\n${pageText}`);
     }
 
     return pages.join('\n\n').trim();

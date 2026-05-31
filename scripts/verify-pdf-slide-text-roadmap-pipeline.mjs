@@ -8,7 +8,7 @@ const requiredClient = [
   "import * as pdfjsLib from 'pdfjs-dist';",
   "import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min?url';",
   'pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;',
-  'export const extractTextFromPdfFile = async (file: File): Promise<string> =>',
+  'export const extractTextFromPdfFile = async (file: File, originalPageNumbers?: number[]): Promise<string> =>',
   'const textContent = await page.getTextContent();'
 ];
 
@@ -20,8 +20,8 @@ for (const snippet of requiredClient) {
 
 const requiredApp = [
   'extractTextFromPdfFile',
-  'await extractTextFromPdfFile(processedFile) || extractTextFromPdfBase64(sourceContent)',
-  'await extractTextFromPdfFile(fileToProcess) || extractTextFromPdfBase64(base64Content)'
+  'await extractTextFromPdfFile(processedFile, originalPageNumbers) || extractTextFromPdfBase64(sourceContent)',
+  'await extractTextFromPdfFile(fileToProcess, originalPageNumbers) || extractTextFromPdfBase64(base64Content)'
 ];
 
 for (const snippet of requiredApp) {

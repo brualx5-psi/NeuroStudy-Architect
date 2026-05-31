@@ -44,7 +44,7 @@ for (const snippet of requiredPrimaryPreservation) {
 
 const requiredClient = [
   'sourceLocator?: string',
-  'pages.push(`[Página ${pageNumber}]\\n${pageText}`)',
+  'pages.push(`[Página ${pageLabel}]\\n${pageText}`)',
   'Momento/fonte',
   'Referência:',
   "pushKeyValue(lines, 'Referência da fonte', checkpoint.sourceLocator)",

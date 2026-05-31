@@ -669,7 +669,8 @@ export function AppContent() {
         if (processedFile instanceof File) {
             sourceContent = await fileToBase64(processedFile); mimeType = processedFile.type; name = processedFile.name;
             if (type === InputType.PDF) {
-                const extracted = await extractTextFromPdfFile(processedFile) || extractTextFromPdfBase64(sourceContent);
+                const originalPageNumbers = pageSelection?.mode !== 'all' ? pageSelection?.parsedPages : undefined;
+                const extracted = await extractTextFromPdfFile(processedFile, originalPageNumbers) || extractTextFromPdfBase64(sourceContent);
                 if (extracted) textContent = extracted;
                 if (originalPdfFile) {
                     pdfPageSelection = await buildPdfPageSelectionMetadata(originalPdfFile, processedFile, pageSelection);
@@ -766,7 +767,8 @@ export function AppContent() {
 
         // Processa o PDF (igual ao fluxo original)
         const base64Content = await fileToBase64(fileToProcess);
-        const extracted = await extractTextFromPdfFile(fileToProcess) || extractTextFromPdfBase64(base64Content);
+        const originalPageNumbers = selection.mode !== 'all' ? selection.parsedPages : undefined;
+        const extracted = await extractTextFromPdfFile(fileToProcess, originalPageNumbers) || extractTextFromPdfBase64(base64Content);
 
         const isFirstSource = (!activeStudy.sources || activeStudy.sources.length === 0);
         const newSource: StudySource = {
