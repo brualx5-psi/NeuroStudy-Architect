@@ -1495,7 +1495,7 @@ export function AppContent() {
                         soundEnabled={settings.notifications.soundEnabled}
                     />
                 )}
-                <ChatWidget studyGuide={activeStudy?.guide || null} sources={activeStudy?.sources || []} onUsageLimit={openUsageLimitModal} />
+                <ChatWidget studyId={activeStudy?.id} studyGuide={activeStudy?.guide || null} sources={activeStudy?.sources || []} onUsageLimit={openUsageLimitModal} />
                 {showMethodologyModal && (
                     <MethodologyModal
                         onClose={() => setShowMethodologyModal(false)}

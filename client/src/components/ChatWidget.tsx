@@ -7,22 +7,98 @@ import { useAuth } from '../contexts/AuthContext';
 import { canPerformAction, LimitReason } from '../services/usageLimits';
 
 interface ChatWidgetProps {
+  studyId?: string;
   studyGuide: StudyGuide | null;
   sources?: StudySource[];
   onUsageLimit?: (reason: LimitReason) => void;
 }
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyGuide, sources = [], onUsageLimit }) => {
+const CHAT_STORAGE_PREFIX = 'neurostudy:professor-chat';
+const CHAT_MAX_STORED_MESSAGES = 80;
+
+const getInitialMessages = (studyGuide: StudyGuide | null): ChatMessage[] => {
+  if (studyGuide) {
+    return [{
+      id: 'new-topic',
+      role: 'model',
+      text: `Olá! Vejo que você gerou um roteiro sobre "${studyGuide.subject}". Como posso ajudar a aprofundar esse tema?`,
+      timestamp: Date.now()
+    }];
+  }
+
+  return [{
+    id: 'welcome',
+    role: 'model',
+    text: 'Olá! Sou seu professor virtual. Tem alguma dúvida sobre o roteiro de estudos ou sobre o conteúdo?',
+    timestamp: Date.now()
+  }];
+};
+
+const getChatStorageKey = (studyId: string | undefined, studyGuide: StudyGuide | null) => {
+  const rawKey = studyId || studyGuide?.title || studyGuide?.subject || 'global';
+  return `${CHAT_STORAGE_PREFIX}:${rawKey}`;
+};
+
+const loadSavedChatState = (storageKey: string): { messages: ChatMessage[]; input: string } | null => {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed?.messages)) return null;
+    return {
+      messages: parsed.messages.filter((msg: ChatMessage) => msg?.role && typeof msg.text === 'string').slice(-CHAT_MAX_STORED_MESSAGES),
+      input: typeof parsed.input === 'string' ? parsed.input : ''
+    };
+  } catch (error) {
+    console.warn('[ChatWidget] Não consegui restaurar conversa salva:', error);
+    return null;
+  }
+};
+
+const saveChatState = (storageKey: string, messages: ChatMessage[], input: string) => {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({
+      messages: messages.slice(-CHAT_MAX_STORED_MESSAGES),
+      input,
+      updatedAt: Date.now()
+    }));
+  } catch (error) {
+    console.warn('[ChatWidget] Não consegui salvar conversa:', error);
+  }
+};
+
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyId, studyGuide, sources = [], onUsageLimit }) => {
   const { planName, usage, isAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([{ id: 'welcome', role: 'model', text: 'Olá! Sou seu professor virtual. Tem alguma dúvida sobre o roteiro de estudos ou sobre o conteúdo?', timestamp: Date.now() }]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => getInitialMessages(studyGuide));
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const skipNextSaveRef = useRef(false);
+  const storageKey = getChatStorageKey(studyId, studyGuide);
 
   const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
   useEffect(() => { scrollToBottom(); }, [messages, isOpen]);
-  useEffect(() => { if (studyGuide) setMessages([{ id: 'new-topic', role: 'model', text: `Olá! Vejo que você gerou um roteiro sobre "${studyGuide.subject}". Como posso ajudar a aprofundar esse tema?`, timestamp: Date.now() }]); }, [studyGuide]);
+
+  useEffect(() => {
+    skipNextSaveRef.current = true;
+    const saved = loadSavedChatState(storageKey);
+    if (saved) {
+      setMessages(saved.messages.length ? saved.messages : getInitialMessages(studyGuide));
+      setInput(saved.input);
+      return;
+    }
+    setMessages(getInitialMessages(studyGuide));
+    setInput('');
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
+    saveChatState(storageKey, messages, input);
+  }, [storageKey, messages, input]);
 
   const handleSend = async (textOverride?: string) => {
     const textToSend = textOverride || input;
