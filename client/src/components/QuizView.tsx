@@ -11,9 +11,13 @@ interface QuizViewProps {
   onUsageLimit?: (reason: LimitReason) => void;
 }
 
+type AttemptStatus = 'correct' | 'partial' | 'wrong';
+type FirstAttemptResult = { status: AttemptStatus; answer: string };
+
 export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onClear, onUsageLimit }) => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
+  const [firstAttemptResults, setFirstAttemptResults] = useState<Record<string, FirstAttemptResult>>({});
   const [showExplanation, setShowExplanation] = useState<Record<string, boolean>>({});
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
   const [showResults, setShowResults] = useState(false);
@@ -32,13 +36,25 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
   const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
   const [evaluations, setEvaluations] = useState<Record<string, { status: 'correct' | 'partial' | 'wrong', feedback: string }>>({});
 
-  // Performance Analysis
+  const quizSignature = useMemo(() => questions.map(q => q.id).join('|'), [questions]);
+
+  React.useEffect(() => {
+    setAnswers({});
+    setCheckedState({});
+    setFirstAttemptResults({});
+    setShowExplanation({});
+    setRevealedAnswers({});
+    setEvaluations({});
+    setShowResults(false);
+  }, [quizSignature]);
+
+  // Performance Analysis: resultado final usa SEMPRE a primeira tentativa.
+  // Tentativas posteriores servem para treino e não alteram a nota final.
   const performanceStats = useMemo(() => {
     if (!questions || questions.length === 0) return null;
 
-    const answered = Object.keys(checkedState).filter(id => checkedState[id]);
     const total = questions.length;
-    const answeredCount = answered.length;
+    const answeredCount = questions.filter(q => firstAttemptResults[q.id]).length;
 
     let correct = 0;
     let partial = 0;
@@ -55,37 +71,30 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
       open: { correct: 0, total: 0 }
     };
 
-    const wrongTopics: Array<{ question: string; topic: string; difficulty: string }> = [];
+    const wrongTopics: Array<{ question: string; topic: string; difficulty: string; status: AttemptStatus; answer: string }> = [];
 
     for (const q of questions) {
-      if (!checkedState[q.id]) continue;
+      const firstResult = firstAttemptResults[q.id];
+      if (!firstResult) continue;
 
       byDifficulty[q.difficulty].total++;
       byType[q.type].total++;
 
-      let isCorrect = false;
-
-      if (q.type === 'multiple_choice') {
-        isCorrect = answers[q.id] === String(Number(q.correctAnswer));
-      } else {
-        const evalStatus = evaluations[q.id]?.status;
-        isCorrect = evalStatus === 'correct';
-        if (evalStatus === 'partial') partial++;
-      }
-
-      if (isCorrect) {
+      if (firstResult.status === 'correct') {
         correct++;
         byDifficulty[q.difficulty].correct++;
         byType[q.type].correct++;
       } else {
-        wrong++;
-        // Extract topic from question for recommendations
+        if (firstResult.status === 'partial') partial++;
+        if (firstResult.status === 'wrong') wrong++;
         const topicMatch = q.question.match(/(?:sobre|acerca de|relacionado a|conceito de)\s+(.+?)(?:\?|\.|\,|$)/i);
         const topic = topicMatch?.[1] || q.question.slice(0, 50) + '...';
         wrongTopics.push({
           question: q.question,
           topic,
-          difficulty: q.difficulty
+          difficulty: q.difficulty,
+          status: firstResult.status,
+          answer: firstResult.answer
         });
       }
     }
@@ -105,11 +114,21 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
       byType,
       wrongTopics
     };
-  }, [questions, checkedState, answers, evaluations]);
+  }, [questions, firstAttemptResults]);
 
   const handleSelectOption = (questionId: string, optionIndex: number) => { setAnswers(prev => ({ ...prev, [questionId]: optionIndex.toString() })); };
   const handleTextAnswer = (questionId: string, text: string) => { setAnswers(prev => ({ ...prev, [questionId]: text })); }
-  const handleCheckAnswer = (questionId: string) => { setCheckedState(prev => ({ ...prev, [questionId]: true })); };
+  const recordFirstAttempt = (questionId: string, status: AttemptStatus, answer: string) => {
+    setFirstAttemptResults(prev => prev[questionId] ? prev : ({ ...prev, [questionId]: { status, answer } }));
+  };
+  const handleCheckAnswer = (questionId: string) => {
+    const question = questions.find(q => q.id === questionId);
+    const userAnswer = answers[questionId];
+    if (!question || userAnswer === undefined) return;
+    const status: AttemptStatus = userAnswer === String(Number(question.correctAnswer)) ? 'correct' : 'wrong';
+    recordFirstAttempt(questionId, status, userAnswer);
+    setCheckedState(prev => ({ ...prev, [questionId]: true }));
+  };
   const toggleExplanation = (questionId: string) => { setShowExplanation(prev => ({ ...prev, [questionId]: !prev[questionId] })); };
   const toggleReveal = (questionId: string) => { setRevealedAnswers(prev => ({ ...prev, [questionId]: !prev[questionId] })); };
 
@@ -145,6 +164,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
     try {
       const result = await evaluateOpenAnswer(q.question, userAnswer, q.explanation || "Verifique a compreensão.");
       setEvaluations(prev => ({ ...prev, [q.id]: result }));
+      recordFirstAttempt(q.id, result.status, userAnswer);
       setCheckedState(prev => ({ ...prev, [q.id]: true }));
     } catch (error) {
       if (isUsageLimitError(error)) {
@@ -275,7 +295,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-800 text-lg">Resultado do Quiz</h3>
-                  <p className="text-sm text-gray-500">{performanceStats.answeredCount} de {performanceStats.total} questões respondidas</p>
+                  <p className="text-sm text-gray-500">{performanceStats.answeredCount} de {performanceStats.total} questões respondidas • nota da 1ª tentativa</p>
                 </div>
               </div>
               <button onClick={() => setShowResults(false)} className="text-gray-400 hover:text-gray-600 text-sm font-medium">
@@ -292,6 +312,9 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                 {performanceStats.percentage}%
               </div>
               <p className="text-gray-600 font-medium mt-2">{getScoreMessage(performanceStats.percentage)}</p>
+              <p className="text-xs text-gray-500 mt-2 max-w-md mx-auto">
+                A pontuação fica travada na primeira resposta. Depois deste resultado, você pode tentar novamente os erros como treino, sem alterar a nota.
+              </p>
             </div>
 
             {/* Stats Cards */}
@@ -343,28 +366,30 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
               </div>
             </div>
 
-            {/* Recommendations */}
+            {/* First-attempt review */}
             {performanceStats.wrongTopics.length > 0 && (
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
                 <h4 className="font-bold text-amber-800 text-sm mb-3 flex items-center gap-2">
                   <Lightbulb className="w-4 h-4" />
-                  Recomendações de Estudo
+                  Erros da primeira tentativa
                 </h4>
                 <p className="text-sm text-amber-700 mb-3">
-                  Com base nos seus erros, recomendamos revisar:
+                  Revise estes pontos. Se quiser, volte nas questões marcadas e tente novamente como treino.
                 </p>
                 <ul className="space-y-2">
                   {performanceStats.wrongTopics.slice(0, 5).map((item, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm text-amber-900">
                       <span className="text-amber-500 mt-0.5">•</span>
-                      <span className="flex-1">{item.question.length > 80 ? item.question.slice(0, 80) + '...' : item.question}</span>
+                      <span className="flex-1">
+                        <span className="font-semibold">{item.status === 'partial' ? 'Parcial' : 'Incorreta'}:</span> {item.question.length > 80 ? item.question.slice(0, 80) + '...' : item.question}
+                      </span>
                       {getDifficultyBadge(item.difficulty as 'easy' | 'medium' | 'hard')}
                     </li>
                   ))}
                 </ul>
                 {performanceStats.wrongTopics.length > 5 && (
                   <p className="text-xs text-amber-600 mt-2">
-                    +{performanceStats.wrongTopics.length - 5} outros tópicos para revisar
+                    +{performanceStats.wrongTopics.length - 5} outros pontos para revisar
                   </p>
                 )}
               </div>
@@ -384,7 +409,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                 className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
               >
                 <Eye className="w-4 h-4" />
-                Ver Questões
+                Ver questões e refazer erros
               </button>
             </div>
           </div>
@@ -427,10 +452,13 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
 
       {/* Questions */}
       {questions.map((q, index) => {
-        const isAnswered = answers[q.id] !== undefined;
+        const currentAnswer = answers[q.id];
+        const isAnswered = currentAnswer !== undefined && currentAnswer.trim().length > 0;
         const isChecked = checkedState[q.id];
         const isRevealed = revealedAnswers[q.id];
         const evaluation = evaluations[q.id];
+        const firstAttempt = firstAttemptResults[q.id];
+        const canRetryAfterResult = Boolean(performanceStats?.isComplete && firstAttempt && firstAttempt.status !== 'correct');
 
         let containerClass = "bg-white rounded-xl paper-shadow border transition-all overflow-hidden ";
 
@@ -528,7 +556,13 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
                   )
                 ) : (
                   <>
-                    {!isUserCorrect(q.id) && <button onClick={() => handleRetryQuestion(q.id)} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Tentar Novamente</button>}
+                    {canRetryAfterResult ? (
+                      <button onClick={() => handleRetryQuestion(q.id)} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4" /> Tentar novamente como treino
+                      </button>
+                    ) : (!isAnswerCorrect(q) && !performanceStats?.isComplete) ? (
+                      <span className="text-xs text-gray-500 self-center">Você poderá refazer esta questão depois do resultado final.</span>
+                    ) : null}
 
                     {q.type === 'multiple_choice' && !isRevealed && !isAnswerCorrect(q) && (
                       <button onClick={() => toggleReveal(q.id)} className="bg-yellow-50 text-yellow-700 border border-yellow-200 px-4 py-2 rounded-lg font-bold hover:bg-yellow-100 flex items-center gap-2">
@@ -564,10 +598,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ questions, onGenerate, onCle
           </div>
         );
 
-        function isUserCorrect(qid: string) {
-          if (q.type === 'multiple_choice') return answers[qid] === String(Number(q.correctAnswer));
-          return evaluation?.status === 'correct';
-        }
         function isAnswerCorrect(question: QuizQuestion) {
           if (question.type === 'multiple_choice') return answers[question.id] === String(Number(question.correctAnswer));
           return evaluations[question.id]?.status === 'correct';

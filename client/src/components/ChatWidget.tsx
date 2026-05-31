@@ -14,7 +14,8 @@ interface ChatWidgetProps {
 }
 
 const CHAT_STORAGE_PREFIX = 'neurostudy:professor-chat';
-const CHAT_MAX_STORED_MESSAGES = 80;
+const CHAT_MAX_STORED_MESSAGES = 40;
+const CHAT_STORAGE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 const getInitialMessages = (studyGuide: StudyGuide | null): ChatMessage[] => {
   if (studyGuide) {
@@ -45,6 +46,13 @@ const loadSavedChatState = (storageKey: string): { messages: ChatMessage[]; inpu
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed?.messages)) return null;
+
+    const updatedAt = Number(parsed?.updatedAt || 0);
+    if (updatedAt && Date.now() - updatedAt > CHAT_STORAGE_TTL_MS) {
+      localStorage.removeItem(storageKey);
+      return null;
+    }
+
     return {
       messages: parsed.messages.filter((msg: ChatMessage) => msg?.role && typeof msg.text === 'string').slice(-CHAT_MAX_STORED_MESSAGES),
       input: typeof parsed.input === 'string' ? parsed.input : ''
@@ -52,6 +60,25 @@ const loadSavedChatState = (storageKey: string): { messages: ChatMessage[]; inpu
   } catch (error) {
     console.warn('[ChatWidget] Não consegui restaurar conversa salva:', error);
     return null;
+  }
+};
+
+const cleanupExpiredChatStates = () => {
+  try {
+    const now = Date.now();
+    for (let index = localStorage.length - 1; index >= 0; index--) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(`${CHAT_STORAGE_PREFIX}:`)) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      const updatedAt = Number(parsed?.updatedAt || 0);
+      if (updatedAt && now - updatedAt > CHAT_STORAGE_TTL_MS) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (error) {
+    console.warn('[ChatWidget] Não consegui limpar conversas expiradas:', error);
   }
 };
 
@@ -79,6 +106,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyId, studyGuide, sou
 
   const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
   useEffect(() => { scrollToBottom(); }, [messages, isOpen]);
+  useEffect(() => { cleanupExpiredChatStates(); }, []);
 
   useEffect(() => {
     skipNextSaveRef.current = true;
