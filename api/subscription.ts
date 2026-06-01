@@ -13,6 +13,7 @@ import { getSupabaseAdmin } from './_lib/supabase.js';
 import { sendJson } from './_lib/http.js';
 import { sendCancelledEmail } from './_lib/email.js';
 import { asaasFetch } from './_lib/asaas.js';
+import { setCorsHeaders } from './_lib/cors.js';
 
 async function cancelMercadoPagoSubscription(subscriptionId: string) {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -50,10 +51,7 @@ async function cancelAsaasSubscription(subscriptionId: string) {
 }
 
 export default async function handler(req: any, res: any) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCorsHeaders(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });

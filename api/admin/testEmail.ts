@@ -11,6 +11,7 @@ import { getAuthContext } from '../_lib/auth.js';
 import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { sendJson, readJson } from '../_lib/http.js';
 import { sendPlanUpgradeEmail, sendSignupWelcomeEmail, sendCancelledEmail } from '../_lib/email.js';
+import { setCorsHeaders } from '../_lib/cors.js';
 
 type Body = {
   toEmail?: string;
@@ -19,10 +20,7 @@ type Body = {
 };
 
 export default async function handler(req: any, res: any) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCorsHeaders(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });

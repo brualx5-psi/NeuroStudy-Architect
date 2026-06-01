@@ -11,6 +11,7 @@ import { getSupabaseAdmin } from './_lib/supabase.js';
 import { sendJson, readJson } from './_lib/http.js';
 import type { PlanName } from './_lib/planLimits.js';
 import { createClient } from '@supabase/supabase-js';
+import { setCorsHeaders } from './_lib/cors.js';
 
 const SITE_URL = process.env.PUBLIC_SITE_URL || 'https://neurostudy.com.br';
 
@@ -38,10 +39,7 @@ function isValidExtensionRedirect(value: string) {
 }
 
 export default async function handler(req: any, res: any) {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    setCorsHeaders(req, res, 'GET, POST, OPTIONS', { allowExtensionOrigins: true });
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();

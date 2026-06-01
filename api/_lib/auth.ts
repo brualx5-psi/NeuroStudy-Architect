@@ -20,7 +20,11 @@ export const getAuthContext = async (req: any): Promise<AuthContext | null> => {
   }
 
   const devUser = req.headers?.['x-dev-user'];
-  if (devUser && process.env.NODE_ENV !== 'production') {
+  if (
+    devUser &&
+    process.env.NODE_ENV !== 'production' &&
+    process.env.ENABLE_DEV_AUTH_HEADER === 'true'
+  ) {
     return { userId: String(devUser) };
   }
 
