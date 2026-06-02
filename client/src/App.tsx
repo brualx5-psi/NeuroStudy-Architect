@@ -1376,9 +1376,77 @@ export function AppContent() {
                                         </button>
                                     </div>
 
-                                    <button onClick={handleGenerateGuide} className="mt-8 bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-200 hover:bg-orange-600 hover:-translate-y-1 transition-all flex items-center gap-2">
+                                    <div className="mt-8 w-full max-w-4xl px-4">
+                                        <div className="bg-white border border-orange-100 rounded-2xl p-6 shadow-sm">
+                                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-4">
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                                        <UploadCloud className="w-5 h-5 text-orange-500" />
+                                                        Subir livro
+                                                    </h3>
+                                                    <p className="text-sm text-gray-500 mt-1">Envie o PDF, EPUB ou MOBI antes de gerar o resumo do livro.</p>
+                                                </div>
+                                                {activeStudy.sources.length > 0 && (
+                                                    <span className="text-[11px] font-bold px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 self-start">
+                                                        {activeStudy.sources.length} fonte{activeStudy.sources.length > 1 ? 's' : ''} carregada{activeStudy.sources.length > 1 ? 's' : ''}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {activeStudy.sources.length > 0 && (
+                                                <div className="space-y-2 mb-4">
+                                                    {activeStudy.sources.map((source, idx) => (
+                                                        <div key={source.id} className="flex items-center justify-between gap-3 bg-orange-50/60 border border-orange-100 rounded-xl p-3">
+                                                            <button onClick={() => setPreviewSource(source)} className="flex items-center gap-3 min-w-0 text-left flex-1 hover:text-orange-700 transition-colors">
+                                                                <div className="w-8 h-8 rounded-full bg-white text-orange-600 flex items-center justify-center font-bold shrink-0 border border-orange-100">{idx + 1}</div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-bold text-gray-800 truncate">{source.name}</p>
+                                                                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold">{source.type} • Fonte do livro</p>
+                                                                </div>
+                                                            </button>
+                                                            <button onClick={() => removeSource(source.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-white" title="Remover livro/fonte">
+                                                                <Trash className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="border-2 border-dashed border-orange-200 rounded-xl p-6 text-center hover:bg-orange-50/50 transition-colors cursor-pointer relative">
+                                                <input
+                                                    type="file"
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    onChange={(e) => { setInputType(InputType.PDF); setSelectedFile(e.target.files?.[0] || null); }}
+                                                    accept=".pdf,.epub,.mobi"
+                                                />
+                                                <div className="flex flex-col items-center gap-2 text-gray-500">
+                                                    {selectedFile ? (
+                                                        <>
+                                                            <FileText className="w-8 h-8 text-orange-500" />
+                                                            <span className="font-medium text-gray-900">{selectedFile.name}</span>
+                                                            <span className="text-xs">Clique para trocar o arquivo</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UploadCloud className="w-8 h-8 text-orange-400" />
+                                                            <span className="font-medium">Clique ou arraste o livro aqui</span>
+                                                            <span className="text-xs">Suporta PDF, EPUB e MOBI</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                                <button onClick={() => addSourceToStudy()} disabled={!selectedFile} className="flex-1 bg-gray-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    Adicionar livro à lista
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button onClick={handleGenerateGuide} disabled={activeStudy.sources.length === 0} className="mt-8 bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-200 hover:bg-orange-600 hover:-translate-y-1 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:bg-orange-500">
                                         <Play className="w-5 h-5 fill-current" />
-                                        Gerar Resumo do Livro
+                                        {activeStudy.sources.length > 0 ? 'Gerar Resumo do Livro' : 'Suba o livro para gerar'}
                                     </button>
                                 </div>
                             ) : (
