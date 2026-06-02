@@ -59,7 +59,7 @@ export const ReviewSchedulerModal: React.FC<ReviewSchedulerModalProps> = ({ onCl
             <Calendar className="w-5 h-5 text-white" />
           </div>
           <h3 className="text-lg font-bold">Agendar Revisão</h3>
-          <p className="text-indigo-100 text-[10px] mt-1 max-w-xs mx-auto">Escolha o intervalo ideal.</p>
+          <p className="text-indigo-100 text-[10px] mt-1 max-w-xs mx-auto">Salva na Central das Revisões. Google Agenda é opcional.</p>
         </div>
 
         {/* Body Compacto */}
@@ -92,7 +92,7 @@ export const ReviewSchedulerModal: React.FC<ReviewSchedulerModalProps> = ({ onCl
                 onChange={(e) => setAddToCalendar(e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all"
               />
-              Abrir Google Agenda
+              Também abrir Google Agenda
             </label>
           </div>
 
@@ -103,7 +103,7 @@ export const ReviewSchedulerModal: React.FC<ReviewSchedulerModalProps> = ({ onCl
               disabled={selectedOption === null}
               className="px-4 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
-              Confirmar <ChevronRight className="w-3 h-3" />
+              Salvar <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>

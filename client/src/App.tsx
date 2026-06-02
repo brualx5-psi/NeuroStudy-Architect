@@ -39,10 +39,27 @@ import { exportGuidePdf } from './services/guidePdfExport';
 // IDs de admin que podem usar qualquer link sem restrição
 const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-416e-b9fe-d0266915e44d'];
 const PRIMARY_SOURCE_CONTEXT_CHAR_LIMIT = 100_000;
+const REVIEW_NOTIFICATION_STORAGE_KEY = 'neurostudy_review_notifications_v1';
+
+const getEndOfTodayTimestamp = () => {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    return end.getTime();
+};
+
+const getLocalDateKey = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getReviewDisplayTitle = (study: StudySession) => study.guide?.title || study.title || 'Estudo sem título';
 
 export function AppContent() {
     const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage, isAdmin: isAdminFromProfile } = useAuth();
-    const { settings } = useSettings();
+    const { settings, updateSettings } = useSettings();
     const isAdmin = Boolean(isAdminFromProfile || (user?.id && ADMIN_USER_IDS.includes(user.id)));
     // Estado da view - começa como 'app' se usuário logado
     const [view, setView] = useState<'landing' | 'app'>('landing');
@@ -131,6 +148,7 @@ export function AppContent() {
     const hasLoadedRef = useRef<boolean>(false); // Flag para prevenir save antes do load
     const paretoInputRef = useRef<HTMLInputElement>(null);
     const bookInputRef = useRef<HTMLInputElement>(null);
+    const notifiedReviewKeysRef = useRef<Record<string, string>>({});
 
     // TODOS os useEffect precisam vir antes de qualquer return condicional
     useEffect(() => {
@@ -227,6 +245,61 @@ export function AppContent() {
     }, [studies, folders, user?.id]);
 
     useEffect(() => {
+        if (!settings.notifications.reviewReminders) return;
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
+        const endOfToday = getEndOfTodayTimestamp();
+        const dueToday = studies.filter(study => study.nextReviewDate && study.nextReviewDate <= endOfToday);
+        if (dueToday.length === 0) return;
+
+        let notifiedKeys = notifiedReviewKeysRef.current;
+        if (Object.keys(notifiedKeys).length === 0) {
+            try {
+                notifiedKeys = JSON.parse(localStorage.getItem(REVIEW_NOTIFICATION_STORAGE_KEY) || '{}') as Record<string, string>;
+                notifiedReviewKeysRef.current = notifiedKeys;
+            } catch (error) {
+                console.warn('[Reviews] Falha ao ler notificações já emitidas:', error);
+                notifiedKeys = {};
+                notifiedReviewKeysRef.current = notifiedKeys;
+            }
+        }
+
+        let changed = false;
+        dueToday.forEach(study => {
+            if (!study.nextReviewDate) return;
+            const reviewDateKey = getLocalDateKey(study.nextReviewDate);
+            if (notifiedKeys[study.id] === reviewDateKey) return;
+
+            const title = getReviewDisplayTitle(study);
+            try {
+                const notification = new Notification('Revisão do NeuroStudy', {
+                    body: `${title} está na Central das Revisões. Clique para abrir o roteiro.`,
+                    tag: `neurostudy-review-${study.id}-${reviewDateKey}`,
+                    renotify: false
+                });
+                notification.onclick = () => {
+                    window.focus();
+                    setActiveStudyId(study.id);
+                    setActiveTab(study.guide ? 'guide' : 'sources');
+                };
+
+                notifiedKeys[study.id] = reviewDateKey;
+                changed = true;
+            } catch (error) {
+                console.warn('[Reviews] Falha ao emitir notificação de revisão:', error);
+            }
+        });
+
+        if (changed) {
+            try {
+                localStorage.setItem(REVIEW_NOTIFICATION_STORAGE_KEY, JSON.stringify(notifiedKeys));
+            } catch (error) {
+                console.warn('[Reviews] Falha ao salvar notificações emitidas:', error);
+            }
+        }
+    }, [studies, settings.notifications.reviewReminders]);
+
+    useEffect(() => {
         setIsEditingTitle(false);
         setEditTitleInput('');
         setIsMobileMenuOpen(false);
@@ -256,7 +329,7 @@ export function AppContent() {
     const totalCheckpoints = activeStudy?.guide?.checkpoints?.length || 0;
     const completedCheckpoints = activeStudy?.guide?.checkpoints?.filter(c => c.completed).length || 0;
     const isGuideComplete = totalCheckpoints > 0 && totalCheckpoints === completedCheckpoints;
-    const dueReviewsCount = studies.filter(s => s.nextReviewDate && s.nextReviewDate <= Date.now()).length;
+    const dueReviewsCount = studies.filter(s => s.nextReviewDate && s.nextReviewDate <= getEndOfTodayTimestamp()).length;
 
     const openUsageLimitModal = (reason: LimitReason) => setUsageLimit({ isOpen: true, reason });
     const closeUsageLimitModal = () => setUsageLimit({ isOpen: false, reason: null });
@@ -988,6 +1061,12 @@ export function AppContent() {
         alert('🚀 Provão Geral: Em breve você poderá gerar simulados de pastas inteiras! Estamos finalizando esta IA.');
     };
 
+    const handleOpenStudyGuide = (studyId: string) => {
+        const study = studies.find(s => s.id === studyId);
+        setActiveStudyId(studyId);
+        setActiveTab(study?.guide ? 'guide' : 'sources');
+    };
+
     const handleMarkReviewDone = (studyId: string) => {
         setStudies(prev => prev.map(s => {
             if (s.id === studyId) {
@@ -1005,7 +1084,8 @@ export function AppContent() {
                 return {
                     ...s,
                     nextReviewDate: nextDate.getTime(),
-                    reviewStep: nextStep
+                    reviewStep: nextStep,
+                    updatedAt: Date.now()
                 };
             }
             return s;
@@ -1020,9 +1100,20 @@ export function AppContent() {
 
         const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
 
-        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Revisão: ${title}`)}&dates=${format(start)}/${format(end)}&details=${encodeURIComponent("Revisão espaçada recomendada pelo NeuroStudy Architect.")}&sf=true&output=xml`;
+        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Revisão: ${title}`)}&dates=${format(start)}/${format(end)}&details=${encodeURIComponent("Revisão espaçada recomendada pelo NeuroStudy Architect. O roteiro também fica salvo na Central das Revisões do NeuroStudy.")}&sf=true&output=xml`;
 
         window.open(url, '_blank');
+    };
+
+    const ensureReviewReminderNotification = async () => {
+        if (typeof Notification === 'undefined') return;
+        let permission = Notification.permission;
+        if (permission === 'default') {
+            permission = await Notification.requestPermission();
+        }
+        if (permission === 'granted' && !settings.notifications.reviewReminders) {
+            updateSettings({ notifications: { reviewReminders: true } });
+        }
     };
 
     const handleInitialSchedule = (studyId: string) => {
@@ -1036,20 +1127,21 @@ export function AppContent() {
     const handleSnoozeReview = (studyId: string) => {
         const nextDate = new Date();
         nextDate.setDate(nextDate.getDate() + 1);
-        setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: nextDate.getTime() } : s));
+        setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: nextDate.getTime(), updatedAt: Date.now() } : s));
     };
 
     const handleDeleteReview = (studyId: string) => {
-        setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: undefined } : s));
+        setStudies(prev => prev.map(s => s.id === studyId ? { ...s, nextReviewDate: undefined, updatedAt: Date.now() } : s));
     };
 
     const handleScheduleReview = (timestamp: number, openCalendar: boolean = false) => {
         if (activeStudyId) {
-            setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, nextReviewDate: timestamp } : s));
+            setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, nextReviewDate: timestamp, reviewStep: s.reviewStep || 0, updatedAt: Date.now() } : s));
+            void ensureReviewReminderNotification();
 
             if (openCalendar) {
                 const study = studies.find(s => s.id === activeStudyId);
-                if (study) openGoogleCalendar(study.title, new Date(timestamp));
+                if (study) openGoogleCalendar(getReviewDisplayTitle(study), new Date(timestamp));
             }
         }
     };
@@ -1210,7 +1302,7 @@ export function AppContent() {
                                     <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
                                     <NotificationCenter
                                         studies={studies}
-                                        onSelectStudy={setActiveStudyId}
+                                        onSelectStudy={handleOpenStudyGuide}
                                         onClose={() => setShowNotifications(false)}
                                         onMarkDone={handleMarkReviewDone}
                                         onSnooze={handleSnoozeReview}

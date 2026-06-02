@@ -18,7 +18,7 @@ interface ResultsViewProps {
     onGoToFlashcards: () => void;
     onUpdateGuide: (updatedGuide: StudyGuide) => void;
     isParetoOnly?: boolean;
-    onScheduleReview?: (studyId: string) => void;
+    onScheduleReview?: () => void;
     isReviewScheduled?: boolean;
 
     // Billing / gating
@@ -171,8 +171,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
         onUpdateGuide({ ...guide, checkpoints: newCheckpoints });
     };
-
-    const studyIdPlaceholder = 'study-id-placeholder';
 
     const isBook = !!guide.bookChapters;
 
@@ -579,8 +577,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             <Layers className="w-5 h-5" /> Gerar Flashcards
                         </button>
                         {onScheduleReview && (
-                            <button onClick={() => onScheduleReview(studyIdPlaceholder)} disabled={isReviewScheduled} className={`px - 8 py - 3 rounded - xl font - bold transition - all shadow - lg flex items - center justify - center gap - 2 w - full sm: w - auto ${isReviewScheduled ? 'bg-green-100 text-green-700 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-1'} `}>
-                                {isReviewScheduled ? <><Calendar className="w-5 h-5" /> Revisão Agendada</> : <><Clock className="w-5 h-5" /> Agendar Revisão</>}
+                            <button onClick={onScheduleReview} disabled={isReviewScheduled} className={`px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto ${isReviewScheduled ? 'bg-green-100 text-green-700 cursor-default' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-1'}`}>
+                                {isReviewScheduled ? <><Calendar className="w-5 h-5" /> Revisão salva na Central</> : <><Clock className="w-5 h-5" /> Agendar Revisão</>}
                             </button>
                         )}
                         <div className="flex gap-2 w-full sm:w-auto">
