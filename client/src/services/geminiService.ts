@@ -26,32 +26,47 @@ const getAuthHeaders = async (): Promise<Record<string, string>> => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-const postJson = async <T>(path: string, body: unknown): Promise<T> => {
+const postJson = async <T>(path: string, body: unknown, options?: { timeoutMs?: number }): Promise<T> => {
   const authHeaders = await getAuthHeaders();
-  const response = await fetch(path, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders
-    },
-    body: JSON.stringify(body)
-  });
+  const controller = options?.timeoutMs ? new AbortController() : null;
+  const timeoutId = options?.timeoutMs
+    ? window.setTimeout(() => controller?.abort(), options.timeoutMs)
+    : null;
 
-  const payload = await response.json().catch(() => ({}));
+  try {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
+      body: JSON.stringify(body),
+      signal: controller?.signal
+    });
 
-  if (!response.ok) {
-    if (response.status === 402 || response.status === 429) {
-      throw new UsageLimitError(
-        payload.reason || 'monthly_limit',
-        payload.message || 'Limite atingido.',
-        payload.actions || [],
-        response.status
-      );
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      if (response.status === 402 || response.status === 429) {
+        throw new UsageLimitError(
+          payload.reason || 'monthly_limit',
+          payload.message || 'Limite atingido.',
+          payload.actions || [],
+          response.status
+        );
+      }
+      throw new Error(payload.message || 'Erro na requisicao.');
     }
-    throw new Error(payload.message || 'Erro na requisicao.');
-  }
 
-  return payload as T;
+    return payload as T;
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Tempo esgotado. O Professor Virtual não respondeu a tempo. Tente novamente.', { cause: error });
+    }
+    throw error;
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
 };
 
 export async function uploadFileForTranscription(
@@ -241,7 +256,7 @@ export const sendChatMessage = async (
     message: msg,
     guide: _studyGuide,
     sources: buildChatSourcePayload(sources)
-  });
+  }, { timeoutMs: 75_000 });
   return response.text || '';
 };
 

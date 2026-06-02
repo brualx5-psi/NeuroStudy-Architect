@@ -1237,13 +1237,12 @@ export const generateFlashcards = async (planName: PlanName, guide: any) => {
 
 export const sendChatMessage = async (
   planName: PlanName,
-  history: Array<{ role: string; text: string }>,
+  history: Array<{ role?: string; text?: string; id?: string }>,
   message: string,
   guide?: any,
   sources?: any[]
 ) => {
   const chatModel = MODEL_FLASH;
-  const ai = getClient(getVertexLocationForModel(chatModel), getApiVersionForModel(chatModel));
 
   // Keep chat snappy, but preserve enough turns to avoid losing the current thread.
   const maxHistory = Number(process.env.GEMINI_CHAT_HISTORY_MAX || 10);
@@ -1277,22 +1276,35 @@ export const sendChatMessage = async (
   ${extraInstruction ? `\nINSTRUCAO EXTRA DO SISTEMA:\n${extraInstruction}` : ''}
   `;
 
-  const trimmedHistory = (history || [])
+  const conversationHistory = (history || [])
+    .filter((m) => m?.text && m.id !== 'welcome' && m.id !== 'new-topic')
     .slice(-Math.max(0, maxHistory))
-    .map((m) => ({
-      role: m.role,
-      parts: [{ text: (m.text || '').slice(0, maxChars) }]
-    }));
+    .map((m) => {
+      const roleLabel = m.role === 'model' ? 'Professor' : 'Aluno';
+      return `${roleLabel}: ${(m.text || '').slice(0, maxChars)}`;
+    })
+    .join('\n');
 
-  const chat = ai.chats.create({
+  const prompt = `
+  ${conversationHistory ? `HISTORICO RECENTE DA CONVERSA (pode conter perguntas ainda sem resposta se uma chamada anterior falhou):\n${conversationHistory}\n` : ''}
+  PERGUNTA ATUAL DO ALUNO:
+  ${(message || '').slice(0, maxChars)}
+
+  Responda a pergunta atual. Se o historico tiver uma pergunta anterior ainda sem resposta e ela for relevante, integre a resposta sem perder o foco da pergunta atual.
+  `;
+
+  const { text, usageTokens, response } = await callGemini({
+    planName,
+    taskType: 'chat',
+    prompt,
     model: chatModel,
-    history: trimmedHistory,
-    config: { systemInstruction }
+    systemInstruction,
+    responseMimeType: 'text/plain',
+    temperature: 0.2,
+    timeoutMs: 45_000
   });
 
-  const response = await chat.sendMessage({ message: (message || '').slice(0, maxChars) });
-  const text = response?.text || '';
-  return { text, usageTokens: getUsageTokens(response), rawResponse: response };
+  return { text: text || '', usageTokens, rawResponse: response };
 };
 
 export const generateTool = async (

@@ -145,11 +145,23 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ studyId, studyGuide, sou
       const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: responseText, timestamp: Date.now() };
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
+      const errorText = isUsageLimitError(error)
+        ? 'Seu limite de chat foi atingido agora. Veja as opções do plano e tente de novo depois.'
+        : `Não consegui responder agora (${error instanceof Error ? error.message : 'erro no servidor'}). Tente reenviar a pergunta; se continuar, o problema é no backend/modelo, não no seu roteiro.`;
+
       if (isUsageLimitError(error)) {
         onUsageLimit?.(error.reason as LimitReason);
       } else {
         console.error(error);
       }
+
+      const botMsg: ChatMessage = {
+        id: `${Date.now()}-chat-error`,
+        role: 'model',
+        text: errorText,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, botMsg]);
     } finally { setIsLoading(false); }
   };
 
