@@ -114,6 +114,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
+  const handleCreateStudyInFolder = (folderId: string) => {
+    setExpandedFolders(prev => ({ ...prev, [folderId]: true }));
+    onRequestNewStudy(folderId);
+    onClose?.();
+  };
+
 
 
   // --- Drag Handlers ---
@@ -227,15 +233,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       )}
                     </div>
                     <div className="flex gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleCreateStudyInFolder(folder.id); }}
+                        className="p-0.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded"
+                        title="Novo estudo nesta pasta"
+                        aria-label={`Novo estudo em ${folder.name}`}
+                      >
+                        <FileText className="w-3 h-3" />
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); onFolderExam(folder.id); }} className="p-0.5 text-purple-600 hover:bg-purple-100 rounded" title="Provão: Gerar Simulado da Pasta"><GraduationCap className="w-3 h-3" /></button>
                       <button onClick={(e) => { e.stopPropagation(); startEditing(folder); }} className="p-0.5 text-gray-400 hover:text-indigo-600 rounded" title="Renomear"><Edit className="w-3 h-3" /></button>
 
-                      {/* BOTÃO CRIAR SUBPASTA (+): Fecha o modo de estudo se estiver aberto */}
                       <button onClick={(e) => {
                         e.stopPropagation();
                         setCreatingSubfolderIn(folder.id);
                         setExpandedFolders(p => ({ ...p, [folder.id]: true }));
-                      }} className="p-0.5 text-gray-400 hover:text-green-600 rounded" title="Nova Subpasta"><Plus className="w-3 h-3" /></button>
+                      }} className="p-0.5 text-gray-400 hover:text-green-600 rounded" title="Nova subpasta"><Plus className="w-3 h-3" /></button>
 
                       <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="p-0.5 text-gray-400 hover:text-red-500 rounded" title="Excluir"><Trash className="w-3 h-3" /></button>
                     </div>
@@ -287,8 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="ml-4 mt-1">
                     <button onClick={(e) => {
                       e.stopPropagation();
-                      onRequestNewStudy(folder.id);
-                      onClose?.();
+                      handleCreateStudyInFolder(folder.id);
                     }} className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 px-1 py-1 w-full text-left transition-colors hover:bg-indigo-50 rounded">
                       <Plus className="w-3 h-3" /> Novo Estudo
                     </button>
