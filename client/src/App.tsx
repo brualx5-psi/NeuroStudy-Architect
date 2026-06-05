@@ -41,6 +41,12 @@ const ADMIN_USER_IDS = ['9e067f66-6452-48f5-a85a-3bfa8b8aa500', 'ac8ee945-5443-4
 const PRIMARY_SOURCE_CONTEXT_CHAR_LIMIT = 100_000;
 const REVIEW_NOTIFICATION_STORAGE_KEY = 'neurostudy_review_notifications_v1';
 
+type SaveStatus = {
+    state: 'idle' | 'saving' | 'saved' | 'error';
+    message?: string;
+    updatedAt?: number;
+};
+
 const getEndOfTodayTimestamp = () => {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
@@ -134,6 +140,7 @@ export function AppContent() {
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [initialSettingsTab, setInitialSettingsTab] = useState<'search' | 'productivity' | 'account'>('search');
     const [processingState, setProcessingState] = useState<ProcessingState>({ isLoading: false, error: null, step: 'idle' });
+    const [saveStatus, setSaveStatus] = useState<SaveStatus>({ state: 'idle' });
     const [showUnsupportedLinkModal, setShowUnsupportedLinkModal] = useState(false);
 
     // Page Selector Modal states
@@ -146,9 +153,49 @@ export function AppContent() {
     // Refs precisam ser declarados antes de qualquer return condicional
     const lastLoadedUserIdRef = useRef<string | null>(null);
     const hasLoadedRef = useRef<boolean>(false); // Flag para prevenir save antes do load
+    const studiesRef = useRef<StudySession[]>([]);
+    const foldersRef = useRef<Folder[]>([]);
     const paretoInputRef = useRef<HTMLInputElement>(null);
     const bookInputRef = useRef<HTMLInputElement>(null);
     const notifiedReviewKeysRef = useRef<Record<string, string>>({});
+
+    const persistSnapshot = async (nextStudies = studiesRef.current, nextFolders = foldersRef.current, reason: 'auto' | 'critical' = 'auto') => {
+        if (!hasLoadedRef.current) return;
+
+        if (reason === 'critical') {
+            setSaveStatus({ state: 'saving', message: 'Salvando estudo...', updatedAt: Date.now() });
+        }
+
+        const result = await saveUserData(nextStudies, nextFolders, user?.id);
+
+        if (result.cloudSaved || result.cloudSkipped) {
+            setSaveStatus({ state: 'saved', message: result.cloudSkipped ? 'Salvo neste aparelho' : 'Salvo na nuvem', updatedAt: Date.now() });
+            return;
+        }
+
+        if (result.localSaved) {
+            setSaveStatus({
+                state: 'error',
+                message: `Backup local salvo, mas a nuvem falhou${result.error ? `: ${result.error}` : '.'}`,
+                updatedAt: Date.now()
+            });
+            return;
+        }
+
+        setSaveStatus({ state: 'error', message: result.error || 'Falha ao salvar estudo.', updatedAt: Date.now() });
+    };
+
+    const setStudiesAndPersist = (nextStudies: StudySession[], reason: 'auto' | 'critical' = 'critical') => {
+        studiesRef.current = nextStudies;
+        setStudies(nextStudies);
+        void persistSnapshot(nextStudies, foldersRef.current, reason);
+    };
+
+    const setFoldersAndPersist = (nextFolders: Folder[], reason: 'auto' | 'critical' = 'critical') => {
+        foldersRef.current = nextFolders;
+        setFolders(nextFolders);
+        void persistSnapshot(studiesRef.current, nextFolders, reason);
+    };
 
     // TODOS os useEffect precisam vir antes de qualquer return condicional
     useEffect(() => {
@@ -202,6 +249,7 @@ export function AppContent() {
             if (cancelled) return;
             if (data) {
                 if (data.studies) {
+                    studiesRef.current = data.studies || [];
                     setStudies(data.studies || []);
                     // Se há estudos carregados, vai para a view do app
                     if (data.studies.length > 0) {
@@ -209,7 +257,10 @@ export function AppContent() {
                         setView('app');
                     }
                 }
-                if (data.folders) setFolders(data.folders || []);
+                if (data.folders) {
+                    foldersRef.current = data.folders || [];
+                    setFolders(data.folders || []);
+                }
             }
             hasLoadedRef.current = true; // Marca que o load foi concluído
             console.log('[App] hasLoadedRef.current = true');
@@ -230,19 +281,36 @@ export function AppContent() {
     }, [user?.id, loading]);
 
     useEffect(() => {
+        studiesRef.current = studies;
+    }, [studies]);
+
+    useEffect(() => {
+        foldersRef.current = folders;
+    }, [folders]);
+
+    useEffect(() => {
         // Só salva se o load inicial já completou (previne sobrescrever dados)
         if (!hasLoadedRef.current) {
             console.log('[App] Ignorando save - load ainda não completou');
             return;
         }
         const timer = setTimeout(() => {
-            if (studies.length > 0 || folders.length > 0) {
-                console.log('[App] Executando saveUserData:', { studies: studies.length, folders: folders.length });
-                saveUserData(studies, folders, user?.id);
-            }
-        }, 2000);
+            console.log('[App] Executando saveUserData:', { studies: studies.length, folders: folders.length });
+            void persistSnapshot(studies, folders, 'auto');
+        }, 800);
         return () => clearTimeout(timer);
     }, [studies, folders, user?.id]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            if (saveStatus.state !== 'saving') return;
+            event.preventDefault();
+            event.returnValue = '';
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [saveStatus.state]);
 
     useEffect(() => {
         if (!settings.notifications.reviewReminders) return;
@@ -425,7 +493,7 @@ export function AppContent() {
             updatedAt: Date.now()
         };
 
-        setStudies((prev) => prev.map((study) => {
+        const nextStudies = studiesRef.current.map((study) => {
             if (study.id !== activeStudy.id) return study;
             const primaryId = groupA[0]?.id;
             return {
@@ -437,7 +505,8 @@ export function AppContent() {
                 flashcards: null,
                 updatedAt: Date.now()
             };
-        }).concat(newStudy));
+        }).concat(newStudy);
+        setStudiesAndPersist(nextStudies, 'critical');
         setActiveTab('sources');
         closeUsageLimitModal();
     };
@@ -469,12 +538,12 @@ export function AppContent() {
         if (description && description.trim().length > 0) {
             newFolder.description = description.trim();
         }
-        setFolders([...folders, newFolder]);
+        setFoldersAndPersist([...foldersRef.current, newFolder], 'critical');
         return newFolder.id;
     };
 
     const renameFolder = (id: string, newName: string, description?: string) => {
-        setFolders(prev => prev.map(f => {
+        const nextFolders = foldersRef.current.map(f => {
             if (f.id !== id) return f;
             const next: Folder = { ...f, name: newName };
             if (description === undefined) {
@@ -488,7 +557,8 @@ export function AppContent() {
                 delete next.description;
             }
             return next;
-        }));
+        });
+        setFoldersAndPersist(nextFolders, 'critical');
     };
 
     const getFolderModuleContext = (folderId?: string) => {
@@ -521,15 +591,24 @@ export function AppContent() {
             folders.filter(f => f.parentId === fid).forEach(child => collectIds(child.id));
         };
         collectIds(id);
-        setFolders(folders.filter(f => !idsToDelete.has(f.id)));
-        setStudies(studies.filter(s => !idsToDelete.has(s.folderId)));
+        const nextFolders = foldersRef.current.filter(f => !idsToDelete.has(f.id));
+        const nextStudies = studiesRef.current.filter(s => !idsToDelete.has(s.folderId));
+        foldersRef.current = nextFolders;
+        studiesRef.current = nextStudies;
+        setFolders(nextFolders);
+        setStudies(nextStudies);
+        void persistSnapshot(nextStudies, nextFolders, 'critical');
         if (activeStudy?.folderId && idsToDelete.has(activeStudy.folderId)) setActiveStudyId(null);
     };
     const moveFolder = (folderId: string, targetParentId: string | undefined) => {
         if (folderId === targetParentId) return;
-        setFolders(prev => prev.map(f => f.id === folderId ? { ...f, parentId: targetParentId } : f));
+        const nextFolders = foldersRef.current.map(f => f.id === folderId ? { ...f, parentId: targetParentId } : f);
+        setFoldersAndPersist(nextFolders, 'critical');
     };
-    const moveStudy = (studyId: string, targetFolderId: string) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, folderId: targetFolderId } : s)); };
+    const moveStudy = (studyId: string, targetFolderId: string) => {
+        const nextStudies = studiesRef.current.map(s => s.id === studyId ? { ...s, folderId: targetFolderId, updatedAt: Date.now() } : s);
+        setStudiesAndPersist(nextStudies, 'critical');
+    };
 
     const createStudy = (folderId: string, title: string, mode: StudyMode = selectedMode, isBook: boolean = false) => {
         // Verificação de limite de roteiros
@@ -543,17 +622,33 @@ export function AppContent() {
             guide: null, slides: null, quiz: null, flashcards: null, createdAt: Date.now(), updatedAt: Date.now(),
             reviewStep: 0
         };
-        setStudies(prev => [...prev, newStudy]);
+        setStudiesAndPersist([...studiesRef.current, newStudy], 'critical');
         setActiveStudyId(newStudy.id);
         setActiveTab('sources');
         setSelectedMode(mode);
         return newStudy;
     };
 
-    const deleteStudy = (id: string) => { setStudies(studies.filter(s => s.id !== id)); if (activeStudyId === id) setActiveStudyId(null); };
-    const updateStudyGuide = (studyId: string, newGuide: StudyGuide) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide: newGuide } : s)); };
-    const updateStudyMode = (studyId: string, mode: StudyMode) => { setStudies(prev => prev.map(s => s.id === studyId ? { ...s, mode: mode } : s)); };
-    const handleSaveTitle = () => { if (activeStudyId && editTitleInput.trim()) { setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, title: editTitleInput } : s)); } setIsEditingTitle(false); };
+    const deleteStudy = (id: string) => {
+        const nextStudies = studiesRef.current.filter(s => s.id !== id);
+        setStudiesAndPersist(nextStudies, 'critical');
+        if (activeStudyId === id) setActiveStudyId(null);
+    };
+    const updateStudyGuide = (studyId: string, newGuide: StudyGuide) => {
+        const nextStudies = studiesRef.current.map(s => s.id === studyId ? { ...s, guide: newGuide, updatedAt: Date.now() } : s);
+        setStudiesAndPersist(nextStudies, 'critical');
+    };
+    const updateStudyMode = (studyId: string, mode: StudyMode) => {
+        const nextStudies = studiesRef.current.map(s => s.id === studyId ? { ...s, mode: mode, updatedAt: Date.now() } : s);
+        setStudiesAndPersist(nextStudies, 'critical');
+    };
+    const handleSaveTitle = () => {
+        if (activeStudyId && editTitleInput.trim()) {
+            const nextStudies = studiesRef.current.map(s => s.id === activeStudyId ? { ...s, title: editTitleInput, updatedAt: Date.now() } : s);
+            setStudiesAndPersist(nextStudies, 'critical');
+        }
+        setIsEditingTitle(false);
+    };
     const addSourceToStudy = async (options?: { bypassUnsupportedUrlCheck?: boolean }) => {
         if (!activeStudyId || !activeStudy) return;
 
@@ -660,7 +755,11 @@ export function AppContent() {
         }
         const isFirstSource = (!activeStudy?.sources || activeStudy.sources.length === 0);
         const newSource: StudySource = { id: Date.now().toString(), type: finalType, name, content, textContent, durationMinutes, mimeType, dateAdded: Date.now(), isPrimary: isFirstSource };
-        setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource] }; return s; }));
+        const nextStudies = studiesRef.current.map(s => {
+            if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource], updatedAt: Date.now() };
+            return s;
+        });
+        setStudiesAndPersist(nextStudies, 'critical');
         setInputText(''); setSelectedFile(null);
     };
 
@@ -686,10 +785,11 @@ export function AppContent() {
         const newSource: StudySource = {
             id: Date.now().toString(), type, name, content, textContent: content, mimeType: 'text/plain', dateAdded: Date.now()
         };
-        setStudies(prev => prev.map(s => {
-            if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource] };
+        const nextStudies = studiesRef.current.map(s => {
+            if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource], updatedAt: Date.now() };
             return s;
-        }));
+        });
+        setStudiesAndPersist(nextStudies, 'critical');
     };
 
     const removeSource = (sourceId: string) => { if (!activeStudyId) return; setStudies(prev => prev.map(s => { if (s.id === activeStudyId) return { ...s, sources: s.sources.filter(src => src.id !== sourceId) }; return s; })); };
@@ -755,7 +855,11 @@ export function AppContent() {
         }
 
         const newSource: StudySource = { id: Date.now().toString(), type, name, content: sourceContent, textContent, mimeType, dateAdded: Date.now(), isPrimary: true, pdfPageSelection };
-        setStudies(prev => prev.map(s => { if (s.id === newStudy.id) return { ...s, sources: [newSource] }; return s; }));
+        const nextStudies = studiesRef.current.map(s => {
+            if (s.id === newStudy.id) return { ...s, sources: [newSource], updatedAt: Date.now() };
+            return s;
+        });
+        setStudiesAndPersist(nextStudies, 'critical');
 
         setQuickInputMode('none'); setInputText(''); setView('app');
         if (autoGenerate) {
@@ -856,10 +960,11 @@ export function AppContent() {
             pdfPageSelection
         };
 
-        setStudies(prev => prev.map(s => {
-            if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource] };
+        const nextStudies = studiesRef.current.map(s => {
+            if (s.id === activeStudyId) return { ...s, sources: [...s.sources, newSource], updatedAt: Date.now() };
             return s;
-        }));
+        });
+        setStudiesAndPersist(nextStudies, 'critical');
 
         // Limpa estados
         setPendingSourceFile(null);
@@ -930,7 +1035,8 @@ export function AppContent() {
             const guide = await generateStudyGuide(sources, mode, isBinary, isBook, moduleContext);
 
             clearTimeout(progressTimer);
-            setStudies(prev => prev.map(s => s.id === studyId ? { ...s, guide } : s));
+            const nextStudies = studiesRef.current.map(s => s.id === studyId ? { ...s, guide, updatedAt: Date.now() } : s);
+            setStudiesAndPersist(nextStudies, 'critical');
             setProcessingState({ isLoading: false, error: null, step: 'idle' });
             setActiveTab('guide');
         } catch (err: any) {
@@ -967,7 +1073,8 @@ export function AppContent() {
         setProcessingState({ isLoading: true, error: null, step: 'slides' });
         try {
             const slides = await generateSlides(activeStudy.guide);
-            setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, slides } : s));
+            const nextStudies = studiesRef.current.map(s => s.id === activeStudyId ? { ...s, slides, updatedAt: Date.now() } : s);
+            setStudiesAndPersist(nextStudies, 'critical');
         } catch (err: any) {
             if (isUsageLimitError(err)) {
                 openUsageLimitModal(err.reason as LimitReason);
@@ -990,7 +1097,8 @@ export function AppContent() {
         setProcessingState({ isLoading: true, error: null, step: 'quiz' });
         try {
             const quiz = await generateQuiz(activeStudy.guide, activeStudy.mode || StudyMode.NORMAL, config);
-            setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, quiz } : s));
+            const nextStudies = studiesRef.current.map(s => s.id === activeStudyId ? { ...s, quiz, updatedAt: Date.now() } : s);
+            setStudiesAndPersist(nextStudies, 'critical');
         } catch (err: any) {
             if (isUsageLimitError(err)) {
                 openUsageLimitModal(err.reason as LimitReason);
@@ -1013,7 +1121,8 @@ export function AppContent() {
         setProcessingState({ isLoading: true, error: null, step: 'flashcards' });
         try {
             const flashcards = await generateFlashcards(activeStudy.guide);
-            setStudies(prev => prev.map(s => s.id === activeStudyId ? { ...s, flashcards } : s));
+            const nextStudies = studiesRef.current.map(s => s.id === activeStudyId ? { ...s, flashcards, updatedAt: Date.now() } : s);
+            setStudiesAndPersist(nextStudies, 'critical');
         } catch (err: any) {
             if (isUsageLimitError(err)) {
                 openUsageLimitModal(err.reason as LimitReason);
@@ -1275,6 +1384,20 @@ export function AppContent() {
                         ) : (<h1 className="text-xl font-bold text-gray-400">Criar Novo Estudo</h1>)}
                     </div>
                     <div className="flex items-center gap-3">
+                        {saveStatus.state !== 'idle' && (
+                            <div
+                                className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full border text-[11px] font-bold max-w-[180px] ${saveStatus.state === 'error'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : saveStatus.state === 'saving'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                        : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                    }`}
+                                title={saveStatus.message}
+                            >
+                                {saveStatus.state === 'saving' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saveStatus.state === 'error' ? <X className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                <span className="truncate">{saveStatus.message}</span>
+                            </div>
+                        )}
                         <div className="flex items-center gap-2">
                             <span
                                 className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 cursor-pointer hover:bg-indigo-100"

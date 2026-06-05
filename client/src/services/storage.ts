@@ -4,11 +4,25 @@ import { getProfile } from './userProfileService';
 
 const LOCAL_STORAGE_KEY = 'neurostudy_data';
 
+export type SaveUserDataResult = {
+  localSaved: boolean;
+  cloudSaved: boolean;
+  cloudSkipped?: boolean;
+  error?: string;
+};
+
 type UserDataContent = {
   studies?: StudySession[];
   folders?: Folder[];
   profile?: UserProfile | null;
+  updatedAt?: number;
   [key: string]: unknown;
+};
+
+type LocalUserData = {
+  studies: StudySession[];
+  folders: Folder[];
+  updatedAt?: number;
 };
 
 /**
@@ -23,45 +37,54 @@ const getAuthenticatedUserId = async () => {
   return data.user.id;
 };
 
-const scheduleLocalBackup = (studies: StudySession[], folders: Folder[]) => {
-  const writeBackup = () => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ studies, folders }));
-    } catch (err) {
-      console.warn('[Storage] Erro ao salvar backup local:', err);
-    }
-  };
+export const saveLocalBackupNow = (studies: StudySession[], folders: Folder[]) => {
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ studies, folders, updatedAt: Date.now() }));
+};
 
-  const requestIdleCallback = (window as any).requestIdleCallback;
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(writeBackup, { timeout: 2000 });
-  } else {
-    window.setTimeout(writeBackup, 0);
-  }
+const readLocalBackup = (): LocalUserData | null => {
+  const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (!data) return null;
+  const parsed = JSON.parse(data) as Partial<LocalUserData>;
+  return {
+    studies: Array.isArray(parsed.studies) ? parsed.studies : [],
+    folders: Array.isArray(parsed.folders) ? parsed.folders : [],
+    updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : undefined
+  };
+};
+
+const hasUserData = (data: LocalUserData | { studies?: StudySession[]; folders?: Folder[] } | null | undefined) => {
+  return Boolean((data?.studies?.length || 0) > 0 || (data?.folders?.length || 0) > 0);
 };
 
 /**
  * Salva os dados do usuário, escolhendo entre Supabase (Modo Nuvem) ou LocalStorage (Modo Local/Amigos).
  * Permite receber o userId já resolvido para evitar corrida com auth.getUser().
  */
-export const saveUserData = async (studies: StudySession[], folders: Folder[], userIdOverride?: string) => {
-  // Sempre salva no localStorage como backup, mas fora do caminho crítico do render.
-  scheduleLocalBackup(studies, folders);
+export const saveUserData = async (studies: StudySession[], folders: Folder[], userIdOverride?: string): Promise<SaveUserDataResult> => {
+  let localSaved = false;
+  try {
+    // O backup local precisa ser imediato: se o usuário fechar a aba logo após criar/gerar,
+    // requestIdleCallback/setTimeout pode não rodar e o estudo some até do mesmo aparelho.
+    saveLocalBackupNow(studies, folders);
+    localSaved = true;
+  } catch (err) {
+    console.warn('[Storage] Erro ao salvar backup local:', err);
+  }
 
-  if (!isCloudMode()) return;
+  if (!isCloudMode()) return { localSaved, cloudSaved: false, cloudSkipped: true };
 
   try {
     const userId = userIdOverride ?? await getAuthenticatedUserId();
     if (!userId) {
       console.warn('[Storage] Usuário não autenticado para salvar na nuvem.');
-      return;
+      return { localSaved, cloudSaved: false, cloudSkipped: true, error: 'Usuário não autenticado para salvar na nuvem.' };
     }
 
     // Usa upsert para evitar condição de corrida e erros de chave duplicada
     const profile = getProfile();
     const payload = {
       user_id: userId,
-      content: { studies, folders, ...(profile ? { profile } : {}) },
+      content: { studies, folders, updatedAt: Date.now(), ...(profile ? { profile } : {}) },
       updated_at: new Date().toISOString()
     };
     console.log('[Storage] Salvando para user_id:', userId);
@@ -76,11 +99,14 @@ export const saveUserData = async (studies: StudySession[], folders: Folder[], u
 
     if (error) {
       console.warn('[Storage] Erro ao salvar na nuvem:', error.message, error.details, error.hint);
+      return { localSaved, cloudSaved: false, error: error.message };
     } else {
       console.log('[Storage] Salvo com sucesso! Data retornado:', data);
+      return { localSaved, cloudSaved: true };
     }
   } catch (err) {
     console.warn('[Storage] Exceção ao salvar na nuvem (dados salvos localmente):', err);
+    return { localSaved, cloudSaved: false, error: err instanceof Error ? err.message : 'Erro desconhecido ao salvar na nuvem.' };
   }
 };
 
@@ -92,22 +118,20 @@ export const loadUserData = async (userIdOverride?: string): Promise<{ studies: 
   const defaultData = { studies: [], folders: [] };
 
   if (!isCloudMode()) {
-    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return data ? JSON.parse(data) : defaultData;
+    return readLocalBackup() || defaultData;
   }
 
   try {
     const userId = userIdOverride ?? await getAuthenticatedUserId();
     if (!userId) {
       console.warn('[Storage] Usuário não autenticado, usando localStorage.');
-      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      return localData ? JSON.parse(localData) : defaultData;
+      return readLocalBackup() || defaultData;
     }
 
     console.log('[Storage] Carregando para user_id:', userId);
     const { data, error } = await supabase!
       .from('user_data')
-      .select('content')
+      .select('content, updated_at')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -115,25 +139,52 @@ export const loadUserData = async (userIdOverride?: string): Promise<{ studies: 
 
     if (error) {
       console.warn('[Storage] Erro ao carregar da nuvem, usando localStorage como fallback:', error.message);
-      const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      return localData ? JSON.parse(localData) : defaultData;
+      return readLocalBackup() || defaultData;
     }
 
+    const localData = readLocalBackup();
+
     if (!data) {
+      if (hasUserData(localData)) {
+        console.warn('[Storage] Nenhum registro na nuvem; recuperando backup local e migrando para a nuvem.');
+        void saveUserData(localData!.studies, localData!.folders, userId);
+        return localData!;
+      }
       console.warn('[Storage] Nenhum registro encontrado para este user_id, retornando dados vazios');
-      // Não tenta criar linha aqui - deixa o primeiro saveUserData criar
       return defaultData;
     }
 
     const content = (data.content || defaultData) as UserDataContent;
-    console.log('[Storage] Retornando dados:', { studies: content.studies?.length || 0, folders: content.folders?.length || 0 });
-    return {
+    const remoteData = {
       studies: content.studies || [],
       folders: content.folders || []
     };
+    const remoteUpdatedAt = typeof content.updatedAt === 'number'
+      ? content.updatedAt
+      : data.updated_at
+        ? Date.parse(data.updated_at)
+        : 0;
+    const localLooksNewer = hasUserData(localData) && (
+      (localData?.updatedAt || 0) > remoteUpdatedAt ||
+      (!localData?.updatedAt && (localData?.studies.length || 0) > remoteData.studies.length)
+    );
+
+    if (localLooksNewer) {
+      console.warn('[Storage] Backup local parece mais novo que a nuvem; usando local e migrando para a nuvem.');
+      void saveUserData(localData!.studies, localData!.folders, userId);
+      return localData!;
+    }
+
+    if (!hasUserData(remoteData) && hasUserData(localData)) {
+      console.warn('[Storage] Nuvem vazia; usando backup local para evitar perda de estudos neste aparelho.');
+      void saveUserData(localData!.studies, localData!.folders, userId);
+      return localData!;
+    }
+
+    console.log('[Storage] Retornando dados:', { studies: content.studies?.length || 0, folders: content.folders?.length || 0 });
+    return remoteData;
   } catch (err) {
     console.warn('[Storage] Exceção ao carregar da nuvem, usando localStorage:', err);
-    const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return localData ? JSON.parse(localData) : defaultData;
+    return readLocalBackup() || defaultData;
   }
 };
