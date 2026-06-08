@@ -3,7 +3,13 @@ import fs from 'node:fs';
 const sidebar = fs.readFileSync('client/src/components/Sidebar.tsx', 'utf8');
 const app = fs.readFileSync('client/src/App.tsx', 'utf8');
 
+const studyRenderCount = (sidebar.match(/\{filteredStudies\.map\(study => \(/g) || []).length;
+
 const checks = [
+  {
+    name: 'Sidebar renderiza cada lista de estudos uma única vez por nível da árvore',
+    pass: studyRenderCount === 1
+  },
   {
     name: 'Sidebar tem ação direta para criar estudo dentro de uma pasta',
     pass: sidebar.includes('handleCreateStudyInFolder') &&

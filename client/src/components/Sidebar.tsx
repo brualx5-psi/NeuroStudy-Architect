@@ -288,14 +288,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                   {renderFolderTree(folder.id, depth + 1, themeColor)}
 
-                  {/* Studies in this folder */}
-                  {filteredStudies.map(study => (
-                    <div key={study.id} draggable onDragStart={(e) => handleDragStart(e, 'STUDY', study.id)} onClick={() => onSelectStudy(study.id)} className={`ml-4 flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer border-l-2 transition-all ${activeStudyId === study.id ? `bg-white ${themeColor.replace('text-', 'text-').replace('fill-', 'border-')} font-medium shadow-sm` : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
-                      <div className="flex items-center gap-2 truncate"><FileText className="w-3 h-3" /> <span className="truncate">{study.title}</span></div>
-                      <button onClick={(e) => { e.stopPropagation(); onDeleteStudy(study.id); }} className="text-gray-300 hover:text-red-500"><Trash className="w-3 h-3" /></button>
-                    </div>
-                  ))}
-
                   {/* BOTÃO NOVO ESTUDO (Redireciona para Dashboard) */}
                   <div className="ml-4 mt-1">
                     <button onClick={(e) => {
