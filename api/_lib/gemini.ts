@@ -496,6 +496,7 @@ const buildGuideReviewContext = (guide: any) => {
   if (Array.isArray(guide?.checkpoints) && guide.checkpoints.length) {
     lines.push('Checkpoints/checklist do roteiro:');
     guide.checkpoints.forEach((checkpoint: any, index: number) => {
+      pushField(`Checkpoint ${index + 1} - Titulo`, checkpoint?.title);
       pushField(`Checkpoint ${index + 1} - Missao`, checkpoint?.mission);
       pushField(`Checkpoint ${index + 1} - Momento/tempo`, checkpoint?.timestamp);
       pushField(`Checkpoint ${index + 1} - Fonte/pagina/slide`, checkpoint?.sourceLocator);
@@ -613,6 +614,29 @@ export const callGemini = async (options: CallGeminiOptions) => {
   return { text, response, usageTokens: getUsageTokens(response) };
 };
 
+const cleanCheckpointTitle = (value?: string | null) =>
+  (value || '')
+    .replace(/[*_`#>]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[.:;]+$/, '')
+    .trim();
+
+const inferCheckpointTitle = (checkpoint: any, index: number) => {
+  const explicitTitle = cleanCheckpointTitle(checkpoint?.title);
+  if (explicitTitle) return explicitTitle;
+
+  const mission = cleanCheckpointTitle(checkpoint?.mission);
+  if (mission) return mission;
+
+  const lookFor = cleanCheckpointTitle(checkpoint?.lookFor);
+  if (lookFor) {
+    const compact = lookFor.split(/[.:;—-]/)[0]?.trim();
+    return compact || lookFor;
+  }
+
+  return `Checkpoint ${index + 1}`;
+};
+
 const COMMON_PROPERTIES = {
   subject: { type: Type.STRING },
   overview: { type: Type.STRING },
@@ -644,6 +668,7 @@ const COMMON_PROPERTIES = {
     items: {
       type: Type.OBJECT,
       properties: {
+        title: { type: Type.STRING, description: 'Titulo semantico curto (2-5 palavras) nomeando o conceito central deste checkpoint. Ex: "Normal vs Patologico", "Criterios Diagnosticos", "Membrana Celular". Nao usar "Checklist", "Checkpoint" ou numero.' },
         mission: { type: Type.STRING },
         timestamp: { type: Type.STRING },
         sourceLocator: { type: Type.STRING, description: 'Referencia complementar da fonte: tempo da aula, pagina do PDF, slide, ou ambos quando existirem.' },
@@ -653,7 +678,7 @@ const COMMON_PROPERTIES = {
         drawLabel: { type: Type.STRING, enum: ['essential', 'suggestion', 'none'] },
         question: { type: Type.STRING }
       },
-      required: ['mission', 'timestamp', 'lookFor', 'noteExactly', 'drawExactly', 'question']
+      required: ['title', 'mission', 'timestamp', 'lookFor', 'noteExactly', 'drawExactly', 'question']
     }
   }
 };
@@ -907,6 +932,7 @@ export const generateStudyGuide = async (
   ${!isBook ? `
   CHECKPOINTS OBRIGATORIOS:
   Para cada checkpoint, voce DEVE preencher:
+  - "title": Titulo semantico curto (2-5 palavras) que nomeia o CONCEITO CENTRAL deste checkpoint. Regras: (a) nao comece com "Checklist", "Checkpoint" ou numero; (b) evite titulos genericos como "Conceitos Importantes"; (c) nomeie o tema/conceito, nao a acao. Exemplos validos: "Normal vs Patologico", "Criterios Diagnosticos DSM-5", "Membrana Celular", "Sinapses Glutamatergicas".
   - "noteExactly": O QUE ANOTAR NO CADERNO. Gere um conteudo substancial, mas ESTRUTURADO.
       - Use Topicos (bullets) ou frases curtas e potentes.
       - NAO gere "paredoes de texto" denso.
@@ -995,6 +1021,7 @@ export const generateStudyGuide = async (
   if (guide.checkpoints) {
     guide.checkpoints = guide.checkpoints.map((cp: any, index: number) => ({
       ...cp,
+      title: inferCheckpointTitle(cp, index),
       id: `cp-${Date.now()}-${index}`,
       completed: false
     }));

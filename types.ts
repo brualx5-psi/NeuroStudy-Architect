@@ -28,6 +28,7 @@ export interface CoreConcept {
 
 export interface Checkpoint {
   id: string;
+  title?: string;
   mission: string;
   timestamp: string;
   sourceLocator?: string;

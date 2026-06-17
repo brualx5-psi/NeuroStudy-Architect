@@ -29,6 +29,7 @@ export interface CoreConcept {
 // CHECKPOINT COMPLETO RESTAURADO
 export interface Checkpoint {
   id: string;
+  title?: string;       // Título semântico gerado pela IA (ex: "Normal vs Patológico")
   mission: string;
   timestamp: string;
   sourceLocator?: string; // Ex.: "Aula 00:05-00:10 • Slides/PDF pág. 3-4"

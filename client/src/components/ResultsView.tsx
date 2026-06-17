@@ -52,6 +52,28 @@ const MarkdownInline: React.FC<{ children?: string | null; className?: string }>
     </span>
 );
 
+const normalizeCheckpointText = (value?: string | null) =>
+    (value || '')
+        .replace(/[*_`#>]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const getCheckpointDisplayTitle = (checkpoint: any, index: number) => {
+    const explicitTitle = normalizeCheckpointText(checkpoint?.title);
+    if (explicitTitle) return explicitTitle;
+
+    const mission = normalizeCheckpointText(checkpoint?.mission);
+    if (mission) return mission.replace(/[.:;]+$/, '');
+
+    const lookFor = normalizeCheckpointText(checkpoint?.lookFor);
+    if (lookFor) {
+        const compact = lookFor.split(/[.:;—-]/)[0]?.trim();
+        return compact || lookFor;
+    }
+
+    return `Checkpoint ${index + 1}`;
+};
+
 export const ResultsView: React.FC<ResultsViewProps> = ({
     guide, onReset, onGenerateQuiz, onGoToFlashcards, onUpdateGuide, isParetoOnly, onScheduleReview, isReviewScheduled,
     onOpenSubscription, onExportPdf, onExportMarkdown, onUsageLimit
@@ -506,24 +528,33 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         <p className="text-sm text-gray-500 mt-1">Pontos chave para verificar se você realmente aprendeu.</p>
                     </div>
                     <div className="p-6 space-y-6">
-                        {guide.checkpoints.map((checkpoint: any) => (
-                            <div key={checkpoint.id}
-                                className={`flex flex-col gap-6 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md ${checkpoint.completed ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-gray-100 hover:border-indigo-100'}`}
+                        {guide.checkpoints.map((checkpoint: any, index: number) => {
+                            const checkpointTitle = getCheckpointDisplayTitle(checkpoint, index);
+                            const mission = normalizeCheckpointText(checkpoint.mission);
+                            const shouldShowMission = mission && mission !== checkpointTitle;
 
-                            >
-                                <div className="flex-1 space-y-4" onClick={() => toggleCheckpoint(checkpoint.id)}>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w - 8 h - 8 rounded - full border - 2 flex items - center justify - center shrink - 0 transition - colors ${checkpoint.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'} `}>
-                                            {checkpoint.completed && <CheckCircle className="w-5 h-5 text-white" />}
+                            return (
+                                <div key={checkpoint.id}
+                                    className={`flex flex-col gap-6 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md ${checkpoint.completed ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-gray-100 hover:border-indigo-100'}`}
+
+                                >
+                                    <div className="flex-1 space-y-4" onClick={() => toggleCheckpoint(checkpoint.id)}>
+                                        <div className="flex items-start gap-4">
+                                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mt-1 ${checkpoint.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'} `}>
+                                                {checkpoint.completed && <CheckCircle className="w-5 h-5 text-white" />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1">Checkpoint {index + 1}</p>
+                                                <h4 className={`font-bold text-lg leading-snug ${checkpoint.completed ? 'text-green-800 line-through' : 'text-gray-900'} `}>{checkpointTitle}</h4>
+                                                {shouldShowMission && (
+                                                    <p className="text-sm text-gray-600 mt-1">{checkpoint.mission}</p>
+                                                )}
+                                                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><Clock className="w-3 h-3" /> Momento/fonte: {checkpoint.timestamp}</p>
+                                                {checkpoint.sourceLocator && checkpoint.sourceLocator !== checkpoint.timestamp && (
+                                                    <p className="text-xs text-gray-500 mt-1">Referência: {checkpoint.sourceLocator}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 className={`font - bold text - lg ${checkpoint.completed ? 'text-green-800 line-through' : 'text-gray-900'} `}>{checkpoint.mission}</h4>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Momento/fonte: {checkpoint.timestamp}</p>
-                                            {checkpoint.sourceLocator && checkpoint.sourceLocator !== checkpoint.timestamp && (
-                                                <p className="text-xs text-gray-500 mt-1">Referência: {checkpoint.sourceLocator}</p>
-                                            )}
-                                        </div>
-                                    </div>
                                     <div className="pl-12 space-y-4">
                                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
                                             <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1 block flex items-center gap-1"><Zap className="w-3 h-3" /> O que procurar:</span>
@@ -561,7 +592,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </section>
             )}
