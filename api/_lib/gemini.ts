@@ -675,7 +675,7 @@ const COMMON_PROPERTIES = {
         lookFor: { type: Type.STRING },
         noteExactly: { type: Type.STRING },
         drawExactly: { type: Type.STRING },
-        drawLabel: { type: Type.STRING, enum: ['essential', 'suggestion', 'none'] },
+        drawLabel: { type: Type.STRING, enum: ['suggestion', 'none'] },
         question: { type: Type.STRING }
       },
       required: ['title', 'mission', 'timestamp', 'lookFor', 'noteExactly', 'drawExactly', 'question']
@@ -937,7 +937,8 @@ export const generateStudyGuide = async (
       - Use Topicos (bullets) ou frases curtas e potentes.
       - NAO gere "paredoes de texto" denso.
       - Deve ser algo que valha a pena copiar e revisar depois.
-  - "drawExactly": Uma instrucao visual clara do que desenhar (ex: 'Desenhe um triangulo com...').
+  - "drawExactly": Uma sugestao visual clara do que desenhar (ex: 'Desenhe um triangulo com...'). NUNCA trate como obrigatorio.
+  - "drawLabel": use sempre "suggestion" quando houver desenho. Use "none" somente se realmente nao fizer sentido sugerir desenho. Nunca use "essential" ou qualquer rotulo de obrigatoriedade.
 
   COBERTURA DOS CORE CONCEPTS NO CHECKLIST:
   - Os checkpoints devem seguir a ordem natural/cronologica da Fonte Principal. A cronologia manda na ordem; os Core Concepts mandam na cobertura minima.
@@ -1022,6 +1023,7 @@ export const generateStudyGuide = async (
     guide.checkpoints = guide.checkpoints.map((cp: any, index: number) => ({
       ...cp,
       title: inferCheckpointTitle(cp, index),
+      drawLabel: cp?.drawExactly ? 'suggestion' : 'none',
       id: `cp-${Date.now()}-${index}`,
       completed: false
     }));

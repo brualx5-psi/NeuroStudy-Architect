@@ -580,12 +580,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                                     <p className="text-xs text-gray-500 italic">Tente escrever com suas palavras antes de revelar.</p>
                                                 )}
                                             </div>
-                                            <div className={`p-4 rounded-xl border-l-4 ${checkpoint.drawLabel === 'essential' ? 'bg-orange-50 border-orange-500' : 'bg-blue-50 border-blue-400'}`}>
-                                                <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 block flex items-center gap-1 ${checkpoint.drawLabel === 'essential' ? 'text-orange-700' : 'text-blue-700'}`}>
+                                            <div className="bg-blue-50 p-4 rounded-xl border-l-4 border-blue-400">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider mb-2 block flex items-center gap-1 text-blue-700">
                                                     <Target className="w-3 h-3" />
-                                                    {checkpoint.drawLabel === 'essential' ? 'DESENHO OBRIGATÓRIO:' : 'SUGESTÃO DE DESENHO:'}
+                                                    SUGESTÃO DE DESENHO:
                                                 </span>
-                                                <MarkdownText className={`text-sm italic ${checkpoint.drawLabel === 'essential' ? 'text-orange-900' : 'text-blue-900'}`}>{checkpoint.drawExactly}</MarkdownText>
+                                                <MarkdownText className="text-sm italic text-blue-900">{checkpoint.drawExactly}</MarkdownText>
                                                 <p className="text-[10px] text-gray-500 italic mt-2">Use como inspiração visual; adapte ao seu raciocínio.</p>
                                             </div>
                                         </div>

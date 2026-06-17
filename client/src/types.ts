@@ -36,7 +36,7 @@ export interface Checkpoint {
   lookFor: string;      // "O que procurar"
   noteExactly: string;  // "Escreva exatamente isso"
   drawExactly: string;  // "Desenhe exatamente isso"
-  drawLabel?: 'essential' | 'suggestion' | 'none';
+  drawLabel?: 'suggestion' | 'none';
   question: string;
   imageUrl?: string;    // Para retrocompatibilidade ou cache visual
   diagramCode?: string; // O código Mermaid editável
