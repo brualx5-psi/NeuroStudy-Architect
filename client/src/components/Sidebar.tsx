@@ -415,7 +415,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           fixed inset-y-0 left-0 z-50 bg-gray-50 dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 h-screen flex flex-col flex-shrink-0
           transition-all duration-300 ease-in-out
           md:static
-          ${isOpen ? 'translate-x-0 shadow-2xl w-64' : '-translate-x-full md:translate-x-0'}
+          ${isOpen ? 'translate-x-0 shadow-2xl w-64 max-w-[80vw]' : '-translate-x-full md:translate-x-0'}
           ${!isOpen && !isHovered ? 'md:w-16' : 'md:w-64'}
         `}
         onMouseEnter={() => setIsHovered(true)}

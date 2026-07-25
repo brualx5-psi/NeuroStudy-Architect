@@ -128,7 +128,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, i
 
   return (
     <>
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
 
         <div className="relative w-full max-w-4xl bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">

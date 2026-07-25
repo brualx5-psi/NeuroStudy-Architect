@@ -123,7 +123,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     };
 
     return (
-        <div className="absolute top-16 right-4 md:right-8 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 animate-in slide-in-from-top-2 fade-in">
+        <div className="absolute top-16 right-4 md:right-8 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 animate-in slide-in-from-top-2 fade-in">
             <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><Clock className="w-4 h-4" /> Central das Revisões</h3>
                 <div className="flex items-center gap-2">

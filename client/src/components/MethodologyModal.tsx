@@ -176,7 +176,7 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ onClose, onC
               {/* CARRO CHEFE: NEUROSTUDY */}
               <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-8 shadow-xl text-white relative overflow-hidden transform hover:scale-[1.01] transition-transform">
                 <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-20">
-                  <img src="/logo.png" alt="" className="w-64 h-64" />
+                  <img src="/logo.png" alt="" className="w-32 h-32 md:w-64 md:h-64" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start">
                   <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm">

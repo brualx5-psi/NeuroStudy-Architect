@@ -22,7 +22,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   const [showTooltip, setShowTooltip] = useState(false);
 
   // Posição e Dimensão
-  const [position, setPosition] = useState({ x: window.innerWidth - 320, y: 100 });
+  const [position, setPosition] = useState({ x: Math.max(8, window.innerWidth - 320), y: 100 });
   const [size, setSize] = useState({ w: 288, h: 320 }); // Largura padrão
 
   const [isDragging, setIsDragging] = useState(false);
@@ -43,11 +43,11 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
       const isMobile = window.innerWidth < 768;
       if (isMobile) {
         // Mobile: Centralizado e menor
-        setPosition({ x: (window.innerWidth - 300) / 2, y: 120 });
-        setSize({ w: 300, h: 400 });
+        setPosition({ x: Math.max(8, (window.innerWidth - 300) / 2), y: 120 });
+        setSize({ w: Math.min(300, window.innerWidth - 16), h: 400 });
       } else {
         // Desktop: Padrão
-        setPosition({ x: window.innerWidth - 350, y: 100 });
+        setPosition({ x: Math.max(8, window.innerWidth - 350), y: 100 });
         setSize({ w: 320, h: 320 });
       }
     };

@@ -99,7 +99,7 @@ export const UsageLimitModal: React.FC<UsageLimitModalProps> = ({
   const content = getContentForReason(reason);
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-auto">
+    <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 pointer-events-auto">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
       <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <button
