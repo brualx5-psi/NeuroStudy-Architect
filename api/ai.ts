@@ -12,6 +12,7 @@
  * - evaluate
  * - flashcards
  * - chat
+ * - guide-edit
  * - web-research
  */
 
@@ -28,6 +29,7 @@ import quizHandler from './_handlers/ai/quiz.js';
 import evaluateHandler from './_handlers/ai/evaluate.js';
 import flashcardsHandler from './_handlers/ai/flashcards.js';
 import chatHandler from './_handlers/ai/chat.js';
+import guideEditHandler from './_handlers/ai/guide-edit.js';
 import webResearchHandler from './_handlers/ai/web-research.js';
 
 const ROUTES: Record<string, (req: any, res: any) => any> = {
@@ -40,6 +42,7 @@ const ROUTES: Record<string, (req: any, res: any) => any> = {
   evaluate: evaluateHandler,
   flashcards: flashcardsHandler,
   chat: chatHandler,
+  'guide-edit': guideEditHandler,
   'web-research': webResearchHandler,
 };
 

@@ -25,6 +25,9 @@ jobs:
       - name: Verify public beta hardening
         run: node scripts/verify-public-beta-hardening.mjs
 
+      - name: Verify guide editing (manual + assisted)
+        run: node scripts/verify-guide-manual-and-assisted-edit.mjs
+
       - name: Lint
         run: npm run lint
 

@@ -260,6 +260,47 @@ export const sendChatMessage = async (
   return response.text || '';
 };
 
+export interface GuideEditChange {
+  op: 'set' | 'insert' | 'remove';
+  path: string;
+  label: string;
+  before: string;
+  after: string;
+}
+
+export interface GuideEditProposal {
+  /** Roteiro já com as alterações aplicadas. `null` quando nada mudou. */
+  guide: StudyGuide | null;
+  reply: string;
+  summary: string;
+  changes: GuideEditChange[];
+  rejected: Array<{ path: string; reason: string }>;
+}
+
+/**
+ * Pede ao modelo uma alteração no roteiro. Nada é salvo: a resposta é apenas
+ * uma proposta que o usuário precisa aprovar antes de substituir o roteiro.
+ */
+export const requestGuideEdit = async (
+  guide: StudyGuide,
+  instruction: string,
+  history: ChatMessage[] = []
+): Promise<GuideEditProposal> => {
+  const response = await postJson<GuideEditProposal>('/api/ai?action=guide-edit', {
+    guide,
+    instruction,
+    history: history.slice(-8).map(({ id, role, text }) => ({ id, role, text }))
+  }, { timeoutMs: 75_000 });
+
+  return {
+    guide: response.guide || null,
+    reply: response.reply || '',
+    summary: response.summary || '',
+    changes: Array.isArray(response.changes) ? response.changes : [],
+    rejected: Array.isArray(response.rejected) ? response.rejected : []
+  };
+};
+
 export const refineContent = async (text: string, _task: string): Promise<string> => {
   const response = await postJson<{ text: string }>('/api/ai?action=chat', {
     history: [],

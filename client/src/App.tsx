@@ -1778,7 +1778,13 @@ export function AppContent() {
                         soundEnabled={settings.notifications.soundEnabled}
                     />
                 )}
-                <ChatWidget studyId={activeStudy?.id} studyGuide={activeStudy?.guide || null} sources={activeStudy?.sources || []} onUsageLimit={openUsageLimitModal} />
+                <ChatWidget
+                    studyId={activeStudy?.id}
+                    studyGuide={activeStudy?.guide || null}
+                    sources={activeStudy?.sources || []}
+                    onUsageLimit={openUsageLimitModal}
+                    onApplyGuideEdit={activeStudy ? (updatedGuide) => updateStudyGuide(activeStudy.id, updatedGuide) : undefined}
+                />
                 {showMethodologyModal && (
                     <MethodologyModal
                         onClose={() => setShowMethodologyModal(false)}

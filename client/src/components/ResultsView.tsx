@@ -6,10 +6,11 @@ import {
     CheckCircle, BookOpen, Brain, Target,
     Smile, RefreshCw, Layers, Calendar, Clock,
     ChevronDown, ChevronRight, PenTool, Zap, Lightbulb, Crown, FileDown,
-    Eye, X, Download
+    Eye, X, Download, Edit
 } from './Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { LimitReason } from '../services/usageLimits';
+import { GuideEditor } from './GuideEditor';
 
 interface ResultsViewProps {
     guide: StudyGuide;
@@ -89,6 +90,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     const [isHudCollapsed, setIsHudCollapsed] = useState(false);
     const [expandedSections, setExpandedSections] = useState({ core: true, support: true });
     const [revealedNotes, setRevealedNotes] = useState<Set<string>>(new Set());
+    const [isEditingGuide, setIsEditingGuide] = useState(false); // Edição manual do roteiro pelo próprio usuário
 
     // Função "Insight Cerebral": Apenas expande a visualização. A geração agora é sob demanda (lazy).
     const handleInsightClick = (index: number) => {
@@ -222,6 +224,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
     const { percent, nextTitle } = getProgressStats();
 
+    if (isEditingGuide) {
+        return (
+            <GuideEditor
+                guide={guide}
+                onCancel={() => setIsEditingGuide(false)}
+                onSave={(updatedGuide) => {
+                    onUpdateGuide(updatedGuide);
+                    setIsEditingGuide(false);
+                }}
+            />
+        );
+    }
+
     return (
         <div className={`max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ${isHudCollapsed ? 'pb-32' : 'pb-64'}`}> {/* Ajusta espaço para a barra fixa */}
 
@@ -249,12 +264,22 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </span>
                         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{guide.title}</h1>
                     </div>
-                    {/* Botão Novo - some em Pareto puro, mas aparece em Livro */}
-                    {!isParetoOnly && (
-                        <button onClick={onReset} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-bold transition-colors text-sm">
-                            <RefreshCw className="w-4 h-4" /> Novo
+                    <div className="flex items-center gap-2 shrink-0">
+                        {/* Edição manual: o usuário ajusta o roteiro com as próprias palavras */}
+                        <button
+                            onClick={() => setIsEditingGuide(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg hover:bg-indigo-100 hover:border-indigo-200 font-bold transition-colors text-sm"
+                            title="Editar o roteiro manualmente"
+                        >
+                            <Edit className="w-4 h-4" /> Editar
                         </button>
-                    )}
+                        {/* Botão Novo - some em Pareto puro, mas aparece em Livro */}
+                        {!isParetoOnly && (
+                            <button onClick={onReset} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-bold transition-colors text-sm">
+                                <RefreshCw className="w-4 h-4" /> Novo
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* OBJETIVO DA AULA: VISUALIZAÇÃO CONDICIONAL */}

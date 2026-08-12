@@ -2,6 +2,7 @@
 import { GoogleGenAI, Schema, Type } from '@google/genai';
 import { PLAN_LIMITS, PlanName, TokenTaskType } from './planLimits.js';
 import { getSupabaseAdmin } from './supabase.js';
+import { buildGuideEditContext } from './guideEdit.js';
 
 // Modelos configuráveis via ENV (útil para Vercel)
 // Examples:
@@ -1334,6 +1335,128 @@ export const sendChatMessage = async (
   });
 
   return { text: text || '', usageTokens, rawResponse: response };
+};
+
+const GUIDE_EDIT_SCHEMA: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    reply: {
+      type: Type.STRING,
+      description: 'Resposta curta (1 a 3 frases) explicando ao aluno o que voce propos alterar, em Portugues do Brasil.'
+    },
+    summary: {
+      type: Type.STRING,
+      description: 'Resumo de uma frase da proposta, usado como titulo do cartao de aprovacao.'
+    },
+    operations: {
+      type: Type.ARRAY,
+      description: 'Lista de alteracoes pontuais propostas. Vazia se o pedido nao for uma edicao do roteiro.',
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          op: { type: Type.STRING, enum: ['set', 'insert', 'remove'] },
+          path: {
+            type: Type.STRING,
+            description: 'Caminho exato do inventario. Ex: overview, coreConcepts[2].definition, checkpoints[0].lookFor.'
+          },
+          value: {
+            type: Type.STRING,
+            description: 'Texto novo completo do campo. Obrigatorio quando op = set.'
+          },
+          fields: {
+            type: Type.ARRAY,
+            description: 'Campos do item novo. Obrigatorio quando op = insert.',
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                key: { type: Type.STRING },
+                value: { type: Type.STRING }
+              },
+              required: ['key', 'value']
+            }
+          }
+        },
+        required: ['op', 'path']
+      }
+    }
+  },
+  required: ['reply', 'summary', 'operations']
+};
+
+/**
+ * Propoe alteracoes pontuais no roteiro a partir de um pedido em linguagem
+ * natural. Nada e salvo aqui: o handler aplica as operacoes numa copia e o
+ * aluno aprova (ou descarta) no cliente.
+ */
+export const proposeGuideEdit = async (
+  planName: PlanName,
+  guide: any,
+  instruction: string,
+  history: Array<{ role?: string; text?: string; id?: string }> = []
+) => {
+  const guideInventory = buildGuideEditContext(guide);
+  const maxChars = Number(process.env.GEMINI_CHAT_MSG_MAX_CHARS || 900);
+
+  const conversationHistory = (history || [])
+    .filter((m) => m?.text && m.id !== 'welcome' && m.id !== 'new-topic')
+    .slice(-6)
+    .map((m) => `${m.role === 'model' ? 'Professor' : 'Aluno'}: ${(m.text || '').slice(0, maxChars)}`)
+    .join('\n');
+
+  const systemInstruction = `
+  Voce e o editor do roteiro NeuroStudy. O aluno pede uma mudanca em linguagem natural e voce devolve APENAS operacoes pontuais.
+  Responda SEMPRE em Portugues do Brasil.
+
+  INVENTARIO DO ROTEIRO ATUAL (cada linha e "caminho: conteudo atual"):
+  ${guideInventory}
+
+  REGRAS DE EDICAO:
+  - Use exclusivamente caminhos que aparecem no inventario acima (ou uma nova posicao no fim de uma lista existente).
+  - Mexa apenas no que o aluno pediu. Nao aproveite para "melhorar" o resto do roteiro.
+  - op = "set" reescreve um campo de texto inteiro: "value" deve conter o texto final completo, ja com o pedido aplicado, nao um trecho solto nem um diff.
+  - op = "insert" cria um item novo numa lista (coreConcepts, supportConcepts, checkpoints, bookChapters[i].coreConcepts...). O "path" e a posicao desejada, ex: coreConcepts[3]. Preencha "fields" com todos os campos do item.
+  - Campos obrigatorios ao inserir: conceito precisa de concept e definition; checkpoint precisa de mission, lookFor e noteExactly (e de preferencia title, timestamp, drawExactly, question); capitulo precisa de title e paretoChunk.
+  - op = "remove" apaga um item de lista pelo indice, ex: checkpoints[2].
+  - Ao inserir ou reescrever conteudo, mantenha o tom pedagogico do roteiro e nao invente dados de fonte (minutos, paginas) que nao aparecem no inventario.
+  - Se o pedido nao for uma alteracao do roteiro (ex: duvida de conteudo), devolva "operations" vazio e explique no "reply" que nada foi alterado.
+  - Se o pedido for ambiguo ou apontar para algo que nao existe no inventario, devolva "operations" vazio e peca a informacao que falta no "reply".
+  - Nunca prometa que salvou: o aluno ainda vai aprovar as mudancas.
+  `;
+
+  const prompt = `
+  ${conversationHistory ? `HISTORICO RECENTE DA CONVERSA:\n${conversationHistory}\n` : ''}
+  PEDIDO DE EDICAO DO ALUNO:
+  ${(instruction || '').slice(0, 4_000)}
+
+  Devolva o JSON com reply, summary e operations.
+  `;
+
+  const { text, usageTokens, response } = await callGemini({
+    planName,
+    taskType: 'roadmap',
+    prompt,
+    model: MODEL_FLASH,
+    systemInstruction,
+    responseMimeType: 'application/json',
+    responseSchema: GUIDE_EDIT_SCHEMA,
+    temperature: 0.2,
+    timeoutMs: 60_000
+  });
+
+  let parsed: any = {};
+  try {
+    parsed = JSON.parse((text || '').replace(/```json/gi, '').replace(/```/g, '').trim() || '{}');
+  } catch {
+    throw new Error('INVALID_JSON_FROM_MODEL');
+  }
+
+  return {
+    reply: typeof parsed?.reply === 'string' ? parsed.reply : '',
+    summary: typeof parsed?.summary === 'string' ? parsed.summary : '',
+    operations: Array.isArray(parsed?.operations) ? parsed.operations : [],
+    usageTokens,
+    rawResponse: response
+  };
 };
 
 export const generateTool = async (
