@@ -838,15 +838,49 @@ export function AppContent() {
         if (!newStudy) return; // Limite atingido, modal já exibido
 
         let sourceContent = ''; let mimeType = 'text/plain'; let name = ''; let textContent: string | undefined;
+        let quickSourceType = type;
+        let durationMinutes: number | undefined;
         let pdfPageSelection: PdfPageSelectionMetadata | undefined;
         if (processedFile instanceof File) {
-            sourceContent = await fileToBase64(processedFile); mimeType = processedFile.type; name = processedFile.name;
-            if (type === InputType.PDF) {
-                const originalPageNumbers = pageSelection?.mode !== 'all' ? pageSelection?.parsedPages : undefined;
-                const extracted = await extractTextFromPdfFile(processedFile, originalPageNumbers) || extractTextFromPdfBase64(sourceContent);
-                if (extracted) textContent = extracted;
-                if (originalPdfFile) {
-                    pdfPageSelection = await buildPdfPageSelectionMetadata(originalPdfFile, processedFile, pageSelection);
+            name = processedFile.name;
+            if (type === InputType.VIDEO) {
+                const detectedMinutes = await getMediaDurationMinutes(processedFile);
+                const minutes = detectedMinutes ?? limits.youtube_minutes_per_video;
+                const youtubeCheck = canPerformAction(planName, usage, [], 'youtube', { youtubeMinutes: minutes, isAdmin });
+                if (!youtubeCheck.allowed) {
+                    openUsageLimitModal(youtubeCheck.reason || 'monthly_limit');
+                    return;
+                }
+
+                setProcessingState({ isLoading: true, error: null, step: 'transcribing' });
+                try {
+                    const { fileUri, fileName } = await uploadFileForTranscription(processedFile, processedFile.type, minutes);
+                    const transcript = await transcribeMedia(fileUri, fileName, processedFile.type, minutes);
+                    sourceContent = transcript;
+                    textContent = transcript;
+                    mimeType = 'text/plain';
+                    name = `[Transcrição] ${processedFile.name}`;
+                    quickSourceType = InputType.TEXT;
+                    durationMinutes = minutes;
+                    setProcessingState({ isLoading: false, error: null, step: 'idle' });
+                } catch (err: any) {
+                    if (isUsageLimitError(err)) {
+                        openUsageLimitModal(err.reason as LimitReason);
+                        setProcessingState({ isLoading: false, error: null, step: 'idle' });
+                        return;
+                    }
+                    setProcessingState({ isLoading: false, error: "Erro na transcrição: " + err.message, step: 'idle' });
+                    return;
+                }
+            } else {
+                sourceContent = await fileToBase64(processedFile); mimeType = processedFile.type;
+                if (type === InputType.PDF) {
+                    const originalPageNumbers = pageSelection?.mode !== 'all' ? pageSelection?.parsedPages : undefined;
+                    const extracted = await extractTextFromPdfFile(processedFile, originalPageNumbers) || extractTextFromPdfBase64(sourceContent);
+                    if (extracted) textContent = extracted;
+                    if (originalPdfFile) {
+                        pdfPageSelection = await buildPdfPageSelectionMetadata(originalPdfFile, processedFile, pageSelection);
+                    }
                 }
             }
         } else {
@@ -854,7 +888,7 @@ export function AppContent() {
             if (type === InputType.DOI) name = 'DOI Link'; else if (type === InputType.URL) name = 'Website Link'; else name = 'Texto Colado';
         }
 
-        const newSource: StudySource = { id: Date.now().toString(), type, name, content: sourceContent, textContent, mimeType, dateAdded: Date.now(), isPrimary: true, pdfPageSelection };
+        const newSource: StudySource = { id: Date.now().toString(), type: quickSourceType, name, content: sourceContent, textContent, durationMinutes, mimeType, dateAdded: Date.now(), isPrimary: true, pdfPageSelection };
         const nextStudies = studiesRef.current.map(s => {
             if (s.id === newStudy.id) return { ...s, sources: [newSource], updatedAt: Date.now() };
             return s;
