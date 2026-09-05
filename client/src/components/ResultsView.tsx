@@ -247,7 +247,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         <span className={`inline - block px - 3 py - 1 rounded - full text - xs font - bold uppercase tracking - wider mb - 2 ${isBook ? 'bg-orange-100 text-orange-700' : isParetoOnly ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'} `}>
                             {isBook ? 'Resumo de Livro (NeuroStudy)' : isParetoOnly ? 'Modo Pareto 80/20' : 'Roteiro de Estudo'}
                         </span>
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{guide.title}</h1>
+                        <h1 className="font-serif text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">{guide.title}</h1>
                     </div>
                     {/* Botão Novo - some em Pareto puro, mas aparece em Livro */}
                     {!isParetoOnly && (
@@ -657,7 +657,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                                         left: `${10 + (i * 7)}% `,
                                         top: '-10px',
                                         animationDelay: `${i * 0.1} s`,
-                                        background: ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'][i % 6],
+                                        background: ['#16a34a', '#0d9488', '#d97706', '#db2777', '#0f766e', '#0891b2'][i % 6],
                                         borderRadius: i % 2 === 0 ? '50%' : '2px',
                                         transform: `rotate(${i * 30}deg)`
                                     }}

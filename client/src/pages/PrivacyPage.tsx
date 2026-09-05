@@ -31,7 +31,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onBack }) => {
                             <Shield className="w-8 h-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900">Política de Privacidade</h1>
+                            <h1 className="font-serif text-3xl font-black text-slate-900">Política de Privacidade</h1>
                             <p className="text-slate-500">Última atualização: Janeiro de 2026</p>
                         </div>
                     </div>
