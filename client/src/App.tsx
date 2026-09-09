@@ -377,7 +377,7 @@ export function AppContent() {
     // Se estiver carregando a sessão/perfil, mostra um loading bonito
     if (loading || (Boolean(user) && isOnboardingLoading)) {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+            <div className="min-h-screen bg-paper flex flex-col items-center justify-center gap-4">
                 <div className="bg-white p-4 rounded-2xl shadow-xl shadow-indigo-100/50">
                     <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
                 </div>
@@ -1291,7 +1291,7 @@ export function AppContent() {
 
     if (effectiveView === 'landing') {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
+            <div className="min-h-screen bg-paper flex flex-col font-sans text-ink">
                 <header className="px-8 py-6 flex justify-between items-center bg-white border-b border-gray-200">
                     <div className="flex items-center gap-2">
                         <NeuroLogo size={40} className="text-indigo-600" />
@@ -1380,7 +1380,7 @@ export function AppContent() {
     }
 
     return (
-        <div className="flex h-screen bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 overflow-hidden animate-in fade-in duration-500">
+        <div className="flex h-screen bg-paper dark:bg-stone-900 font-sans text-ink dark:text-stone-100 overflow-hidden animate-in fade-in duration-500">
             <Sidebar
                 folders={folders} studies={studies} activeStudyId={activeStudyId}
                 onSelectStudy={setActiveStudyId} onCreateFolder={createFolder}

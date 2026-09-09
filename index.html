@@ -12,19 +12,49 @@
   <!-- Tailwind CDN com configuração inline -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    // Paleta NeuroStudy — identidade "artigo científico".
+    // O app roda no Tailwind Play CDN com este config inline (não há tailwind.config.js),
+    // então redefinir as famílias abaixo reescreve todos os usos já existentes nos
+    // componentes — indigo/purple/violet/blue/emerald — sem tocar em nenhum deles.
+    // As escalas abaixo estao deslocadas um passo para o escuro em relacao ao Tailwind
+    // padrao. Motivo: o tom -600 e de longe o mais usado no app (botoes e links), e
+    // teal-600 puro da apenas 3.7:1 com texto branco — reprova no WCAG AA. Deslocando,
+    // -600 cai em #0f766e e sobe para 5.5:1.
+    const teal = {
+      50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#14b8a6',
+      500: '#0d9488', 600: '#0f766e', 700: '#115e59', 800: '#134e4a', 900: '#042f2e', 950: '#022c22'
+    };
+    // Parceiro tonal dos gradientes (era purple/violet): mais um passo abaixo do teal,
+    // para que "from-indigo-600 to-purple-700" continue lendo como gradiente.
+    const tealDeep = {
+      50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#0d9488',
+      500: '#0f766e', 600: '#115e59', 700: '#134e4a', 800: '#042f2e', 900: '#022c22', 950: '#012620'
+    };
+    // Irmao frio nos gradientes (era blue) e cor categorica em Quiz/MindMap.
+    const cyan = {
+      50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9', 400: '#06b6d4',
+      500: '#0891b2', 600: '#0e7490', 700: '#155e75', 800: '#164e63', 900: '#083344', 950: '#052b38'
+    };
+    // Sucesso (era emerald): mais amarelado que a primaria e escurecido pelo mesmo
+    // motivo de contraste — branco sobre green-600 puro dava 3.3:1.
+    const green = {
+      50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#22c55e',
+      500: '#16a34a', 600: '#15803d', 700: '#166534', 800: '#14532d', 900: '#052e16', 950: '#031c0d'
+    };
+
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            primary: {
-              50: '#f0f9ff',
-              100: '#e0f2fe',
-              500: '#0ea5e9',
-              600: '#0284c7',
-              700: '#0369a1'
-            },
-            paper: '#fdfbf7'
+            primary: teal,
+            indigo: teal,
+            purple: tealDeep,
+            violet: tealDeep,
+            blue: cyan,
+            emerald: green,
+            paper: '#fdfbf7',
+            ink: { DEFAULT: '#1c1917', soft: '#57534e', faint: '#a8a29e' }
           },
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
@@ -40,17 +70,17 @@
 
     /* CSS Variables para tema - fallback independente do Tailwind */
     :root {
-      --bg-primary: #f3f4f6;
+      --bg-primary: #fdfbf7;   /* papel quente */
       --bg-secondary: #ffffff;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
+      --text-primary: #1c1917; /* tinta, não preto puro */
+      --text-secondary: #57534e;
     }
 
     html.dark {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
+      --bg-primary: #1c1917;   /* escuro quente — evita o slate/preto genérico */
+      --bg-secondary: #292524;
+      --text-primary: #fafaf9;
+      --text-secondary: #a8a29e;
     }
 
     body {
