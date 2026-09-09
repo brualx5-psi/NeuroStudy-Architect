@@ -1,0 +1,209 @@
+/* NeuroStudy — Post 02: Repeticao Espacada. Tema papel (identidade principal).
+   Mesma paleta do app: papel #fdfbf7, tinta #1c1917, primaria teal #0f766e.
+   Os tons -600 e abaixo foram escolhidos para passar WCAG AA no texto. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Merriweather:wght@700;900&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1080px; height: 1920px; overflow: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: #1c1917;
+  background: #fdfbf7;
+  -webkit-font-smoothing: antialiased;
+}
+
+.slide {
+  position: relative;
+  width: 1080px; height: 1920px;
+  overflow: hidden;
+  background:
+    radial-gradient(95% 60% at 8% 0%, rgba(204, 251, 241, 0.55) 0%, transparent 55%),
+    radial-gradient(85% 55% at 100% 100%, rgba(254, 243, 199, 0.5) 0%, transparent 60%),
+    #fdfbf7;
+  padding: 110px 90px;
+  display: flex; flex-direction: column;
+}
+
+/* fibra de papel */
+.slide::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(28, 25, 23, 0.045) 1px, transparent 1px);
+  background-size: 5px 5px;
+}
+
+.header { position: relative; z-index: 3; display: flex; align-items: center; gap: 20px; }
+.header img {
+  width: 74px; height: 74px; border-radius: 20px;
+  background: #fff; padding: 8px; border: 1px solid #e7e5e4;
+}
+.header .brand {
+  font-family: 'Merriweather', serif;
+  font-weight: 900; font-size: 34px; letter-spacing: -0.02em; color: #1c1917;
+}
+.header .brand span { color: #0f766e; }
+
+.badge {
+  position: relative; z-index: 3;
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 13px 24px;
+  background: #ccfbf1; border: 1px solid #5eead4;
+  border-radius: 999px;
+  font-size: 21px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: #115e59; width: fit-content;
+}
+.badge .dot { width: 10px; height: 10px; border-radius: 50%; background: #0f766e; }
+
+.eyebrow {
+  position: relative; z-index: 3;
+  font-size: 25px; font-weight: 700; color: #0f766e;
+  letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 26px;
+}
+
+h1.display {
+  position: relative; z-index: 3;
+  font-family: 'Merriweather', serif;
+  font-weight: 900; font-size: 106px; line-height: 1.06;
+  letter-spacing: -0.035em; color: #1c1917;
+}
+h1.display .accent { color: #0f766e; }
+
+h2.title {
+  position: relative; z-index: 3;
+  font-family: 'Merriweather', serif;
+  font-weight: 900; font-size: 82px; line-height: 1.08;
+  letter-spacing: -0.03em; color: #1c1917;
+}
+h2.title .accent { color: #0f766e; }
+
+.lede {
+  position: relative; z-index: 3;
+  font-size: 34px; font-weight: 400; line-height: 1.48; color: #44403c;
+}
+.lede strong { color: #1c1917; font-weight: 700; }
+.mark { background: #fef3c7; padding: 0 8px; border-radius: 5px; }
+
+.card {
+  position: relative; z-index: 3;
+  background: #fff; border: 1px solid #e7e5e4;
+  border-radius: 26px; padding: 34px;
+  box-shadow: 0 2px 10px rgba(28, 25, 23, 0.04);
+}
+.card .icon {
+  width: 62px; height: 62px; border-radius: 17px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; margin-bottom: 18px; color: #fff;
+}
+.card h3 { font-size: 30px; font-weight: 800; margin-bottom: 9px; color: #1c1917; }
+.card p  { font-size: 22px; font-weight: 400; line-height: 1.42; color: #57534e; }
+
+.grid-3 { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid-2 { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+
+.chart {
+  position: relative; z-index: 3;
+  background: #fff; border: 1px solid #e7e5e4;
+  border-radius: 28px; padding: 34px;
+  box-shadow: 0 2px 12px rgba(28, 25, 23, 0.05);
+}
+
+/* linha do tempo das revisoes */
+.timeline { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.ti {
+  background: #fff; border: 1px solid #e7e5e4;
+  border-radius: 20px; padding: 22px 12px; text-align: center;
+}
+.ti .day { font-size: 31px; font-weight: 900; color: #0f766e; letter-spacing: -0.02em; }
+.ti .lbl { font-size: 17px; font-weight: 600; color: #78716c; margin-top: 5px; }
+.ti.now { background: #0f766e; border-color: #0f766e; }
+.ti.now .day, .ti.now .lbl { color: #fff; }
+
+/* razoes numeradas */
+.reason {
+  display: flex; gap: 22px; align-items: flex-start;
+  background: #fff; border: 1px solid #e7e5e4;
+  border-radius: 24px; padding: 28px 30px;
+  box-shadow: 0 2px 10px rgba(28, 25, 23, 0.04);
+}
+.reason .num {
+  flex-shrink: 0; width: 66px; height: 66px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Merriweather', serif; font-size: 34px; font-weight: 900;
+  background: #ccfbf1; color: #115e59; border: 1px solid #5eead4;
+}
+.reason h4 { font-size: 29px; font-weight: 800; color: #1c1917; margin-bottom: 6px; }
+.reason p  { font-size: 22px; font-weight: 400; line-height: 1.42; color: #57534e; }
+
+.pull {
+  position: relative; z-index: 3;
+  background: #ccfbf1; border: 1px solid #5eead4;
+  border-radius: 28px; padding: 36px 42px;
+}
+.pull .big {
+  font-family: 'Merriweather', serif;
+  font-size: 62px; font-weight: 900; color: #115e59;
+  line-height: 1.05; letter-spacing: -0.03em; margin-bottom: 10px;
+}
+.pull .sub { font-size: 25px; font-weight: 500; color: #134e4a; line-height: 1.4; }
+
+/* tons escurecidos: passam AA com texto branco */
+.i-teal  { background: #0f766e; }
+.i-cyan  { background: #0e7490; }
+.i-green { background: #15803d; }
+.i-amber { background: #b45309; }
+.i-rose  { background: #be185d; }
+.i-stone { background: #57534e; }
+
+.cta-card {
+  position: relative; z-index: 3;
+  text-align: center; padding: 76px 58px; border-radius: 40px;
+  background: linear-gradient(150deg, #0f766e 0%, #115e59 60%, #0e7490 100%);
+  color: #fff;
+}
+.cta-card img {
+  width: 160px; height: 160px; border-radius: 38px; margin-bottom: 32px;
+  background: #fdfbf7; padding: 15px;
+}
+.cta-card .cta-title {
+  font-family: 'Merriweather', serif;
+  font-weight: 900; font-size: 78px; line-height: 1.08;
+  letter-spacing: -0.03em; margin-bottom: 20px;
+}
+.cta-card .cta-sub {
+  font-size: 30px; font-weight: 400; line-height: 1.45;
+  color: rgba(255,255,255,0.93); margin: 0 auto 42px; max-width: 720px;
+}
+.cta-button {
+  display: inline-flex; align-items: center; gap: 16px;
+  padding: 25px 50px; border-radius: 999px;
+  background: #fdfbf7; color: #115e59; font-size: 29px; font-weight: 800;
+}
+.cta-handles {
+  margin-top: 38px; display: flex; justify-content: center; gap: 34px;
+  font-size: 24px; font-weight: 700; color: rgba(255,255,255,0.92);
+}
+
+.footer {
+  position: relative; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: auto; padding-top: 36px;
+  font-size: 21px; font-weight: 600; color: #78716c; letter-spacing: 0.04em;
+}
+.footer .brand-mini { display: flex; align-items: center; gap: 13px; }
+.footer .brand-mini img {
+  width: 40px; height: 40px; border-radius: 11px;
+  background: #fff; padding: 4px; border: 1px solid #e7e5e4;
+}
+.footer .dots { display: flex; gap: 9px; align-items: center; }
+.footer .dots .d { width: 9px; height: 9px; border-radius: 50%; background: #d6d3d1; }
+.footer .dots .d.on { background: #0f766e; width: 26px; border-radius: 5px; }
+.footer .swipe { color: #0f766e; }
+
+/* .body e o footer usam margin-top:auto: as duas margens dividem a folga
+   vertical e centralizam o conteudo entre cabecalho e rodape. */
+.body { position: relative; z-index: 3; margin-top: auto; }
+.stack > * + * { margin-top: 20px; }
+.cover { position: relative; z-index: 3; display: flex; flex-direction: column; justify-content: center; flex-grow: 1; gap: 38px; }
+.center-wrap { position: relative; z-index: 3; display: flex; flex-direction: column; justify-content: center; flex-grow: 1; }

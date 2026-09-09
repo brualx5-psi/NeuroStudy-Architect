@@ -2,15 +2,16 @@
 import { Node, Edge, Position } from 'reactflow';
 import dagre from 'dagre';
 
-// Cores vibrantes "banana do gemini" style
+// Paleta categorica dos nos. Liderada pelo teal da marca; tons escolhidos para
+// permanecerem distinguiveis entre si sobre o fundo papel (#fdfbf7).
 const COLORS = [
-    { bg: '#3b82f6', border: '#2563eb', text: '#ffffff' }, // Azul (Central)
-    { bg: '#10b981', border: '#059669', text: '#ffffff' }, // Verde
-    { bg: '#f59e0b', border: '#d97706', text: '#ffffff' }, // Laranja
-    { bg: '#8b5cf6', border: '#7c3aed', text: '#ffffff' }, // Roxo
-    { bg: '#ef4444', border: '#dc2626', text: '#ffffff' }, // Vermelho
-    { bg: '#ec4899', border: '#db2777', text: '#ffffff' }, // Rosa
-    { bg: '#06b6d4', border: '#0891b2', text: '#ffffff' }, // Ciano
+    { bg: '#0f766e', border: '#115e59', text: '#ffffff' }, // Teal (Central)
+    { bg: '#15803d', border: '#166534', text: '#ffffff' }, // Verde
+    { bg: '#b45309', border: '#92400e', text: '#ffffff' }, // Ambar
+    { bg: '#57534e', border: '#44403c', text: '#ffffff' }, // Pedra
+    { bg: '#b91c1c', border: '#991b1b', text: '#ffffff' }, // Vermelho
+    { bg: '#be185d', border: '#9d174d', text: '#ffffff' }, // Rosa
+    { bg: '#0e7490', border: '#155e75', text: '#ffffff' }, // Ciano
 ];
 
 const NODE_WIDTH = 180;

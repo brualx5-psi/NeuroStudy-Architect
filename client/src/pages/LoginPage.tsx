@@ -136,7 +136,7 @@ const HeroCarousel: React.FC = () => {
                                 : 'opacity-0 scale-95 pointer-events-none'
                                 }`}
                         >
-                            <div className={`h-full bg-white/70 backdrop-blur-2xl rounded-3xl border border-white/50 shadow-2xl ${feature.bg} p-8 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
+                            <div className={`h-full bg-white rounded-3xl border border-stone-200 shadow-sm ${feature.bg} p-8 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
                                 {/* Glow effect */}
                                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5 blur-xl`}></div>
 
@@ -170,15 +170,15 @@ const HeroCarousel: React.FC = () => {
 
             {/* Badges Verificáveis */}
             <div className="flex items-center justify-center gap-4 pt-2 flex-wrap">
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-sm">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-stone-200 shadow-sm">
                     <span className="text-lg">🆓</span>
                     <span className="text-xs font-bold text-slate-700">Gratuito para começar</span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-sm">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-stone-200 shadow-sm">
                     <span className="text-lg">🧠</span>
                     <span className="text-xs font-bold text-slate-700">Baseado em Neurociência</span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-slate-200/50 shadow-sm">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-stone-200 shadow-sm">
                     <span className="text-lg">🤖</span>
                     <span className="text-xs font-bold text-slate-700">Powered by Google AI</span>
                 </div>
@@ -256,13 +256,13 @@ export const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="h-screen bg-white relative overflow-hidden selection:bg-indigo-100">
+        <div className="h-screen bg-paper relative overflow-hidden selection:bg-indigo-100">
             {/* Neon Gradient Background */}
             <div className="fixed inset-0 pointer-events-none">
                 {/* Gradientes sutis */}
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-50/30 via-blue-50/20 to-slate-50/40"></div>
-                <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-gradient-radial from-indigo-200/15 via-indigo-100/10 to-transparent blur-3xl"></div>
-                <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-gradient-radial from-blue-200/15 via-blue-100/10 to-transparent blur-3xl"></div>
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-amber-50/40 via-transparent to-stone-100/50"></div>
+                <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-gradient-radial from-indigo-200/20 via-indigo-100/10 to-transparent blur-3xl"></div>
+                <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-gradient-radial from-amber-200/20 via-amber-100/10 to-transparent blur-3xl"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] bg-gradient-radial from-indigo-100/10 to-transparent blur-2xl"></div>
             </div>
 
@@ -284,7 +284,7 @@ export const LoginPage: React.FC = () => {
 
                     {/* Login Card */}
                     <div className="relative order-1 md:order-2">
-                        <div className="bg-white/70 backdrop-blur-2xl border border-white shadow-2xl rounded-3xl overflow-hidden relative">
+                        <div className="bg-white border border-stone-200 shadow-md rounded-3xl overflow-hidden relative">
                             {/* Subtle border glow */}
                             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-blue-500/5 to-indigo-500/5 rounded-3xl blur-xl"></div>
 
@@ -292,7 +292,7 @@ export const LoginPage: React.FC = () => {
                                 {/* Header */}
                                 <div className="text-center mb-5">
                                     <img src="/logo.png" alt="NeuroStudy Logo" className="w-20 h-20 mx-auto mb-3 drop-shadow-lg" />
-                                    <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent mb-2">
+                                    <h1 className="font-serif text-3xl font-black bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent mb-2">
                                         NeuroStudy
                                     </h1>
                                     <p className="text-slate-600 font-semibold text-base">
@@ -336,7 +336,7 @@ export const LoginPage: React.FC = () => {
                                         <button
                                             type="submit"
                                             disabled={loading || !email}
-                                            className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200/50 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-300/50 active:scale-[0.98] disabled:opacity-50 disabled:translate-y-0 relative group overflow-hidden"
+                                            className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold rounded-xl shadow-lg shadow-indigo-200/50 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-300/50 active:scale-[0.98] disabled:opacity-50 disabled:translate-y-0 relative group overflow-hidden"
                                         >
                                             {/* Shimmer effect */}
                                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>

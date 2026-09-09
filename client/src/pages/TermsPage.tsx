@@ -61,7 +61,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
                             <Scale className="w-8 h-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900">Termos de Uso</h1>
+                            <h1 className="font-serif text-3xl font-black text-slate-900">Termos de Uso</h1>
                             <p className="text-slate-500">Última atualização: Janeiro de 2026</p>
                         </div>
                     </div>

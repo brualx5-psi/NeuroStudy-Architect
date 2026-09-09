@@ -66,7 +66,7 @@ const DEFAULT_SETTINGS: SettingsState = {
     autoStartBreak: false,
     showWidget: true
   },
-  theme: 'system',
+  theme: 'light',
   notifications: {
     reviewReminders: false,
     pomodoroAlerts: false,

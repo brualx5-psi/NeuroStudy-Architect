@@ -235,7 +235,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
         <div className={`text-6xl font-mono font-bold tracking-tighter tabular-nums mb-6 transition-colors drop-shadow-sm ${isRunning ? 'text-indigo-600/90' : 'text-slate-700/80'}`}>{formatTime(timeLeft)}</div>
         <div className="flex justify-center gap-6">
           <button onClick={toggleTimer} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 active:scale-90 border backdrop-blur-sm group ${isRunning ? 'bg-amber-100/80 border-amber-200 text-amber-600 hover:bg-amber-200' : 'bg-indigo-600/90 border-indigo-500/50 text-white hover:bg-indigo-700 hover:shadow-indigo-300/50'}`}>{isRunning ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-7 h-7 fill-current ml-1 group-hover:scale-110 transition-transform" />}</button>
-          <button onClick={resetTimer} className="w-16 h-16 rounded-full flex items-center justify-center bg-white/40 border border-white/60 text-slate-600 hover:bg-white/60 hover:text-indigo-600 shadow-md transition-all active:scale-90 backdrop-blur-sm" title="Reiniciar"><RefreshCw className="w-6 h-6" /></button>
+          <button onClick={resetTimer} className="w-16 h-16 rounded-full flex items-center justify-center bg-white/40 border border-white/60 text-slate-600 hover:bg-white hover:text-indigo-600 shadow-md transition-all active:scale-90 border border-stone-200" title="Reiniciar"><RefreshCw className="w-6 h-6" /></button>
         </div>
       </div>
 

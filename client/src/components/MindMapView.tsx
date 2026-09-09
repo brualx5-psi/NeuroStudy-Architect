@@ -166,7 +166,7 @@ const MindMapContent: React.FC<MindMapViewProps> = ({ guide, onUpdateGuide, onUs
                 <Controls showInteractive={false} className="bg-white border border-gray-200 shadow-md rounded-lg p-1" />
               </ReactFlow>
 
-              <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-xs text-gray-500 border border-gray-200 shadow-sm pointer-events-none">
+              <div className="absolute bottom-6 right-6 bg-white px-4 py-2 rounded-lg text-xs text-stone-500 border border-stone-200 shadow-sm pointer-events-none">
                 Dica: Arraste para navegar • Scroll para zoom
               </div>
             </div>
