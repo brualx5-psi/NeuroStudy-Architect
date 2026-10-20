@@ -31,5 +31,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Verify study persistence and database protection
+        run: npm run test:persistence
+
       - name: Build
         run: npm run build

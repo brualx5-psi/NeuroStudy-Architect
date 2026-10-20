@@ -310,7 +310,7 @@ async function handleCapture(req: any, res: any) {
 
     const { data: userData, error: fetchError } = await supabase
         .from('user_data')
-        .select('content')
+        .select('content, study_revision')
         .eq('user_id', auth.userId)
         .single();
 
@@ -348,10 +348,17 @@ async function handleCapture(req: any, res: any) {
     studies[studyIndex].sources.push(newSource);
     studies[studyIndex].updatedAt = Date.now();
 
-    await supabase
-        .from('user_data')
-        .update({ content: { ...data, studies } })
-        .eq('user_id', auth.userId);
+    const { error: saveError } = await supabase.rpc('save_study_snapshot', {
+        p_user_id: auth.userId,
+        p_expected_revision: userData.study_revision,
+        p_studies: studies,
+        p_folders: data.folders || [],
+    });
+    if (saveError) {
+        return sendJson(res, saveError.code === '40001' ? 409 : 503, {
+            error: saveError.code === '40001' ? 'study_changed_retry_capture' : 'study_save_failed',
+        });
+    }
 
     return sendJson(res, 200, { success: true, sourceId: newSource.id });
 }
