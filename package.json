@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:persistence": "node --test scripts/study-persistence.test.mjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -36,6 +37,7 @@
     "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
     "@eslint/js": "^10.0.1",
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.66",

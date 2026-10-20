@@ -1,7 +1,9 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { InputType, ProcessingState, StudyGuide, StudySession, Folder, StudySource, StudyMode, SlideContent, PdfPageSelectionMetadata } from './types';
 import { generateStudyGuide, generateSlides, generateQuiz, generateFlashcards, uploadFileForTranscription, transcribeMedia, isUsageLimitError } from './services/geminiService';
-import { loadUserData, saveUserData, isCloudMode } from './services/storage';
+import { createStudySession, downloadStudyBackup, isCloudMode } from './services/storage';
+import { importAsCopies, type StudyPersistence, type StudySnapshot } from './services/studyPersistence';
+import { StudyBackups } from './components/StudyBackups';
 import { hasCompletedOnboarding, loadProfile } from './services/userProfileService';
 import { ResultsView } from './components/ResultsView';
 import { SlidesView } from './components/SlidesView';
@@ -63,7 +65,7 @@ const getLocalDateKey = (timestamp: number) => {
 
 const getReviewDisplayTitle = (study: StudySession) => study.guide?.title || study.title || 'Estudo sem título';
 
-export function AppContent() {
+export function AppContent({ onReload }: { onReload: () => void }) {
     const { user, loading, signOut, isPaid, planName, limits, canCreateStudy, usage, isAdmin: isAdminFromProfile } = useAuth();
     const { settings, updateSettings } = useSettings();
     const isAdmin = Boolean(isAdminFromProfile || (user?.id && ADMIN_USER_IDS.includes(user.id)));
@@ -151,7 +153,10 @@ export function AppContent() {
     const [showSourcePageModal, setShowSourcePageModal] = useState(false);
 
     // Refs precisam ser declarados antes de qualquer return condicional
-    const lastLoadedUserIdRef = useRef<string | null>(null);
+    const sessionRef = useRef<StudyPersistence | null>(null);
+    const [dataLoading, setDataLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const saveSequenceRef = useRef(0);
     const hasLoadedRef = useRef<boolean>(false); // Flag para prevenir save antes do load
     const studiesRef = useRef<StudySession[]>([]);
     const foldersRef = useRef<Folder[]>([]);
@@ -160,16 +165,15 @@ export function AppContent() {
     const notifiedReviewKeysRef = useRef<Record<string, string>>({});
 
     const persistSnapshot = async (nextStudies = studiesRef.current, nextFolders = foldersRef.current, reason: 'auto' | 'critical' = 'auto') => {
-        if (!hasLoadedRef.current) return;
+        const session = sessionRef.current;
+        if (!hasLoadedRef.current || !session || session.userId !== user?.id) return;
+        const sequence = ++saveSequenceRef.current;
+        setSaveStatus({ state: 'saving', message: 'Salvando estudo...', updatedAt: Date.now() });
+        const result = await session.save({ studies: nextStudies, folders: nextFolders });
+        if (sessionRef.current !== session || sequence !== saveSequenceRef.current) return;
 
-        if (reason === 'critical') {
-            setSaveStatus({ state: 'saving', message: 'Salvando estudo...', updatedAt: Date.now() });
-        }
-
-        const result = await saveUserData(nextStudies, nextFolders, user?.id);
-
-        if (result.cloudSaved || result.cloudSkipped) {
-            setSaveStatus({ state: 'saved', message: result.cloudSkipped ? 'Salvo neste aparelho' : 'Salvo na nuvem', updatedAt: Date.now() });
+        if (result.cloudSaved) {
+            setSaveStatus({ state: 'saved', message: 'Salvo na nuvem', updatedAt: Date.now() });
             return;
         }
 
@@ -233,52 +237,33 @@ export function AppContent() {
     }, [loading, user?.id]);
 
     useEffect(() => {
-        let cancelled = false;
-
-        if (loading || !user?.id) {
-            lastLoadedUserIdRef.current = null;
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        const load = async () => {
-            console.log('[App] Iniciando loadUserData...');
-            const data = await loadUserData(user.id);
-            console.log('[App] Dados carregados:', { studies: data?.studies?.length || 0, folders: data?.folders?.length || 0 });
-            if (cancelled) return;
-            if (data) {
-                if (data.studies) {
-                    studiesRef.current = data.studies || [];
-                    setStudies(data.studies || []);
-                    // Se há estudos carregados, vai para a view do app
-                    if (data.studies.length > 0) {
-                        console.log('[App] Estudos encontrados, mudando view para app');
-                        setView('app');
-                    }
-                }
-                if (data.folders) {
-                    foldersRef.current = data.folders || [];
-                    setFolders(data.folders || []);
-                }
-            }
-            hasLoadedRef.current = true; // Marca que o load foi concluído
-            console.log('[App] hasLoadedRef.current = true');
-        };
-
-        if (lastLoadedUserIdRef.current === user.id) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        lastLoadedUserIdRef.current = user.id;
-        load();
-
+        hasLoadedRef.current = false;
+        if (!user?.id) { setDataLoading(false); return; }
+        const session = createStudySession(user.id);
+        sessionRef.current = session;
+        setDataLoading(true);
+        setLoadError('');
+        void session.load().then(data => {
+            if (sessionRef.current !== session) return;
+            studiesRef.current = data.studies;
+            foldersRef.current = data.folders;
+            setStudies(data.studies);
+            setFolders(data.folders);
+            hasLoadedRef.current = true;
+            setDataLoading(false);
+            setSaveStatus({ state: 'idle' });
+            if (data.studies.length) setView('app');
+        }).catch(error => {
+            if (sessionRef.current !== session) return;
+            setLoadError(error instanceof Error ? error.message : 'Não foi possível carregar os estudos.');
+            setDataLoading(false);
+        });
         return () => {
-            cancelled = true;
+            hasLoadedRef.current = false;
+            sessionRef.current = null;
+            session.dispose();
         };
-    }, [user?.id, loading]);
+    }, [user?.id]);
 
     useEffect(() => {
         studiesRef.current = studies;
@@ -288,22 +273,19 @@ export function AppContent() {
         foldersRef.current = folders;
     }, [folders]);
 
-    useEffect(() => {
-        // Só salva se o load inicial já completou (previne sobrescrever dados)
-        if (!hasLoadedRef.current) {
-            console.log('[App] Ignorando save - load ainda não completou');
-            return;
-        }
-        const timer = setTimeout(() => {
-            console.log('[App] Executando saveUserData:', { studies: studies.length, folders: folders.length });
-            void persistSnapshot(studies, folders, 'auto');
-        }, 800);
+    useLayoutEffect(() => {
+        const session = sessionRef.current;
+        if (!hasLoadedRef.current || !session || session.userId !== user?.id) return;
+        ++saveSequenceRef.current; // A response for an older edit cannot show "saved".
+        const localSaved = session.backup({ studies, folders });
+        setSaveStatus({ state: 'saving', message: localSaved ? 'Sincronizando estudos...' : 'Sem espaço para cópia local; salvando na nuvem...' });
+        const timer = setTimeout(() => { void persistSnapshot(studies, folders, 'auto'); }, 800);
         return () => clearTimeout(timer);
     }, [studies, folders, user?.id]);
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            if (saveStatus.state !== 'saving') return;
+            if (saveStatus.state !== 'saving' && saveStatus.state !== 'error') return;
             event.preventDefault();
             event.returnValue = '';
         };
@@ -375,7 +357,7 @@ export function AppContent() {
     }, [activeStudyId]);
 
     // Se estiver carregando a sessão/perfil, mostra um loading bonito
-    if (loading || (Boolean(user) && isOnboardingLoading)) {
+    if (loading || (Boolean(user) && (isOnboardingLoading || dataLoading))) {
         return (
             <div className="min-h-screen bg-paper flex flex-col items-center justify-center gap-4">
                 <div className="bg-white p-4 rounded-2xl shadow-xl shadow-indigo-100/50">
@@ -390,6 +372,36 @@ export function AppContent() {
     if (!user) {
         return <LoginPage />;
     }
+
+    if (loadError) {
+        return <div className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 gap-4 text-center">
+            <h1 className="text-xl font-bold">Seus estudos ainda não foram carregados</h1>
+            <p role="alert">{loadError}</p>
+            <p>O salvamento está pausado para proteger seus dados.</p>
+            <button className="bg-teal-700 text-white rounded-lg px-4 py-2" onClick={onReload}>Tentar novamente</button>
+            <StudyBackups userId={user.id} />
+        </div>;
+    }
+
+    const restoreCopies = (recovered: StudySnapshot) => {
+        const merged = importAsCopies({ studies: studiesRef.current, folders: foldersRef.current }, recovered);
+        studiesRef.current = merged.studies;
+        foldersRef.current = merged.folders;
+        setStudies(merged.studies);
+        setFolders(merged.folders);
+        setView('app');
+        void persistSnapshot(merged.studies, merged.folders, 'critical');
+    };
+    const backupControls = <StudyBackups userId={user.id} snapshot={{ studies, folders }} onRestore={saveStatus.state === 'error' ? undefined : restoreCopies} />;
+    const saveErrorBanner = saveStatus.state === 'error' && <div role="alert" className="bg-amber-50 text-amber-900 border-b border-amber-200 p-4">
+        <p>{saveStatus.message}</p>
+        <div className="flex flex-wrap gap-4 mt-2">
+            <button className="underline font-bold" onClick={() => downloadStudyBackup({ studies: studiesRef.current, folders: foldersRef.current }, user.id)}>Baixar cópia atual</button>
+            <button className="underline" onClick={() => {
+                if (window.confirm('Guarde uma cópia antes de continuar. Reabrir carrega a versão da nuvem; suas cópias locais permanecem em Backups. Continuar?')) onReload();
+            }}>Reabrir estudos da nuvem</button>
+        </div>
+    </div>;
 
     const activeStudy = studies.find(s => s.id === activeStudyId) || null;
     const isParetoStudy = activeStudy?.mode === StudyMode.PARETO;
@@ -1299,7 +1311,9 @@ export function AppContent() {
                         {isCloudMode() && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-600 border border-green-100 uppercase tracking-wider">Cloud Sync</span>}
                     </div>
                     <button onClick={() => setView('app')} className="text-gray-500 hover:text-indigo-600 font-medium text-sm transition-colors">Entrar no Painel →</button>
+                    {backupControls}
                 </header>
+                {saveErrorBanner}
 
                 <main className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
                     <div className="max-w-5xl mx-auto space-y-12">
@@ -1417,7 +1431,8 @@ export function AppContent() {
                             </div>
                         ) : (<h1 className="text-xl font-bold text-gray-400">Criar Novo Estudo</h1>)}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {backupControls}
                         {saveStatus.state !== 'idle' && (
                             <div
                                 className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full border text-[11px] font-bold max-w-[180px] ${saveStatus.state === 'error'
@@ -1475,6 +1490,7 @@ export function AppContent() {
                         )}
                     </div>
                 </header>
+                {saveErrorBanner}
 
                 <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 md:p-8 scroll-smooth">
 
@@ -1921,11 +1937,17 @@ export function AppContent() {
     );
 }
 
+function AccountApp() {
+    const { user } = useAuth();
+    const [generation, setGeneration] = useState(0);
+    return <AppContent key={`${user?.id || 'signed-out'}:${generation}`} onReload={() => setGeneration(value => value + 1)} />;
+}
+
 export function App() {
     return (
         <AuthProvider>
             <SettingsProvider>
-                <AppContent />
+                <AccountApp />
             </SettingsProvider>
         </AuthProvider>
     );

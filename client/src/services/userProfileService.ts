@@ -11,6 +11,8 @@ import { supabase } from './supabase';
 
 const STORAGE_KEY = 'neurostudy_user_profile';
 const CURRENT_VERSION = 1;
+let profileUserId: string | null = null;
+const profileKey = () => `${STORAGE_KEY}:${profileUserId || 'guest'}`;
 
 const STUDY_AREAS: StudyArea[] = ['health', 'engineering', 'law', 'marketing', 'general'];
 const PURPOSES: Purpose[] = ['vestibular', 'exam', 'graduation', 'postgrad', 'professional'];
@@ -54,7 +56,7 @@ const normalizeProfile = (profile: Partial<UserProfile> | null | undefined): Use
 };
 
 const writeLocalProfile = (profile: UserProfile): void => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    localStorage.setItem(profileKey(), JSON.stringify(profile));
 };
 
 const getAuthenticatedUserId = async (userIdOverride?: string) => {
@@ -71,7 +73,7 @@ const getAuthenticatedUserId = async (userIdOverride?: string) => {
  */
 export const getProfile = (): UserProfile | null => {
     try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(profileKey());
         if (!stored) return null;
 
         const profile = normalizeProfile(JSON.parse(stored) as Partial<UserProfile>);
@@ -100,7 +102,8 @@ export const loadProfile = async (userIdOverride?: string): Promise<UserProfile 
 
     try {
         const userId = await getAuthenticatedUserId(userIdOverride);
-        if (!userId) return getProfile();
+        if (!userId) return null;
+        profileUserId = userId;
 
         const { data, error } = await supabase
             .from('user_data')
@@ -113,6 +116,7 @@ export const loadProfile = async (userIdOverride?: string): Promise<UserProfile 
             return getProfile();
         }
 
+        if (profileUserId !== userId) return null;
         const content = data?.content as UserDataContent | null | undefined;
         const cloudProfile = normalizeProfile(content?.profile);
 
@@ -145,32 +149,10 @@ export const saveProfileToCloud = async (profile: UserProfile, userIdOverride?: 
         const userId = await getAuthenticatedUserId(userIdOverride);
         if (!userId) return;
 
-        const { data, error: loadError } = await supabase
-            .from('user_data')
-            .select('content')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-        if (loadError) {
-            console.warn('[UserProfile] Erro ao ler user_data antes de salvar perfil:', loadError.message);
-        }
-
-        const existingContent = (data?.content ?? {}) as UserDataContent;
-        const content: UserDataContent = {
-            ...existingContent,
-            profile,
-        };
-
-        const { error } = await supabase
-            .from('user_data')
-            .upsert(
-                {
-                    user_id: userId,
-                    content,
-                    updated_at: new Date().toISOString(),
-                },
-                { onConflict: 'user_id' }
-            );
+        const { error } = await supabase.rpc('save_user_profile', {
+            p_user_id: userId,
+            p_profile: profile,
+        });
 
         if (error) {
             console.warn('[UserProfile] Erro ao salvar perfil na nuvem:', error.message, error.details, error.hint);
@@ -202,7 +184,7 @@ export const saveProfile = (profile: Partial<UserProfile>): UserProfile => {
     try {
         writeLocalProfile(newProfile);
         console.log('[UserProfile] Perfil salvo localmente:', newProfile);
-        void saveProfileToCloud(newProfile);
+        void saveProfileToCloud(newProfile, profileUserId || undefined);
         return newProfile;
     } catch (error) {
         console.error('[UserProfile] Erro ao salvar perfil:', error);
@@ -215,7 +197,7 @@ export const saveProfile = (profile: Partial<UserProfile>): UserProfile => {
  */
 export const clearProfile = (): void => {
     try {
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(profileKey());
         console.log('[UserProfile] Perfil removido');
     } catch (error) {
         console.error('[UserProfile] Erro ao limpar perfil:', error);
